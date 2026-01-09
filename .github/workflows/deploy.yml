@@ -1,4 +1,4 @@
-name: Deploy LabRoby to Pages
+ name: Deploy LabRoby to Pages
 
 on:
   push:
@@ -25,15 +25,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # הוסר ה-cache כדי למנוע את השגיאה
 
       - name: Install dependencies
-        # הוספת flags להתקנה נקייה ללא תלות בקובץ lock
         run: npm install --no-audit --no-fund
 
-   - name: Build
-        # הוספנו פקודה שעוקפת את בדיקת ה-TypeScript (tsc) ומריצה רק את ה-Vite Build
-        run: npx vite build
+      - name: Build
+        run: npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
