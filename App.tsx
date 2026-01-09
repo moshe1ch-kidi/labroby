@@ -1,4 +1,4 @@
- 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -387,7 +387,6 @@ const App: React.FC = () => {
   const [projectModal, setProjectModal] = useState<{isOpen: boolean, mode: 'save' | 'load'}>({isOpen: false, mode: 'save'});
   const [isPythonModalOpen, setIsPythonModalOpen] = useState(false);
   const [monitoredValues, setMonitoredValues] = useState<Record<string, any>>({});
-  // Fix: Removed 'new' keyword before 'useState'
   const [visibleVariables, setVisibleVariables] = useState<Set<string>>(new Set());
   const blocklyEditorRef = useRef<BlocklyEditorHandle>(null);
   const controlsRef = useRef<any>(null); // Reference to OrbitControls
@@ -722,7 +721,8 @@ const App: React.FC = () => {
           });
         } else { // Pen is up
             if (activeDrawingRef.current) { 
-                setCompletedDrawings(prevCompleted => [...prevCompleted, activeDrawingRef.current!]);
+                // Fix: Change prevCompleted to prev
+                setCompletedDrawings(prev => [...prev, activeDrawingRef.current!]);
                 setActiveDrawing(null);
                 activeDrawingRef.current = null; // Update ref immediately
             }
