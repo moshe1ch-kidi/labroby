@@ -2,7 +2,7 @@ name: Deploy LabRoby to Pages
 
 on:
   push:
-    branches: ["main"] # וודא שזה שם הענף הראשי שלך (main או master)
+    branches: ["main"] 
   workflow_dispatch:
 
 permissions:
@@ -25,13 +25,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          # הסרנו את שורת ה-cache כדי שלא יחפש package-lock.json
 
       - name: Install dependencies
         run: npm install
 
       - name: Build
-        # השתמשנו ב-vite build ישירות כדי למנוע קריסה על שגיאות טיפוסים (TS) אם יש כאלו
         run: npx vite build
 
       - name: Setup Pages
