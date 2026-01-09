@@ -1,4 +1,4 @@
- name: Deploy LabRoby to Pages
+name: Deploy LabRoby to Pages
 
 on:
   push:
