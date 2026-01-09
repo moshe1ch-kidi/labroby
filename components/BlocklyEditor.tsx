@@ -1,4 +1,4 @@
-
+ 
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { initBlockly, toolbox, getScratchTheme, HAT_BLOCKS } from '../services/blocklySetup';
