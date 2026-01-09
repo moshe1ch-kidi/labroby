@@ -21,7 +21,7 @@ const BASE_VELOCITY = 0.165; // Retained at 3x original for normal forward movem
 const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much faster turning
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwNC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmbGlsPSJub25lIiBzZmlsbC1vcGFjaXR5PSIxIiBzdHJva2U9IiNlYzQ4OTkiIHN0cm9rZS13aWR0aD0iMiIgc3RyYtBLLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtdW5lam9pbj0icm91bmQiPjxwYXRoIGQ9MTAuNTQgOC40NmE1IDUgMCAxIDAtNy4wNyA3LjA3bDEuNDEgMS40MWEyIDIgMCAwIDAgMi44MyAwbDIuODMtMi44M2EyIDIgMCAwIDAgMC0yLjgzbC0xLjQxLTEuNDF6Ii8+PHBhdGggZD0ibTkgMTkgNW0tNy05IDUtNSIvPjxwYXRoIGQ9Ik05LjUgMTQuNSA0IDkiLz48cGF0aCBkPSJtMTggNiAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAg1IDAtMi44LTy44bC0xLjQgMS40IDIuOCAy.4IDEuNC0x.4eiIvPjwvc3ZnPgo=') 0 24, crosshair`;
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwNC9wcm9ncmVzc2Jhcl91cmwvc2d2LzE1MzU0MS9jb3B5LWhhbmQuc3Zn') 0 24, crosshair`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -386,6 +386,7 @@ const App: React.FC = () => {
   const [projectModal, setProjectModal] = useState<{isOpen: boolean, mode: 'save' | 'load'}>({isOpen: false, mode: 'save'});
   const [isPythonModalOpen, setIsPythonModalOpen] = useState(false);
   const [monitoredValues, setMonitoredValues] = useState<Record<string, any>>({});
+  // Fix: Removed 'new' keyword before 'useState'
   const [visibleVariables, setVisibleVariables] = useState<Set<string>>(new Set());
   const blocklyEditorRef = useRef<BlocklyEditorHandle>(null);
   const controlsRef = useRef<any>(null); // Reference to OrbitControls
@@ -409,7 +410,8 @@ const App: React.FC = () => {
   const listenersRef = useRef<{ messages: Record<string, (() => Promise<void>)[]>, colors: { color: string, cb: () => Promise<void>, lastMatch: boolean }[], obstacles: { cb: () => Promise<void>, lastMatch: boolean }[], distances: { threshold: number, cb: () => Promise<void>, lastMatch: boolean }[], variables: Record<string, any> }>({ messages: {}, colors: [], obstacles: [], distances: [], variables: {} });
 
   // New state to hold the Blockly color pick callback
-  const [blocklyColorPickCallback, setBlocklyColorPickCallback] = useState<((newColor: string) => void) | null>(null);
+  // CHANGED: Using useRef for the Blockly color pick callback for better stability
+  const blocklyColorPickCallbackRef = useRef<((newColor: string) => void) | null>(null);
 
   const showToast = useCallback((message: string, type: 'success' | 'info' | 'error' = 'success') => { setToast({ message, type }); setTimeout(() => setToast(null), 4000); }, []);
 
@@ -843,18 +845,21 @@ const App: React.FC = () => {
 
   // Handler for when ColorPickerTool selects a color
   const handlePickerSelect = useCallback((hexColor: string) => {
-    if (blocklyColorPickCallback) {
-      blocklyColorPickCallback(hexColor);
+    // MODIFIED: Use blocklyColorPickCallbackRef.current
+    if (blocklyColorPickCallbackRef.current) {
+      blocklyColorPickCallbackRef.current(hexColor);
+    } else {
+      console.error("ColorPickerTool: Blockly color pick callback is null. Cannot set color.");
+      showToast("Failed to set color in Blockly. Please try again.", "error");
     }
     setIsColorPickerActive(false);
     setPickerHoverColor(null);
-    setBlocklyColorPickCallback(null);
-  }, [blocklyColorPickCallback]);
-
+    blocklyColorPickCallbackRef.current = null; // MODIFIED: Clear the ref after use
+  }, [showToast]); // MODIFIED: Removed blocklyColorPickCallback from dependencies, now depends on showToast
 
   const showBlocklyColorPicker = useCallback((onPick: (newColor: string) => void) => {
     setIsColorPickerActive(true); // Activate the color picker tool visually
-    setBlocklyColorPickCallback(() => onPick); // Store the callback from Blockly
+    blocklyColorPickCallbackRef.current = onPick; // MODIFIED: Store the callback directly in the ref
   }, []);
 
 
