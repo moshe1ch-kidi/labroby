@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,9 +25,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          # הוסר ה-cache כדי למנוע את השגיאה
 
       - name: Install dependencies
+        # הוספת flags להתקנה נקייה ללא תלות בקובץ lock
         run: npm install --no-audit --no-fund
 
       - name: Build
