@@ -1,4 +1,4 @@
-
+ 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -21,7 +21,8 @@ const BASE_VELOCITY = 0.165; // Retained at 3x original for normal forward movem
 const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much faster turning
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwNC9wcm9ncmVzc2Jhcl91cmwvc2d2LzE1MzU0MS9jb3B5LWhhbmQuc3Zn') 0 24, crosshair`;
+// Updated to a more appropriate dropper cursor SVG
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1waXBldHRlIj48cGF0aCBkPSJtMiAyMiA1LTUiLz48cGF0aCBkPSJNOS41IDE0LjUgMTYgOGwzIDMtNi41IDYuNS0zLTN6Ii8+PHBhdGggZD0ibTcuNSAxMS41IDUtNSIvPjxwYXRoIGQ9Im0xOCA2IDMtMyIvPjxwYXRoIGQ9Ik0yMC45IDcuMWEyIDIgMCAxIDAtMi44LTIuOGwtMS40IDEuNCAyLjggMi44IDEuNC0xLjR6Ii8+PC9zdmc+') 0 24, crosshair`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
