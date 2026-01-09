@@ -1,4 +1,4 @@
- 
+
 import React, { useState, useCallback } from 'react';
 import { Html } from '@react-three/drei';
 import { Vector3, Mesh, Color } from 'three';
@@ -29,7 +29,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
             return {
                 name: mesh?.name, 
                 type: mesh?.type, 
-                // FIX: Safely access position.toArray()
+                // Safely access position.toArray()
                 position: mesh?.position ? mesh.position.toArray() : 'N/A',
                 // Safely access material type, accounting for single or array materials
                 material: (() => {
@@ -99,7 +99,12 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
                         // This prioritizes closest non-helper objects.
                         if (mat.opacity > 0) { // Still respect opacity
                             console.log(`ColorPickerTool: Detected primary object: ${object.name || object.type} with color ${hex}, material type: ${mat.type}`);
-                            setCursorPos(hit.point);
+                            // FIX: Add check for hit.point before setting cursorPos
+                            if (hit.point) {
+                                setCursorPos(hit.point);
+                            } else {
+                                console.warn(`ColorPickerTool: Intersection found for ${object.name || object.type}, but hit.point is undefined.`);
+                            }
                             return hex; // Found the color, return it immediately
                         } else {
                             console.log(`ColorPickerTool: Skipping transparent object: ${object.name || object.type}, material type: ${mat.type}, looking for something more specific.`);
