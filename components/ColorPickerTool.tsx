@@ -1,4 +1,4 @@
-
+ 
 import React, { useState, useCallback } from 'react';
 import { Html } from '@react-three/drei';
 import { Vector3, Mesh, Color } from 'three';
@@ -29,8 +29,9 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
             return {
                 name: mesh?.name, 
                 type: mesh?.type, 
-                position: mesh?.position?.toArray(),
-                // FIX: Safely access material type, accounting for single or array materials
+                // FIX: Safely access position.toArray()
+                position: mesh?.position ? mesh.position.toArray() : 'N/A',
+                // Safely access material type, accounting for single or array materials
                 material: (() => {
                     const mat = mesh?.material;
                     if (!mat) return 'NoMaterial';
@@ -38,7 +39,8 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
                         return `MultiMaterial (${mat.length} materials)`;
                     }
                     return mat.type;
-                })()
+                })(),
+                userData: mesh?.userData
             };
         }));
         
@@ -53,14 +55,13 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
 
             const object = hit.object;
             
-            // Skip helper objects and robot parts immediately
+            // Skip ONLY specific helper objects (not robot parts anymore)
             if (
                 object.name === 'picker-interaction-plane' || 
                 object.name === 'picker-visual-indicator' || 
-                object.name === 'grid-helper' ||
-                object.userData?.isRobotPart
+                object.name === 'grid-helper'
             ) {
-                console.log(`ColorPickerTool: Skipping helper/robot part: ${object.name || object.type}`);
+                console.log(`ColorPickerTool: Skipping helper: ${object.name || object.type}`);
                 continue;
             }
 
@@ -83,8 +84,9 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
                 continue; // Always continue after processing ground-plane, look for objects *on* it
             }
 
-            // For all other relevant meshes, try to get their color
-            // Ensure object is a Mesh and has material before proceeding
+            // For all other relevant meshes (including robot parts), try to get their color
+            // FIX: Removed `object.userData?.isRobotPart` from this skip logic.
+            // FIX: Also removed `hex !== '#FFFFFF'` to allow picking white objects directly.
             if (object instanceof Mesh && object.material) {
                 const materials = Array.isArray(object.material) ? object.material : [object.material];
                 
@@ -93,17 +95,14 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
                     if (mat && mat.color instanceof Color) { 
                         const hex = "#" + mat.color.getHexString().toUpperCase();
                         
-                        // If we find a non-white, non-transparent color, this is the best hit.
-                        // Prioritize this immediately.
-                        // We also check for mat.opacity to avoid picking invisible objects if they exist in the scene graph.
-                        if (hex !== '#FFFFFF' && mat.opacity > 0) {
-                            console.log(`ColorPickerTool: Detected primary colored object: ${object.name || object.type} with color ${hex}, material type: ${mat.type}`);
+                        // FIX: If we find any valid color (even white) from a non-helper object, return it immediately.
+                        // This prioritizes closest non-helper objects.
+                        if (mat.opacity > 0) { // Still respect opacity
+                            console.log(`ColorPickerTool: Detected primary object: ${object.name || object.type} with color ${hex}, material type: ${mat.type}`);
                             setCursorPos(hit.point);
                             return hex; // Found the color, return it immediately
                         } else {
-                            // If it's a white or transparent object, keep searching for something else.
-                            console.log(`ColorPickerTool: Skipping white or transparent object: ${object.name || object.type}, material type: ${mat.type}, looking for something more specific.`);
-                            continue;
+                            console.log(`ColorPickerTool: Skipping transparent object: ${object.name || object.type}, material type: ${mat.type}, looking for something more specific.`);
                         }
                     } else {
                         console.log(`ColorPickerTool: Material of object ${object.name || object.type} has no valid color. Skipping.`);
@@ -114,7 +113,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
             }
         }
 
-        // If we reached here, no distinct non-white object was found.
+        // If we reached here, no distinct non-helper object was found or all were transparent.
         // Fallback to the ground plane's color if it was hit.
         if (groundPlaneHit) {
             console.log(`ColorPickerTool: Falling back to ground-plane color: ${groundPlaneHit.color}`);
@@ -126,8 +125,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
         console.log("ColorPickerTool: No colored object or ground-plane detected, returning default white.");
         setCursorPos(null); // Clear cursor position if no object found
         return "#FFFFFF";
-    }, [raycaster, scene, camera, mouse]); // Add onColorHover to dependencies if it's used inside useCallback
-                                                        // It is used indirectly via the return, but it's good practice.
+    }, [raycaster, scene, camera, mouse]); // onColorHover is passed as a prop, not directly used in the useCallback dependencies.
 
     const handlePointerMove = (e: any) => {
         e.stopPropagation();
