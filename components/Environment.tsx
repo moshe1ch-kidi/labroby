@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { Grid, Environment as DreiEnvironment, ContactShadows, Text } from '@react-three/drei';
 import * as THREE from 'three';
-import { CustomObject, RobotState } from '../types';
+import { CustomObject, RobotState } from '../types'; // Removed ROBOT_LAYER as it's not needed here directly
 import { ThreeEvent } from '@react-three/fiber'; // Import ThreeEvent here
 
 interface EnvironmentProps {
@@ -41,7 +41,7 @@ const UniformEllipse = ({ x = 0, y = 0, z = 0, radiusX = 12, radiusZ = 6, width 
             const t = (i / segments) * Math.PI * 2;
             const ct = Math.cos(t); const st = Math.sin(t);
             const px = radiusX * ct; const pz = radiusZ * st;
-            const nx = (2 * px) / (radiusX * radiusX); const nz = (2 * pz) / (radiusZ * radiusZ);
+            const nx = (2 * px) / (radiusX * radiusX); const nz = (2 * pz) / (radiusZ / radiusZ);
             const mag = Math.sqrt(nx * nx + nz * nz);
             const nnx = nx / mag; const nnz = nz / mag;
             const halfW = width / 2;
@@ -73,8 +73,6 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
     onPointerMove, 
     onPointerUp,
     robotState,
-    // Removed isColorPickerActive prop as it's no longer needed here
-    // isColorPickerActive
 }) => {
   const config = useMemo(() => {
       const isRoomNav = challengeId === 'c1';
@@ -137,7 +135,6 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
           // Updated handleSelect to check isColorPickerActive BEFORE handling selection,
           // ensuring picker interaction is prioritized.
           const handleSelect = (e: ThreeEvent<MouseEvent>) => { 
-            // if (isColorPickerActive) { e.stopPropagation(); return; } // Removed conditional
             e.stopPropagation(); 
             if (onObjectSelect) onObjectSelect(obj.id); 
           };

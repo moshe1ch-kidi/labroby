@@ -1,157 +1,153 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Html } from '@react-three/drei';
-import { Vector3, Mesh, Color } from 'three';
+import { Vector3, Mesh, Color, Layers } from 'three'; // Import Layers
 import { useThree } from '@react-three/fiber';
+import { ROBOT_LAYER } from '../types'; // Import ROBOT_LAYER
 
 interface ColorPickerToolProps {
     onColorHover: (hexColor: string) => void;
-    onColorSelect: (hexColor: string) => void;
+    // Modified to receive the Blockly FieldColour instance directly
+    onColorSelect: (hexColor: string, field: any) => void; 
+    blocklyFieldRef: React.MutableRefObject<any | null>; // Ref to the Blockly FieldColour instance
 }
 
-const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColorSelect }) => {
+const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColorSelect, blocklyFieldRef }) => {
     const [cursorPos, setCursorPos] = useState<Vector3 | null>(null);
     const { raycaster, scene, camera, mouse } = useThree();
 
+    // Setup layers for raycaster
+    const robotLayers = useCallback(() => {
+      const layers = new Layers();
+      layers.set(ROBOT_LAYER);
+      return layers;
+    }, []);
+
+    const environmentLayers = useCallback(() => {
+      const layers = new Layers();
+      layers.enable(0); // Default layer
+      // If we had a specific environment layer, we would enable it here.
+      // layers.enable(ENVIRONMENT_LAYER);
+      return layers;
+    }, []);
+
     const sampleColorUnderMouse = useCallback(() => {
-        // Add defensive checks for raycaster setup
         if (!raycaster || !camera || !mouse) {
             console.warn("ColorPickerTool: Raycaster or camera/mouse not ready for picking.");
             return null;
         }
 
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(scene.children, true);
+        let intersects;
+        let pickedColor: string | null = null;
+        let pickedPoint: Vector3 | null = null;
 
-        // Enhanced logging for debugging
-        console.log("ColorPickerTool: Intersects found:", intersects.length, intersects.map(i => { 
-            const mesh = i.object as Mesh; // Cast once for convenience
-            return {
-                name: mesh?.name, 
-                type: mesh?.type, 
-                // Safely access position.toArray()
-                position: mesh?.position ? mesh.position.toArray() : 'N/A',
-                // Safely access material type, accounting for single or array materials
-                material: (() => {
-                    const mat = mesh?.material;
-                    if (!mat) return 'NoMaterial';
-                    if (Array.isArray(mat)) {
-                        return `MultiMaterial (${mat.length} materials)`;
+        // --- Phase 1: Try to hit ROBOT_LAYER first (higher priority) ---
+        raycaster.setFromCamera(mouse, camera);
+        raycaster.layers = robotLayers(); // Only check ROBOT_LAYER
+        intersects = raycaster.intersectObjects(scene.children, true);
+
+        for (const hit of intersects) {
+            if (!hit || !hit.object || !hit.point) continue;
+
+            const object = hit.object;
+            // Skip picker's own interaction plane or visual indicator
+            if (object.name === 'picker-interaction-plane' || object.name === 'picker-visual-indicator') {
+                continue;
+            }
+
+            // If it's a mesh and has a material, try to get its color
+            if (object instanceof Mesh && object.material) {
+                const materials = Array.isArray(object.material) ? object.material : [object.material];
+                for (const mat of materials) {
+                    if (mat && mat.color instanceof Color && mat.opacity > 0) {
+                        pickedColor = "#" + mat.color.getHexString().toUpperCase();
+                        pickedPoint = hit.point;
+                        setCursorPos(pickedPoint);
+                        return pickedColor; // Immediately return if robot part is found
                     }
-                    return mat.type;
-                })(),
-                userData: mesh?.userData
-            };
-        }));
+                }
+            }
+        }
         
+        // --- Phase 2: If no robot parts, try to hit other objects (e.g., ground, custom objects) ---
+        raycaster.layers = environmentLayers(); // Check environment layers (default layer 0)
+        intersects = raycaster.intersectObjects(scene.children, true);
+
         let groundPlaneHit: { color: string, point: Vector3 } | null = null;
 
         for (const hit of intersects) {
-            // Ensure hit and hit.object are valid
-            if (!hit || !hit.object) {
-                console.log("ColorPickerTool: Skipping invalid intersection hit (no object).");
-                continue;
-            }
+            if (!hit || !hit.object || !hit.point) continue;
 
             const object = hit.object;
-            
-            // Skip ONLY specific helper objects (not robot parts anymore)
-            if (
-                object.name === 'picker-interaction-plane' || 
-                object.name === 'picker-visual-indicator' || 
-                object.name === 'grid-helper'
-            ) {
-                console.log(`ColorPickerTool: Skipping helper: ${object.name || object.type}`);
+            if (object.name === 'picker-interaction-plane' || object.name === 'picker-visual-indicator' || object.name === 'grid-helper') {
                 continue;
             }
-
-            // If it's the ground plane, store it as a potential fallback, but continue searching for other objects
+            
+            // Handle ground plane as a fallback, but continue searching for other custom objects
             if (object.name === 'ground-plane') {
-                // Ensure object is a Mesh and has material before proceeding
                 if (object instanceof Mesh && object.material) {
                     const materials = Array.isArray(object.material) ? object.material : [object.material];
                     for (const mat of materials) {
-                        // Ensure material and its color property exist
                         if (mat && mat.color instanceof Color) { 
                             groundPlaneHit = { color: "#" + mat.color.getHexString().toUpperCase(), point: hit.point };
-                            console.log("ColorPickerTool: Storing ground-plane as fallback.");
-                            break; // Only need one color from ground
+                            break; 
                         }
                     }
-                } else {
-                    console.log(`ColorPickerTool: Ground-plane object ${object.name || object.type} is not a Mesh or has no material. Skipping.`);
                 }
-                continue; // Always continue after processing ground-plane, look for objects *on* it
+                continue; // Always continue after processing ground-plane
             }
 
-            // For all other relevant meshes (including robot parts), try to get their color
-            // FIX: Removed `object.userData?.isRobotPart` from this skip logic.
-            // FIX: Also removed `hex !== '#FFFFFF'` to allow picking white objects directly.
+            // For all other relevant meshes (custom objects), try to get their color
             if (object instanceof Mesh && object.material) {
                 const materials = Array.isArray(object.material) ? object.material : [object.material];
-                
                 for (const mat of materials) {
-                    // Ensure material and its color property exist
-                    if (mat && mat.color instanceof Color) { 
-                        const hex = "#" + mat.color.getHexString().toUpperCase();
-                        
-                        // FIX: If we find any valid color (even white) from a non-helper object, return it immediately.
-                        // This prioritizes closest non-helper objects.
-                        if (mat.opacity > 0) { // Still respect opacity
-                            console.log(`ColorPickerTool: Detected primary object: ${object.name || object.type} with color ${hex}, material type: ${mat.type}`);
-                            // FIX: Add check for hit.point before setting cursorPos
-                            if (hit.point) {
-                                setCursorPos(hit.point);
-                            } else {
-                                console.warn(`ColorPickerTool: Intersection found for ${object.name || object.type}, but hit.point is undefined.`);
-                            }
-                            return hex; // Found the color, return it immediately
-                        } else {
-                            console.log(`ColorPickerTool: Skipping transparent object: ${object.name || object.type}, material type: ${mat.type}, looking for something more specific.`);
-                        }
-                    } else {
-                        console.log(`ColorPickerTool: Material of object ${object.name || object.type} has no valid color. Skipping.`);
+                    if (mat && mat.color instanceof Color && mat.opacity > 0) { 
+                        pickedColor = "#" + mat.color.getHexString().toUpperCase();
+                        pickedPoint = hit.point;
+                        setCursorPos(pickedPoint);
+                        return pickedColor; // Immediately return if custom object is found
                     }
                 }
-            } else {
-                console.log(`ColorPickerTool: Object ${object.name || object.type} is not a Mesh or has no material. Skipping.`);
             }
         }
 
-        // If we reached here, no distinct non-helper object was found or all were transparent.
-        // Fallback to the ground plane's color if it was hit.
+        // If no distinct object found, fall back to ground plane color
         if (groundPlaneHit) {
-            console.log(`ColorPickerTool: Falling back to ground-plane color: ${groundPlaneHit.color}`);
             setCursorPos(groundPlaneHit.point);
             return groundPlaneHit.color;
         }
         
-        // If nothing else, return default white
-        console.log("ColorPickerTool: No colored object or ground-plane detected, returning default white.");
-        setCursorPos(null); // Clear cursor position if no object found
-        return "#FFFFFF";
-    }, [raycaster, scene, camera, mouse]); // onColorHover is passed as a prop, not directly used in the useCallback dependencies.
-
-    const handlePointerMove = (e: any) => {
-        e.stopPropagation();
-        const hex = sampleColorUnderMouse();
-        if (hex !== null) onColorHover(hex); // Only call if a color (or default white) is determined
-    };
-
-    const handleClick = (e: any) => {
-        e.stopPropagation();
-        const hex = sampleColorUnderMouse();
-        if (hex !== null) onColorSelect(hex); // Only call if a color (or default white) is determined
-    };
-
-    const handlePointerOut = () => {
+        // Default to white if nothing is hit
         setCursorPos(null);
-        onColorHover(""); // Clear hover color when mouse leaves
-    };
+        return "#FFFFFF";
+    }, [raycaster, scene, camera, mouse, robotLayers, environmentLayers]);
+
+
+    const handlePointerMove = useCallback((e: any) => {
+        e.stopPropagation();
+        const hex = sampleColorUnderMouse();
+        if (hex !== null) onColorHover(hex);
+    }, [onColorHover, sampleColorUnderMouse]);
+
+    const handleClick = useCallback((e: any) => {
+        e.stopPropagation();
+        const hex = sampleColorUnderMouse();
+        // MODIFIED: Pass the Blockly FieldColour instance from ref to onColorSelect
+        if (hex !== null && blocklyFieldRef.current) {
+            onColorSelect(hex, blocklyFieldRef.current);
+        } else if (!blocklyFieldRef.current) {
+            console.error("ColorPickerTool: Blockly field instance is null. Cannot set color.");
+        }
+    }, [onColorSelect, sampleColorUnderMouse, blocklyFieldRef]);
+
+    const handlePointerOut = useCallback(() => {
+        setCursorPos(null);
+        onColorHover("");
+    }, [onColorHover]);
 
     return (
         <group>
-            {/* משטח אינטראקציה בלתי נראה שתופס את העכבר */}
+            {/* Invisible interaction plane that captures mouse events */}
             <mesh 
                 name="picker-interaction-plane"
                 rotation={[-Math.PI / 2, 0, 0]} 
@@ -166,7 +162,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
 
             {cursorPos && (
                 <group position={cursorPos}>
-                    {/* עיגול ויזואלי סביב העכבר */}
+                    {/* Visual circle around the mouse */}
                     <mesh name="picker-visual-indicator" rotation={[-Math.PI/2, 0, 0]} position={[0, 0.05, 0]}>
                         <ringGeometry args={[0.15, 0.22, 32]} />
                         <meshBasicMaterial color="#ec4899" transparent opacity={0.9} toneMapped={false} />

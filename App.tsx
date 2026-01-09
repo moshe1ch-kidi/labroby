@@ -14,7 +14,8 @@ import RulerTool from './components/RulerTool';
 import ColorPickerTool from './components/ColorPickerTool';
 import CameraManager from './components/CameraManager'; // ייבוא CameraManager
 import { CHALLENGES, Challenge } from './data/challenges';
-import { ThreeEvent } from '@react-three/fiber'; // Import ThreeEvent here
+import { ThreeEvent, useThree } from '@react-three/fiber'; // Import ThreeEvent and useThree here
+import { ROBOT_LAYER } from './types'; // Import ROBOT_LAYER
 
 const TICK_RATE = 16; 
 const BASE_VELOCITY = 0.165; // Retained at 3x original for normal forward movement
@@ -22,7 +23,7 @@ const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much f
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
 // Updated to a more appropriate dropper cursor SVG
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1waXBldHRlIj48cGF0aCBkPSJtMiAyMiA1LTUiLz48cGF0aCBkPSJNOS41IDE0LjUgMTYgOGwzIDMtNi41IDYuNS0zLTN6Ii8+PHBhdGggZD0ibTcuNSAxMS41IDUtNSIvPjxwYXRoIGQ9Im0xOCA2IDMtMyIvPjxwYXRoIGQ9Ik0yMC45IDcuMWEyIDIgMCAxIDAtMi44LTIuOGwtMS40IDEuNCAyLjggMi44IDEuNC0xLjR6Ii8+PC9zdmc+') 0 24, crosshair`;
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtcGlwZXR0ZSI%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTjkuNSAxNC41IDE2IDhsMyAzLTYuNSA2LjUtMy0zemIvPjxwYXRoIGQ9Im03LjUgMTEuNSAzLTViLz48cGF0aCBkPSJtMTggNiAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAxLjQtMS40eiIvPjwvc3ZnPikgMCAyNCwgY3Jvc3NoYWly`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -370,6 +371,27 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     };
 };
 
+// New component to manage camera layers
+const CameraLayerManager: React.FC = () => {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    // Enable default layer (0) and ROBOT_LAYER (1)
+    camera.layers.enable(0); 
+    camera.layers.enable(ROBOT_LAYER);
+
+    // Ensure camera's frustum is updated if layers change in a way that affects rendering
+    camera.updateProjectionMatrix();
+
+    // No specific cleanup needed as these layers should remain enabled for the main view
+    return () => {
+      // You could disable if needed, but for general scene visibility, enabling is fine.
+    };
+  }, [camera]); 
+
+  return null;
+};
+
 
 const App: React.FC = () => {
   const [generatedCode, setGeneratedCode] = useState<string>('');
@@ -400,18 +422,14 @@ const App: React.FC = () => {
   const [completedDrawings, setCompletedDrawings] = useState<ContinuousDrawing[]>([]);
   const activeDrawingRef = useRef<ContinuousDrawing | null>(null); // Ref for immediate access in callbacks
 
-  // REMOVED: This useEffect is removed as activeDrawingRef.current will be updated directly.
-  // useEffect(() => { activeDrawingRef.current = activeDrawing; }, [activeDrawing]);
-  
   const robotRef = useRef<RobotState>({ x: 0, y: 0, z: 0, rotation: 180, tilt: 0, roll: 0, speed: 100, motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', ledRightColor: 'black', isMoving: false, isTouching: false, penDown: false, penColor: '#000000' });
   const [robotState, setRobotState] = useState<RobotState>(robotRef.current);
   const isPlacingRobot = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const listenersRef = useRef<{ messages: Record<string, (() => Promise<void>)[]>, colors: { color: string, cb: () => Promise<void>, lastMatch: boolean }[], obstacles: { cb: () => Promise<void>, lastMatch: boolean }[], distances: { threshold: number, cb: () => Promise<void>, lastMatch: boolean }[], variables: Record<string, any> }>({ messages: {}, colors: [], obstacles: [], distances: [], variables: {} });
 
-  // New state to hold the Blockly color pick callback
-  // CHANGED: Using useRef for the Blockly color pick callback for better stability
-  const blocklyColorPickCallbackRef = useRef<((newColor: string) => void) | null>(null);
+  // MODIFIED: blocklyColorPickCallbackRef now stores the Blockly FieldColour instance directly
+  const blocklyColorFieldRef = useRef<any | null>(null);
 
   const showToast = useCallback((message: string, type: 'success' | 'info' | 'error' = 'success') => { setToast({ message, type }); setTimeout(() => setToast(null), 4000); }, []);
 
@@ -426,7 +444,6 @@ const App: React.FC = () => {
     
     // Initial sensor reading for start position
     const sd_initial = calculateSensorReadings(startX, startZ, startRot, activeChallenge?.id, envObjs); 
-    // Fix: Changed the duplicate 'ledLeftColor' to 'ledRightColor'
     const d = { ...robotRef.current, x: startX, y: sd_initial.y, z: startZ, rotation: startRot, motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', ledRightColor: 'black', tilt: sd_initial.tilt, roll: sd_initial.roll, penDown: false, isTouching: false };
     robotRef.current = d; 
     setRobotState(d); 
@@ -721,7 +738,6 @@ const App: React.FC = () => {
           });
         } else { // Pen is up
             if (activeDrawingRef.current) { 
-                // Fix: Change prevCompleted to prev
                 setCompletedDrawings(prev => [...prev, activeDrawingRef.current!]);
                 setActiveDrawing(null);
                 activeDrawingRef.current = null; // Update ref immediately
@@ -741,7 +757,7 @@ const App: React.FC = () => {
           activeDrawingRef.current = null; // Update ref immediately
       }
     };
-  }, [isRunning, customObjects, activeChallenge, challengeSuccess, showToast]); // REMOVED activeDrawing from dependencies.
+  }, [isRunning, customObjects, activeChallenge, challengeSuccess, showToast]); 
 
   // Pass activeChallenge?.id to calculateSensorReadings
   const sensorReadings = useMemo(() => calculateSensorReadings(robotState.x, robotState.z, robotState.rotation, activeChallenge?.id, customObjects), [robotState.x, robotState.z, robotState.rotation, activeChallenge, customObjects]);
@@ -845,22 +861,23 @@ const App: React.FC = () => {
   }, []);
 
   // Handler for when ColorPickerTool selects a color
-  const handlePickerSelect = useCallback((hexColor: string) => {
-    // MODIFIED: Use blocklyColorPickCallbackRef.current
-    if (blocklyColorPickCallbackRef.current) {
-      blocklyColorPickCallbackRef.current(hexColor);
+  // MODIFIED: Receives the Blockly FieldColour instance directly
+  const handlePickerSelect = useCallback((hexColor: string, field: any) => {
+    if (field) {
+      field.setValue(hexColor); // Directly call setValue on the Blockly field instance
     } else {
-      console.error("ColorPickerTool: Blockly color pick callback is null. Cannot set color.");
+      console.error("ColorPickerTool: Blockly field instance is null. Cannot set color.");
       showToast("Failed to set color in Blockly. Please try again.", "error");
     }
     setIsColorPickerActive(false);
     setPickerHoverColor(null);
-    blocklyColorPickCallbackRef.current = null; // MODIFIED: Clear the ref after use
-  }, [showToast]); // MODIFIED: Removed blocklyColorPickCallback from dependencies, now depends on showToast
+    blocklyColorFieldRef.current = null; // Clear the ref after use
+  }, [showToast]); 
 
-  const showBlocklyColorPicker = useCallback((onPick: (newColor: string) => void) => {
+  // MODIFIED: showBlocklyColorPicker now sets the Blockly FieldColour instance in a ref
+  const showBlocklyColorPicker = useCallback((field: any) => {
     setIsColorPickerActive(true); // Activate the color picker tool visually
-    blocklyColorPickCallbackRef.current = onPick; // MODIFIED: Store the callback directly in the ref
+    blocklyColorFieldRef.current = field; // Store the Blockly FieldColour instance
   }, []);
 
 
@@ -1076,6 +1093,7 @@ const App: React.FC = () => {
             shadows 
             camera={{ position: [10, 10, 10], fov: 45 }}
           >
+            <CameraLayerManager /> {/* NEW: Manages camera layers for all objects */}
             <SimulationEnvironment 
               challengeId={activeChallenge?.id} 
               customObjects={customObjects} 
@@ -1105,6 +1123,7 @@ const App: React.FC = () => {
               <ColorPickerTool 
                 onColorHover={handlePickerHover} 
                 onColorSelect={handlePickerSelect} 
+                blocklyFieldRef={blocklyColorFieldRef} // Pass the ref
               />
             )}
           </Canvas>

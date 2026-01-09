@@ -5,6 +5,9 @@ export type CameraMode = 'HOME' | 'TOP' | 'FOLLOW';
 export type EditorTool = 'NONE' | 'ROTATE' | 'PAN' | 'WALL' | 'RAMP' | 'COLOR_LINE' | 'PATH' | 'ROBOT_MOVE';
 export type PathShape = 'STRAIGHT' | 'CORNER' | 'CURVED';
 
+// Define a specific layer for robot parts to optimize raycasting
+export const ROBOT_LAYER = 1; 
+
 export interface CustomObject {
     id: string;
     type: EditorTool;
@@ -66,8 +69,9 @@ declare global {
       onConfirm: (newValue: number) => void
     ) => void;
 
+    // Modified to pass the Blockly FieldColour instance directly
     showBlocklyColorPicker: (
-      onPick: (newColor: string) => void
+      field: any // This will be the Blockly.FieldColour instance
     ) => void;
   }
 }

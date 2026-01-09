@@ -11,7 +11,8 @@ interface BlocklyEditorProps {
   onToggleVariable: (name: string) => void;
   onVariablesChanged?: (allVarNames: string[], renameInfo?: {oldName: string, newName: string}) => void;
   onShowNumpad: (initialValue: string | number, onConfirm: (newValue: number) => void) => void; // New prop
-  onShowColorPicker: (onPick: (newColor: string) => void) => void; // New prop
+  // MODIFIED: onShowColorPicker now receives the Blockly Field instance
+  onShowColorPicker: (field: any) => void; // New prop
 }
 
 export interface BlocklyEditorHandle {
@@ -200,9 +201,9 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
     const python = (window as any).python;
     if (!Blockly || !javascript || !python) return;
 
-    // Expose these functions globally for Blockly to use, before initBlockly
+    // MODIFIED: window.showBlocklyColorPicker now receives the Blockly Field instance directly
     window.showBlocklyNumpad = onShowNumpad;
-    window.showBlocklyColorPicker = onShowColorPicker;
+    window.showBlocklyColorPicker = (field: any) => onShowColorPicker(field);
 
     initBlockly();
     const scratchTheme = getScratchTheme();
@@ -333,8 +334,11 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
         if (workspaceRef.current) workspaceRef.current.dispose();
         workspaceRef.current = null;
         // Clean up on unmount
-        delete window.showBlocklyNumpad;
-        delete window.showBlocklyColorPicker;
+        // MODIFIED: showBlocklyNumpad & showBlocklyColorPicker are no longer direct callbacks in window
+        // but now pass a direct instance, so cleaning up can be simpler.
+        // It's still good practice to clear them if they were set.
+        delete (window as any).showBlocklyNumpad;
+        delete (window as any).showBlocklyColorPicker;
     };
   }, [generateAndNotify, notifyVariablesChange, onShowNumpad, onShowColorPicker]);
 
