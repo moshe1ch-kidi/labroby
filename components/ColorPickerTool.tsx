@@ -14,15 +14,43 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
     const { raycaster, scene, camera, mouse } = useThree();
 
     const sampleColorUnderMouse = useCallback(() => {
+        // Add defensive checks for raycaster setup
+        if (!raycaster || !camera || !mouse) {
+            console.warn("ColorPickerTool: Raycaster or camera/mouse not ready for picking.");
+            return null;
+        }
+
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(scene.children, true);
 
-        // Refactor: Simplify initial log, detailed material info is handled in the loop below
-        console.log("ColorPickerTool: Intersects found:", intersects.length, intersects.map(i => ({ name: i.object.name, type: i.object.type, position: i.object.position.toArray() })));
+        // Enhanced logging for debugging
+        console.log("ColorPickerTool: Intersects found:", intersects.length, intersects.map(i => { 
+            const mesh = i.object as Mesh; // Cast once for convenience
+            return {
+                name: mesh?.name, 
+                type: mesh?.type, 
+                position: mesh?.position?.toArray(),
+                // FIX: Safely access material type, accounting for single or array materials
+                material: (() => {
+                    const mat = mesh?.material;
+                    if (!mat) return 'NoMaterial';
+                    if (Array.isArray(mat)) {
+                        return `MultiMaterial (${mat.length} materials)`;
+                    }
+                    return mat.type;
+                })()
+            };
+        }));
         
         let groundPlaneHit: { color: string, point: Vector3 } | null = null;
 
         for (const hit of intersects) {
+            // Ensure hit and hit.object are valid
+            if (!hit || !hit.object) {
+                console.log("ColorPickerTool: Skipping invalid intersection hit (no object).");
+                continue;
+            }
+
             const object = hit.object;
             
             // Skip helper objects and robot parts immediately
@@ -37,27 +65,32 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
             }
 
             // If it's the ground plane, store it as a potential fallback, but continue searching for other objects
-            // The ground-plane itself might be white, but we want to allow other colored objects on top to be picked.
             if (object.name === 'ground-plane') {
+                // Ensure object is a Mesh and has material before proceeding
                 if (object instanceof Mesh && object.material) {
                     const materials = Array.isArray(object.material) ? object.material : [object.material];
                     for (const mat of materials) {
-                        if (mat.color && mat.color instanceof Color) {
+                        // Ensure material and its color property exist
+                        if (mat && mat.color instanceof Color) { 
                             groundPlaneHit = { color: "#" + mat.color.getHexString().toUpperCase(), point: hit.point };
                             console.log("ColorPickerTool: Storing ground-plane as fallback.");
                             break; // Only need one color from ground
                         }
                     }
+                } else {
+                    console.log(`ColorPickerTool: Ground-plane object ${object.name || object.type} is not a Mesh or has no material. Skipping.`);
                 }
                 continue; // Always continue after processing ground-plane, look for objects *on* it
             }
 
             // For all other relevant meshes, try to get their color
+            // Ensure object is a Mesh and has material before proceeding
             if (object instanceof Mesh && object.material) {
                 const materials = Array.isArray(object.material) ? object.material : [object.material];
                 
                 for (const mat of materials) {
-                    if (mat.color && mat.color instanceof Color) {
+                    // Ensure material and its color property exist
+                    if (mat && mat.color instanceof Color) { 
                         const hex = "#" + mat.color.getHexString().toUpperCase();
                         
                         // If we find a non-white, non-transparent color, this is the best hit.
@@ -72,8 +105,12 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
                             console.log(`ColorPickerTool: Skipping white or transparent object: ${object.name || object.type}, material type: ${mat.type}, looking for something more specific.`);
                             continue;
                         }
+                    } else {
+                        console.log(`ColorPickerTool: Material of object ${object.name || object.type} has no valid color. Skipping.`);
                     }
                 }
+            } else {
+                console.log(`ColorPickerTool: Object ${object.name || object.type} is not a Mesh or has no material. Skipping.`);
             }
         }
 
@@ -87,23 +124,26 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
         
         // If nothing else, return default white
         console.log("ColorPickerTool: No colored object or ground-plane detected, returning default white.");
+        setCursorPos(null); // Clear cursor position if no object found
         return "#FFFFFF";
-    }, [raycaster, scene, camera, mouse]);
+    }, [raycaster, scene, camera, mouse]); // Add onColorHover to dependencies if it's used inside useCallback
+                                                        // It is used indirectly via the return, but it's good practice.
 
     const handlePointerMove = (e: any) => {
         e.stopPropagation();
         const hex = sampleColorUnderMouse();
-        if (hex) onColorHover(hex);
+        if (hex !== null) onColorHover(hex); // Only call if a color (or default white) is determined
     };
 
     const handleClick = (e: any) => {
         e.stopPropagation();
         const hex = sampleColorUnderMouse();
-        if (hex) onColorSelect(hex);
+        if (hex !== null) onColorSelect(hex); // Only call if a color (or default white) is determined
     };
 
     const handlePointerOut = () => {
         setCursorPos(null);
+        onColorHover(""); // Clear hover color when mouse leaves
     };
 
     return (
