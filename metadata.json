@@ -1,0 +1,5 @@
+{
+  "name": "Robot Labver3.6github",
+  "description": "A 3D educational robotics simulator featuring a VEX/EV3-style robot with block-based programming in Hebrew.",
+  "requestFramePermissions": []
+}
