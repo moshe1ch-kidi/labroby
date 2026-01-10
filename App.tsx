@@ -1,4 +1,4 @@
-
+ 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -12,7 +12,7 @@ import Numpad from './components/Numpad';
 import SensorDashboard from './components/SensorDashboard';
 import RulerTool from './components/RulerTool';
 import ColorPickerTool from './components/ColorPickerTool';
-import CameraManager from './components/CameraManager'; // ייבוא CameraManager
+import CameraManager, { CameraLayerManager } from './components/CameraManager'; // ייבוא CameraManager ו-CameraLayerManager
 import { CHALLENGES, Challenge } from './data/challenges';
 import { ThreeEvent, useThree } from '@react-three/fiber'; // Import ThreeEvent and useThree here
 import { ROBOT_LAYER } from './types'; // Import ROBOT_LAYER
@@ -23,7 +23,7 @@ const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much f
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
 // Updated to a more appropriate dropper cursor SVG
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtcGlwZXR0ZSI%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTjkuNSAxNC41IDE2IDhsMyAzLTYuNSA2LjUtMy0zemIvPjxwYXRoIGQ9Im03LjUgMTEuNSAzLTViLz48cGF0aCBkPSJtMTggNiAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAxLjQtMS40eiIvPjwvc3ZnPikgMCAyNCwgY3Jvc3NoYWly`;
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtcGlwZXR0ZSI%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTTkuNSAxNC41IDE2IDhsMyAzLTYuNSA2LjUtMy0zEiIvPjxwYXRoIGQ9Imm3LjUgMTEuNSAzLTVsLz48cGF0aCBkPSJtMTggMyAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAxLjQtMS40eiIvPjwvc3ZnPikgMCAyNCwgY3Jvc3NoYWly`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -283,23 +283,20 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
             sensorRawDecimalColor = zZone.color; 
             const hexStr = "#" + sensorRawDecimalColor.toString(16).padStart(6, '0').toUpperCase();
             
-            console.log(`Sensor: Raw detected HEX: ${hexStr} (from object type: ${zZone.type}, shape: ${zZone.shape})`);
-
             // Map detected hex to common names for easier comparison in Blockly
             // Using the new CANONICAL_COLOR_MAP for consistent naming
-            if (isColorClose(hexStr, CANONICAL_COLOR_MAP['red'])) { console.log(`Sensor: Matched RED`); sensorDetectedColor = "red"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['blue'])) { console.log(`Sensor: Matched BLUE`); sensorDetectedColor = "blue"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['green'])) { console.log(`Sensor: Matched GREEN`); sensorDetectedColor = "green"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['yellow'])) { console.log(`Sensor: Matched YELLOW`); sensorDetectedColor = "yellow"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['orange'])) { console.log(`Sensor: Matched ORANGE`); sensorDetectedColor = "orange"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['purple'])) { console.log(`Sensor: Matched PURPLE`); sensorDetectedColor = "purple"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['cyan'])) { console.log(`Sensor: Matched CYAN`); sensorDetectedColor = "cyan"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['magenta'])) { console.log(`Sensor: Matched MAGENTA`); sensorDetectedColor = "magenta"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['black'])) { console.log(`Sensor: Matched BLACK`); sensorDetectedColor = "black"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['white'])) { console.log(`Sensor: Matched WHITE`); sensorDetectedColor = "white"; }
+            if (isColorClose(hexStr, CANONICAL_COLOR_MAP['red'])) { sensorDetectedColor = "red"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['blue'])) { sensorDetectedColor = "blue"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['green'])) { sensorDetectedColor = "green"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['yellow'])) { sensorDetectedColor = "yellow"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['orange'])) { sensorDetectedColor = "orange"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['purple'])) { sensorDetectedColor = "purple"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['cyan'])) { sensorDetectedColor = "cyan"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['magenta'])) { sensorDetectedColor = "magenta"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['black'])) { sensorDetectedColor = "black"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['white'])) { sensorDetectedColor = "white"; }
             else { 
               sensorDetectedColor = hexStr; // Fallback to raw hex if not a recognized common color
-              console.log(`Sensor: No canonical match, using raw HEX: ${hexStr}`);
             }
             
             // If a custom object is detected, it takes precedence. Break and use this color.
@@ -371,7 +368,9 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     };
 };
 
-// New component to manage camera layers
+// Removed duplicate local declaration of CameraLayerManager
+// as it is imported from components/CameraManager.tsx
+/*
 const CameraLayerManager: React.FC = () => {
   const { camera } = useThree();
 
@@ -391,6 +390,7 @@ const CameraLayerManager: React.FC = () => {
 
   return null;
 };
+*/
 
 
 const App: React.FC = () => {
@@ -400,6 +400,8 @@ const App: React.FC = () => {
   const [isRulerActive, setIsRulerActive] = useState(false);
   const [isColorPickerActive, setIsColorPickerActive] = useState(false);
   const [customObjects, setCustomObjects] = useState<CustomObject[]>([]);
+  // Fix: Add selectedObjectId state for environment objects
+  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [cameraMode, setCameraMode] = useState<CameraMode>('HOME');
   const [editorTool, setEditorTool] = useState<EditorTool>('NONE');
   const [pickerHoverColor, setPickerHoverColor] = useState<string | null>(null);
@@ -438,6 +440,8 @@ const App: React.FC = () => {
     executionId.current++; 
     const envObjs = activeChallenge?.environmentObjects || [];
     setCustomObjects(envObjs);
+    // Fix: Clear selected object ID on reset
+    setSelectedObjectId(null);
     const startX = activeChallenge?.startPosition?.x ?? 0; 
     const startZ = activeChallenge?.startPosition?.z ?? 0; 
     const startRot = activeChallenge?.startRotation ?? 180;
@@ -628,7 +632,7 @@ const App: React.FC = () => {
         let fV_raw = ((pL + pR) / 2.0) * BASE_VELOCITY * f; // Initial forward velocity
         const rV = (pR - pL) * BASE_TURN_SPEED * f; // Rotational velocity (simplified from working version)
         
-        // --- Dynamic Velocity Reduction (retained as an improvement) ---
+        // --- Dynamic Velocity Reduction (retained as an. improvement) ---
         let fV_adjusted = fV_raw;
         const sd_current_for_tilt = calculateSensorReadings(current.x, current.z, current.rotation, activeChallenge?.id, customObjects);
         const currentTilt = sd_current_for_tilt.tilt;
@@ -738,7 +742,7 @@ const App: React.FC = () => {
           });
         } else { // Pen is up
             if (activeDrawingRef.current) { 
-                setCompletedDrawings(prev => [...prev, activeDrawingRef.current!]);
+                setCompletedDrawings(prevCompleted => [...prevCompleted, activeDrawingRef.current!]);
                 setActiveDrawing(null);
                 activeDrawingRef.current = null; // Update ref immediately
             }
@@ -1098,9 +1102,14 @@ const App: React.FC = () => {
               challengeId={activeChallenge?.id} 
               customObjects={customObjects} 
               robotState={robotState} 
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
+              selectedObjectId={selectedObjectId} // Pass selectedObjectId
+              onObjectSelect={setSelectedObjectId} // Pass onObjectSelect handler
+              // Conditionally disable pointer events when color picker is active
+              onPointerDown={isColorPickerActive ? undefined : handlePointerDown}
+              onPointerMove={isColorPickerActive ? undefined : handlePointerMove}
+              onPointerUp={isColorPickerActive ? undefined : handlePointerUp}
+              // Fix: Removed `onClick` prop as `SimulationEnvironment` does not accept it directly.
+              // Object selection is handled by `onObjectSelect` prop and internal `onClick` on ground plane.
             />
             {/* Render completed drawings */}
             {completedDrawings.map((path) => (
