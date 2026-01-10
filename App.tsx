@@ -1,4 +1,4 @@
-
+ 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -111,10 +111,12 @@ const getEnvironmentConfig = (challengeId?: string, customObjects: CustomObject[
         // Sanitize object properties here to prevent NaN/undefined from entering calculation logic
         const safeX = Number.isFinite(obj.x) ? obj.x : 0;
         const safeZ = Number.isFinite(obj.z) ? obj.z : 0;
-        const safeWidth = Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.01; // Min width to avoid division by zero
-        const safeLength = Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.01; // Min length
+        // Ensure dimensions are positive to prevent errors like division by zero or negative geometry args
+        const safeWidth = Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.01; 
+        const safeLength = Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.01; 
         const safeRotation = Number.isFinite(obj.rotation) ? obj.rotation : 0;
-        const safeHeight = Number.isFinite(obj.height) && obj.height > 0 ? obj.height : 0.01; // Min height
+        // For height, use a default if undefined/non-finite, but it can be 0.01 for minimal height
+        const safeHeight = Number.isFinite(obj.height) && (obj.height as number) >= 0 ? (obj.height as number) : 0.01; 
 
         if (obj.type === 'WALL') { 
             const hW = safeWidth / 2; 
@@ -155,45 +157,47 @@ const getSurfaceHeightAt = (qx: number, qz: number, challengeId?: string, custom
             const safeObjRotation = Number.isFinite(obj.rotation) ? obj.rotation : 0;
             const safeObjWidth = Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.01;
             const safeObjLength = Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.01;
-            const safeObjHeight = Number.isFinite(obj.height) && obj.height > 0 ? obj.height : 0.01;
-
+            const safeObjHeight = Number.isFinite(obj.height) && (obj.height as number) >= 0 ? (obj.height as number) : 0.01; // Ensure height is explicitly number
+            
             const { lx, lz } = getLocalCoords(safeQx, safeQz, safeObjX, safeObjZ, safeObjRotation);
             const hW = safeObjWidth / 2; 
             const hL = safeObjLength / 2; 
-            const h = safeObjHeight; 
+            const h = safeObjHeight; // Use the sanitized height
             
             if (Number.isFinite(lx) && Number.isFinite(lz) && Math.abs(lx) <= hW && Math.abs(lz) <= hL) {
                 const section = safeObjLength / 3; 
                 const uphillEnd = -hL + section; 
                 const downhillStart = hL - section;
-                let currentY = 0;
+                let currentY_raw = 0; // Initialize raw currentY
                 
                 if (Number.isFinite(section) && section > 0) { // Avoid division by zero
                     if (lz < uphillEnd) {
                         const t = (lz - (-hL)) / section;
-                        currentY = Number.isFinite(t) ? t * h : 0;
+                        currentY_raw = t * h;
                     } else if (lz < downhillStart) {
-                        currentY = h;
+                        currentY_raw = h;
                     } else {
                         const t = (lz - downhillStart) / section;
-                        currentY = Number.isFinite(t) ? h - (t * h) : h;
+                        currentY_raw = h - (t * h);
                     }
                 } else {
-                    currentY = h; // Default to max height if section is invalid
+                    currentY_raw = h; // Default to max height if section is invalid or zero
                 }
-                maxHeight = Math.max(maxHeight, Number.isFinite(currentY) ? currentY : 0);
+                const currentY = Number.isFinite(currentY_raw) ? currentY_raw : 0; // Sanitize currentY
+                maxHeight = Math.max(maxHeight, currentY);
             }
         }
     }
     // Reintroduced challenge-specific ramp logic from the user's working version
     if (challengeId === 'c18') {
+        let calculatedHeight_raw = 0; // Initialize raw calculatedHeight
         if (safeQx >= -2.1 && safeQx <= 2.1) {
-            let calculatedHeight = 0;
-            if (safeQz < -0.2 && safeQz > -3.7) calculatedHeight = ((safeQz - (-0.2)) / -3.5) * 1.73;
-            else if (safeQz <= -3.7 && safeQz >= -7.4) calculatedHeight = 1.73;
-            else if (safeQz < -7.4 && safeQz > -10.9) calculatedHeight = 1.73 - (((safeQz - (-7.4)) / -3.5) * 1.73);
+            if (safeQz < -0.2 && safeQz > -3.7) calculatedHeight_raw = ((safeQz - (-0.2)) / -3.5) * 1.73;
+            else if (safeQz <= -3.7 && safeQz >= -7.4) calculatedHeight_raw = 1.73;
+            else if (safeQz < -7.4 && safeQz > -10.9) calculatedHeight_raw = 1.73 - (((safeQz - (-7.4)) / -3.5) * 1.73);
             
-            maxHeight = Math.max(maxHeight, Number.isFinite(calculatedHeight) ? calculatedHeight : 0);
+            const calculatedHeight = Number.isFinite(calculatedHeight_raw) ? calculatedHeight_raw : 0; // Sanitize calculatedHeight
+            maxHeight = Math.max(maxHeight, calculatedHeight);
         }
     }
     return Number.isFinite(maxHeight) ? maxHeight : 0; // Ensure final return is finite
@@ -209,8 +213,10 @@ const checkTouchSensorHit = (x: number, z: number, rotation: number, walls: {min
     const sin = Math.sin(rad); 
     const cos = Math.cos(rad);
     
-    const sensorTipX = safeX + (Number.isFinite(sin) ? sin : 0) * 1.7; 
-    const sensorTipZ = safeZ + (Number.isFinite(cos) ? cos : 0) * 1.7;
+    const sensorTipX_raw = safeX + (Number.isFinite(sin) ? sin : 0) * 1.7; 
+    const sensorTipZ_raw = safeZ + (Number.isFinite(cos) ? cos : 0) * 1.7;
+    const sensorTipX = Number.isFinite(sensorTipX_raw) ? sensorTipX_raw : safeX; // Sanitize sensorTipX
+    const sensorTipZ = Number.isFinite(sensorTipZ_raw) ? sensorTipZ_raw : safeZ; // Sanitize sensorTipZ
 
     for (const w of walls) { 
         if (Number.isFinite(sensorTipX) && Number.isFinite(sensorTipZ) &&
@@ -245,8 +251,10 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     const gyro = Math.round(normalizeAngle(safeRotation)); // Use normalizeAngle here
     
     const getPointWorldPos = (lx: number, lz: number) => {
-        const wx_raw = safeX + (lx * (Number.isFinite(cos) ? cos : 0) + lz * (Number.isFinite(sin) ? sin : 0));
-        const wz_raw = safeZ + (-lx * (Number.isFinite(sin) ? sin : 0) + lz * (Number.isFinite(cos) ? cos : 0));
+        const safeLx = Number.isFinite(lx) ? lx : 0; // Sanitize internal arguments
+        const safeLz = Number.isFinite(lz) ? lz : 0; // Sanitize internal arguments
+        const wx_raw = safeX + (safeLx * (Number.isFinite(cos) ? cos : 0) + safeLz * (Number.isFinite(sin) ? sin : 0));
+        const wz_raw = safeZ + (-safeLx * (Number.isFinite(sin) ? sin : 0) + safeLz * (Number.isFinite(cos) ? cos : 0));
         return { 
             wx: Number.isFinite(wx_raw) ? wx_raw : safeX,
             wz: Number.isFinite(wz_raw) ? wz_raw : safeZ
@@ -298,7 +306,7 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
 
     // --- NEW LOGIC: Prioritize Custom Objects for Color Detection ---
     for (const zZone of env.complexZones) {
-        // Sanitize zZone properties as well
+        // Sanitize zZone properties as well (already done in getEnvironmentConfig, but defensive check)
         const safeZoneX = Number.isFinite(zZone.x) ? zZone.x : 0;
         const safeZoneZ = Number.isFinite(zZone.z) ? zZone.z : 0;
         const safeZoneRotation = Number.isFinite(zZone.rotation) ? zZone.rotation : 0;
@@ -420,11 +428,22 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
 
 
     const touchSensorPressed = checkTouchSensorHit(safeX, safeZ, safeRotation, env.walls);
-    const physicalHitForMovement = checkPhysicsHit(safeX + (Number.isFinite(sin) ? sin : 0) * 1.5, safeZ + (Number.isFinite(cos) ? cos : 0) * 1.5, env.walls);
+    const physicalHitForMovement_raw_sin = Number.isFinite(sin) ? sin : 0;
+    const physicalHitForMovement_raw_cos = Number.isFinite(cos) ? cos : 0;
+
+    const physicalHitForMovement = checkPhysicsHit(
+        safeX + physicalHitForMovement_raw_sin * 1.5, 
+        safeZ + physicalHitForMovement_raw_cos * 1.5, 
+        env.walls
+    );
 
     let distance = 255; 
     for (let d = 0; d < 40.0; d += 0.2) { 
-        if (checkPhysicsHit(safeX + (Number.isFinite(sin) ? sin : 0) * (1.7 + d), safeZ + (Number.isFinite(cos) ? cos : 0) * (1.7 + d), env.walls)) { 
+        // Ensure sin/cos are finite before multiplication
+        const currentSin = Number.isFinite(sin) ? sin : 0;
+        const currentCos = Number.isFinite(cos) ? cos : 0;
+
+        if (checkPhysicsHit(safeX + currentSin * (1.7 + d), safeZ + currentCos * (1.7 + d), env.walls)) { 
             const rawDistance = d * 10;
             distance = Math.round(Number.isFinite(rawDistance) ? rawDistance : 255); 
             break; 
@@ -566,8 +585,8 @@ const App: React.FC = () => {
       const sd = calculateSensorReadings(safePointX, safePointZ, robotRef.current.rotation, activeChallenge?.id, customObjects);
       const next = { 
           ...robotRef.current, 
-          x: Number.isFinite(safePointX) ? safePointX : robotRef.current.x, 
-          z: Number.isFinite(safePointZ) ? safePointZ : robotRef.current.z, 
+          x: safePointX, // Use the sanitized value directly
+          z: safePointZ, // Use the sanitized value directly
           y: Number.isFinite(sd.y) ? sd.y : robotRef.current.y, 
           tilt: Number.isFinite(sd.tilt) ? sd.tilt : robotRef.current.tilt, 
           roll: Number.isFinite(sd.roll) ? sd.roll : robotRef.current.roll, 
@@ -592,8 +611,8 @@ const App: React.FC = () => {
       const sd = calculateSensorReadings(safePointX, safePointZ, robotRef.current.rotation, activeChallenge?.id, customObjects);
       const next = { 
           ...robotRef.current, 
-          x: Number.isFinite(safePointX) ? safePointX : robotRef.current.x, 
-          z: Number.isFinite(safePointZ) ? safePointZ : robotRef.current.z, 
+          x: safePointX, // Use the sanitized value directly
+          z: safePointZ, // Use the sanitized value directly
           y: Number.isFinite(sd.y) ? sd.y : robotRef.current.y, 
           tilt: Number.isFinite(sd.tilt) ? sd.tilt : robotRef.current.tilt, 
           roll: Number.isFinite(sd.roll) ? sd.roll : robotRef.current.roll, 
@@ -852,12 +871,13 @@ const App: React.FC = () => {
         });
         if (sd_predicted.isTouching) historyRef.current.touchedWall = true; 
         
-        const startX = activeChallenge?.startPosition?.x || 0; 
-        const startZ = activeChallenge?.startPosition?.z || 0;
-        const distMoved_raw = Math.sqrt(Math.pow(next.x - startX, 2) + Math.pow(next.z - startZ, 2));
+        // Ensure startX and startZ from activeChallenge are finite
+        const histStartX = Number.isFinite(activeChallenge?.startPosition?.x) ? activeChallenge?.startPosition?.x : 0; 
+        const histStartZ = Number.isFinite(activeChallenge?.startPosition?.z) ? activeChallenge?.startPosition?.z : 0;
+        const distMoved_raw = Math.sqrt(Math.pow(next.x - histStartX, 2) + Math.pow(next.z - histStartZ, 2));
         historyRef.current.maxDistanceMoved = Math.max(historyRef.current.maxDistanceMoved, (Number.isFinite(distMoved_raw) ? distMoved_raw : 0) * 10); 
         if (!historyRef.current.detectedColors.includes(curDetectedColor)) historyRef.current.detectedColors.push(curDetectedColor);
-        historyRef.current.totalRotation = Number.isFinite(robotRef.current.rotation) ? (robotRef.current.rotation - (activeChallenge?.startRotation ?? 180)) : 0;
+        historyRef.current.totalRotation = Number.isFinite(robotRef.current.rotation) ? (robotRef.current.rotation - (Number.isFinite(activeChallenge?.startRotation) ? activeChallenge?.startRotation : 180)) : 0;
 
         // --- NEW DRAWING LOGIC ---
         if (next.penDown) { 
