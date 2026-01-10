@@ -23,7 +23,7 @@ const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much f
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
 // Updated to a more appropriate dropper cursor SVG
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtcGlwZXR0ZSI%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTTkuNSAxNC41IDE2IDhsM3AzLTYuNSA2LjUtMy0zEiIvPjxwYXRoIGQ9Imm3LjUgMTEuNSAzLTVsLz48cGF0aCBkPSJmMTggMyAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAx.NC0x.NCeiIvPjxwYXRoIGQ9Im11OCAzIDMtMyIvPjxwYXRoIGQ9Ik0yMC45IDcuMWEyIDIgMCAxIDAtMi44LTIuOGwtMS40IDEuNCAyLjggMi44IDEuNC0xLjR6Ii8%2BPC9zdmc%2B) 0 24, crosshair`;
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC92c3QyMi9zdmcgZX0%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTTkuNSAxNC41IDE2IDhsM3AzLTYuNSA2LjUtMy0zEiIvPjxwYXRoIGQ9Imm3LjUgMTE.1IDMtNWwuMzg2Nzk1IC0wLjYzNjIyNiA2Ljc3ODczNiA2Ljc3ODczNiAyLjgzNjIyNiAtMi44MzYyMjYiLz48cGF0aCBkPSJmMTggNiAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAx.NC0x.NCeiIvPjxwYXRoIGQ9Im11OCAzIDMtMyIvPjxwYXRoIGQ9Ik0yMC45IDcuMWEyIDIgMCAxIDAtMi44LTIuOGwtMS40IDEuNCAyLjggMi44IDEuNC0xLjR6Ii8%2BPC9zdmc%2B) 0 24, crosshair`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -109,14 +109,14 @@ const getEnvironmentConfig = (challengeId?: string, customObjects: CustomObject[
     if (['c10', 'c16', 'c19', 'c20'].includes(challengeId || '')) walls.push({ minX: -3, maxX: 3, minZ: -10.25, maxZ: -9.75 });
     customObjects.forEach(obj => {
         // Sanitize object properties here to prevent NaN/undefined from entering calculation logic
-        const safeX = Number.isFinite(obj.x) ? obj.x : 0;
-        const safeZ = Number.isFinite(obj.z) ? obj.z : 0;
+        const safeX: number = typeof obj.x === 'number' && Number.isFinite(obj.x) ? obj.x : 0;
+        const safeZ: number = typeof obj.z === 'number' && Number.isFinite(obj.z) ? obj.z : 0;
         // Ensure dimensions are positive to prevent errors like division by zero or negative geometry args
-        const safeWidth = Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.01; 
-        const safeLength = Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.01; 
-        const safeRotation = Number.isFinite(obj.rotation) ? obj.rotation : 0;
+        const safeWidth: number = typeof obj.width === 'number' && Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.01; 
+        const safeLength: number = typeof obj.length === 'number' && Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.01; 
+        const safeRotation: number = typeof obj.rotation === 'number' && Number.isFinite(obj.rotation) ? obj.rotation : 0;
         // For height, use a default if undefined/non-finite, but it can be 0.01 for minimal height
-        const safeHeight = Number.isFinite(obj.height) && (obj.height as number) >= 0 ? (obj.height as number) : 0.01; 
+        const safeHeight: number = typeof obj.height === 'number' && Number.isFinite(obj.height) && (obj.height as number) >= 0 ? (obj.height as number) : 0.01; 
 
         if (obj.type === 'WALL') { 
             const hW = safeWidth / 2; 
@@ -145,19 +145,19 @@ const getEnvironmentConfig = (challengeId?: string, customObjects: CustomObject[
 // Modified to include challengeId parameter and c18 specific logic
 const getSurfaceHeightAt = (qx: number, qz: number, challengeId?: string, customObjects: CustomObject[] = []) => {
     // Sanitize inputs
-    const safeQx = Number.isFinite(qx) ? qx : 0;
-    const safeQz = Number.isFinite(qz) ? qz : 0;
+    const safeQx: number = typeof qx === 'number' && Number.isFinite(qx) ? qx : 0;
+    const safeQz: number = typeof qz === 'number' && Number.isFinite(qz) ? qz : 0;
 
     let maxHeight = 0;
     for (const obj of customObjects) {
         if (obj.type === 'RAMP') {
             // Sanitize object properties before use
-            const safeObjX = Number.isFinite(obj.x) ? obj.x : 0;
-            const safeObjZ = Number.isFinite(obj.z) ? obj.z : 0;
-            const safeObjRotation = Number.isFinite(obj.rotation) ? obj.rotation : 0;
-            const safeObjWidth = Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.01;
-            const safeObjLength = Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.01;
-            const safeObjHeight = Number.isFinite(obj.height) && (obj.height as number) >= 0 ? (obj.height as number) : 0.01; // Ensure height is explicitly number
+            const safeObjX: number = typeof obj.x === 'number' && Number.isFinite(obj.x) ? obj.x : 0;
+            const safeObjZ: number = typeof obj.z === 'number' && Number.isFinite(obj.z) ? obj.z : 0;
+            const safeObjRotation: number = typeof obj.rotation === 'number' && Number.isFinite(obj.rotation) ? obj.rotation : 0;
+            const safeObjWidth: number = typeof obj.width === 'number' && Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.01;
+            const safeObjLength: number = typeof obj.length === 'number' && Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.01;
+            const safeObjHeight: number = typeof obj.height === 'number' && Number.isFinite(obj.height) && (obj.height as number) >= 0 ? (obj.height as number) : 0.01;
             
             const { lx, lz } = getLocalCoords(safeQx, safeQz, safeObjX, safeObjZ, safeObjRotation);
             const hW = safeObjWidth / 2; 
@@ -172,13 +172,13 @@ const getSurfaceHeightAt = (qx: number, qz: number, challengeId?: string, custom
                 
                 if (Number.isFinite(section) && section > 0) { // Avoid division by zero
                     if (lz < uphillEnd) {
-                        const t = (lz - (-hL)) / section;
-                        currentY_raw = t * h;
+                        const t_raw = (lz - (-hL)) / section;
+                        currentY_raw = typeof t_raw === 'number' && Number.isFinite(t_raw) ? t_raw * h : 0;
                     } else if (lz < downhillStart) {
                         currentY_raw = h;
                     } else {
-                        const t = (lz - downhillStart) / section;
-                        currentY_raw = h - (t * h);
+                        const t_raw = (lz - downhillStart) / section;
+                        currentY_raw = typeof t_raw === 'number' && Number.isFinite(t_raw) ? h - (t_raw * h) : h;
                     }
                 } else {
                     currentY_raw = h; // Default to max height if section is invalid or zero
@@ -205,20 +205,21 @@ const getSurfaceHeightAt = (qx: number, qz: number, challengeId?: string, custom
 
 // New simplified checkTouchSensorHit to use `walls` directly
 const checkTouchSensorHit = (x: number, z: number, rotation: number, walls: {minX: number, maxX: number, minZ: number, maxZ: number}[]) => {
-    const safeX = Number.isFinite(x) ? x : 0;
-    const safeZ = Number.isFinite(z) ? z : 0;
-    const safeRotation = Number.isFinite(rotation) ? rotation : 0;
+    const safeX: number = typeof x === 'number' && Number.isFinite(x) ? x : 0;
+    const safeZ: number = typeof z === 'number' && Number.isFinite(z) ? z : 0;
+    const safeRotation: number = typeof rotation === 'number' && Number.isFinite(rotation) ? rotation : 0;
 
-    const rad = (safeRotation * Math.PI) / 180; 
+    const rad_raw = (safeRotation * Math.PI) / 180;
+    const rad: number = typeof rad_raw === 'number' && Number.isFinite(rad_raw) ? rad_raw : 0;
     const sin_raw = Math.sin(rad); 
     const cos_raw = Math.cos(rad);
-    const sin = Number.isFinite(sin_raw) ? sin_raw : 0;
-    const cos = Number.isFinite(cos_raw) ? cos_raw : 0;
+    const sin: number = typeof sin_raw === 'number' && Number.isFinite(sin_raw) ? sin_raw : 0;
+    const cos: number = typeof cos_raw === 'number' && Number.isFinite(cos_raw) ? cos_raw : 0;
     
     const sensorTipX_raw = safeX + sin * 1.7; 
     const sensorTipZ_raw = safeZ + cos * 1.7;
-    const sensorTipX = Number.isFinite(sensorTipX_raw) ? sensorTipX_raw : safeX; // Sanitize sensorTipX
-    const sensorTipZ = Number.isFinite(sensorTipZ_raw) ? sensorTipZ_raw : safeZ; // Sanitize sensorTipZ
+    const sensorTipX: number = typeof sensorTipX_raw === 'number' && Number.isFinite(sensorTipX_raw) ? sensorTipX_raw : safeX;
+    const sensorTipZ: number = typeof sensorTipZ_raw === 'number' && Number.isFinite(sensorTipZ_raw) ? sensorTipZ_raw : safeZ;
 
     for (const w of walls) { 
         if (Number.isFinite(sensorTipX) && Number.isFinite(sensorTipZ) &&
@@ -229,8 +230,8 @@ const checkTouchSensorHit = (x: number, z: number, rotation: number, walls: {min
 
 // New simplified checkPhysicsHit to use `walls` directly
 const checkPhysicsHit = (px: number, pz: number, walls: {minX: number, maxX: number, minZ: number, maxZ: number}[]) => {
-    const safePx = Number.isFinite(px) ? px : 0;
-    const safePz = Number.isFinite(pz) ? pz : 0;
+    const safePx: number = typeof px === 'number' && Number.isFinite(px) ? px : 0;
+    const safePz: number = typeof pz === 'number' && Number.isFinite(pz) ? pz : 0;
 
     for (const w of walls) { 
         if (Number.isFinite(safePx) && Number.isFinite(safePz) &&
@@ -242,27 +243,29 @@ const checkPhysicsHit = (px: number, pz: number, walls: {minX: number, maxX: num
 // Modified to include challengeId parameter and use getEnvironmentConfig
 const calculateSensorReadings = (x: number, z: number, rotation: number, challengeId?: string, customObjects: CustomObject[] = []): SensorReadings => {
     // Sanitize inputs before calculations
-    const safeX = Number.isFinite(x) ? x : 0;
-    const safeZ = Number.isFinite(z) ? z : 0;
-    const safeRotation = Number.isFinite(rotation) ? rotation : 0;
+    const safeX: number = typeof x === 'number' && Number.isFinite(x) ? x : 0;
+    const safeZ: number = typeof z === 'number' && Number.isFinite(z) ? z : 0;
+    const safeRotation: number = typeof rotation === 'number' && Number.isFinite(rotation) ? rotation : 0;
 
-    const rad = (safeRotation * Math.PI) / 180; 
+    const rad_raw = (safeRotation * Math.PI) / 180; 
+    const rad: number = typeof rad_raw === 'number' && Number.isFinite(rad_raw) ? rad_raw : 0;
     const sin_raw = Math.sin(rad); 
     const cos_raw = Math.cos(rad);
-    const sin = Number.isFinite(sin_raw) ? sin_raw : 0;
-    const cos = Number.isFinite(cos_raw) ? cos_raw : 0;
+    const sin: number = typeof sin_raw === 'number' && Number.isFinite(sin_raw) ? sin_raw : 0;
+    const cos: number = typeof cos_raw === 'number' && Number.isFinite(cos_raw) ? cos_raw : 0;
 
     const env = getEnvironmentConfig(challengeId, customObjects); // Use getEnvironmentConfig here
-    const gyro = Math.round(normalizeAngle(safeRotation)); // Use normalizeAngle here
+    const gyro_raw = Math.round(normalizeAngle(safeRotation)); // Use normalizeAngle here
+    const gyro: number = typeof gyro_raw === 'number' && Number.isFinite(gyro_raw) ? gyro_raw : 0;
     
     const getPointWorldPos = (lx: number, lz: number) => {
-        const safeLx = Number.isFinite(lx) ? lx : 0; // Sanitize internal arguments
-        const safeLz = Number.isFinite(lz) ? lz : 0; // Sanitize internal arguments
+        const safeLx: number = typeof lx === 'number' && Number.isFinite(lx) ? lx : 0; // Sanitize internal arguments
+        const safeLz: number = typeof lz === 'number' && Number.isFinite(lz) ? lz : 0; // Sanitize internal arguments
         const wx_raw = safeX + (safeLx * cos + safeLz * sin);
         const wz_raw = safeZ + (-safeLx * sin + safeLz * cos);
         return { 
-            wx: Number.isFinite(wx_raw) ? wx_raw : safeX,
-            wz: Number.isFinite(wz_raw) ? wz_raw : safeZ
+            wx: typeof wx_raw === 'number' && Number.isFinite(wx_raw) ? wx_raw : safeX,
+            wz: typeof wz_raw === 'number' && Number.isFinite(wz_raw) ? wz_raw : safeZ
         };
     };
 
@@ -278,60 +281,60 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
 
     // Get surface heights at these points, passing challengeId
     const rawHLeft = getSurfaceHeightAt(leftWheelPos.wx, leftWheelPos.wz, challengeId, customObjects);
-    const hLeft = Number.isFinite(rawHLeft) ? rawHLeft : 0;
+    const hLeft: number = typeof rawHLeft === 'number' && Number.isFinite(rawHLeft) ? rawHLeft : 0;
     const rawHRight = getSurfaceHeightAt(rightWheelPos.wx, rightWheelPos.wz, challengeId, customObjects);
-    const hRight = Number.isFinite(rawHRight) ? rawHRight : 0;
+    const hRight: number = typeof rawHRight === 'number' && Number.isFinite(rawHRight) ? rawHRight : 0;
     const rawHBack = getSurfaceHeightAt(backCasterPos.wx, backCasterPos.wz, challengeId, customObjects);
-    const hBack = Number.isFinite(rawHBack) ? rawHBack : 0;
+    const hBack: number = typeof rawHBack === 'number' && Number.isFinite(rawHBack) ? rawHBack : 0;
     const rawHFront = getSurfaceHeightAt(frontSensorPos.wx, frontSensorPos.wz, challengeId, customObjects);
-    const hFront = Number.isFinite(rawHFront) ? rawHFront : 0;
+    const hFront: number = typeof rawHFront === 'number' && Number.isFinite(rawHFront) ? rawHFront : 0;
 
 
     // Reverted: Calculate y as the average of the contact points (from working version)
     const rawCalculatedY = (hLeft + hRight + hBack) / 3; 
-    const calculatedY = Number.isFinite(rawCalculatedY) ? rawCalculatedY : 0;
+    const calculatedY: number = typeof rawCalculatedY === 'number' && Number.isFinite(rawCalculatedY) ? rawCalculatedY : 0;
 
     // Tilt and Roll calculations using the front/back/side height differences (from working version)
     const rawFrontAvg = (hLeft + hRight) / 2;
-    const frontAvg = Number.isFinite(rawFrontAvg) ? rawFrontAvg : 0;
+    const frontAvg: number = typeof rawFrontAvg === 'number' && Number.isFinite(rawFrontAvg) ? rawFrontAvg : 0;
     const rawCalculatedTilt = Math.atan2(frontAvg - hBack, 1.3) * (180 / Math.PI); // Distance between front/back effective points (1.3 from working version)
-    const calculatedTilt = Number.isFinite(rawCalculatedTilt) ? rawCalculatedTilt : 0;
+    const calculatedTilt: number = typeof rawCalculatedTilt === 'number' && Number.isFinite(rawCalculatedTilt) ? rawCalculatedTilt : 0;
     const rawCalculatedRoll = Math.atan2(hLeft - hRight, wheelOffsetX * 2) * (180 / Math.PI); // Distance between left/right wheels
-    const calculatedRoll = Number.isFinite(rawCalculatedRoll) ? rawCalculatedRoll : 0;
+    const calculatedRoll: number = typeof rawCalculatedRoll === 'number' && Number.isFinite(rawCalculatedRoll) ? rawCalculatedRoll : 0;
 
     // Sensor color reading position (remains the same)
     const cx_raw = safeX + sin * 0.9; 
     const cz_raw = safeZ + cos * 0.9;
-    const cx = Number.isFinite(cx_raw) ? cx_raw : 0;
-    const cz = Number.isFinite(cz_raw) ? cz_raw : 0;
+    const cx: number = typeof cx_raw === 'number' && Number.isFinite(cx_raw) ? cx_raw : 0;
+    const cz: number = typeof cz_raw === 'number' && Number.isFinite(cz_raw) ? cz_raw : 0;
 
-    let sensorDetectedColor = "white"; // Renamed for clarity
-    let sensorIntensity = 100; // Add intensity as it's in the old working version, though not used widely
-    let sensorRawDecimalColor = 0xFFFFFF;
+    let sensorDetectedColor: string = "white"; // Renamed for clarity
+    let sensorIntensity: number = 100; // Add intensity as it's in the old working version, though not used widely
+    let sensorRawDecimalColor: number = 0xFFFFFF;
 
     // --- NEW LOGIC: Prioritize Custom Objects for Color Detection ---
     for (const zZone of env.complexZones) {
         // Sanitize zZone properties as well (already done in getEnvironmentConfig, but defensive check)
-        const safeZoneX = Number.isFinite(zZone.x) ? zZone.x : 0;
-        const safeZoneZ = Number.isFinite(zZone.z) ? zZone.z : 0;
-        const safeZoneRotation = Number.isFinite(zZone.rotation) ? zZone.rotation : 0;
-        const safeZoneWidth = Number.isFinite(zZone.width) && zZone.width > 0 ? zZone.width : 0.01;
-        const safeZoneLength = Number.isFinite(zZone.length) && zZone.length > 0 ? zZone.length : 0.01;
+        const safeZoneX: number = typeof zZone.x === 'number' && Number.isFinite(zZone.x) ? zZone.x : 0;
+        const safeZoneZ: number = typeof zZone.z === 'number' && Number.isFinite(zZone.z) ? zZone.z : 0;
+        const safeZoneRotation: number = typeof zZone.rotation === 'number' && Number.isFinite(zZone.rotation) ? zZone.rotation : 0;
+        const safeZoneWidth: number = typeof zZone.width === 'number' && Number.isFinite(zZone.width) && zZone.width > 0 ? zZone.width : 0.01;
+        const safeZoneLength: number = typeof zZone.length === 'number' && Number.isFinite(zZone.length) && zZone.length > 0 ? zZone.length : 0.01;
 
         const dx_raw = cx - safeZoneX; 
         const dz_raw = cz - safeZoneZ;
-        const dx = Number.isFinite(dx_raw) ? dx_raw : 0;
-        const dz = Number.isFinite(dz_raw) ? dz_raw : 0;
+        const dx: number = typeof dx_raw === 'number' && Number.isFinite(dx_raw) ? dx_raw : 0;
+        const dz: number = typeof dz_raw === 'number' && Number.isFinite(dz_raw) ? dz_raw : 0;
 
         const cR_raw = Math.cos(-safeZoneRotation); 
         const sR_raw = Math.sin(-safeZoneRotation);
-        const cR = Number.isFinite(cR_raw) ? cR_raw : 0;
-        const sR = Number.isFinite(sR_raw) ? sR_raw : 0;
+        const cR: number = typeof cR_raw === 'number' && Number.isFinite(cR_raw) ? cR_raw : 0;
+        const sR: number = typeof sR_raw === 'number' && Number.isFinite(sR_raw) ? sR_raw : 0;
 
         const lX_raw = dx * cR - dz * sR; 
         const lZ_raw = dx * sR + dz * cR;
-        const lX = Number.isFinite(lX_raw) ? lX_raw : 0;
-        const lZ = Number.isFinite(lZ_raw) ? lZ_raw : 0;
+        const lX: number = typeof lX_raw === 'number' && Number.isFinite(lX_raw) ? lX_raw : 0;
+        const lZ: number = typeof lZ_raw === 'number' && Number.isFinite(lZ_raw) ? lZ_raw : 0;
         
         let onZone = false; 
         
@@ -360,13 +363,13 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
         } else if (zZone.shape === 'CURVED') {
             const midRadius = safeZoneLength / 2; 
             const shiftedLX_raw = lX + midRadius;
-            const shiftedLX = Number.isFinite(shiftedLX_raw) ? shiftedLX_raw : 0;
+            const shiftedLX: number = typeof shiftedLX_raw === 'number' && Number.isFinite(shiftedLX_raw) ? shiftedLX_raw : 0;
 
             const distFromArcCenter_raw = Math.sqrt(Math.pow(shiftedLX, 2) + Math.pow(lZ, 2)); 
-            const distFromArcCenter = Number.isFinite(distFromArcCenter_raw) ? distFromArcCenter_raw : 0;
+            const distFromArcCenter: number = typeof distFromArcCenter_raw === 'number' && Number.isFinite(distFromArcCenter_raw) ? distFromArcCenter_raw : 0;
             
             const angle_raw = Math.atan2(lZ, shiftedLX); 
-            const angle = Number.isFinite(angle_raw) ? angle_raw : 0;
+            const angle: number = typeof angle_raw === 'number' && Number.isFinite(angle_raw) ? angle_raw : 0;
 
             const halfPathWidth = safeZoneWidth / 2;
             if (
@@ -379,7 +382,7 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
 
         if (onZone) {
             sensorRawDecimalColor = zZone.color; 
-            const hexStr = "#" + (Number.isFinite(sensorRawDecimalColor) ? sensorRawDecimalColor : 0xFFFFFF).toString(16).padStart(6, '0').toUpperCase();
+            const hexStr = "#" + (typeof sensorRawDecimalColor === 'number' && Number.isFinite(sensorRawDecimalColor) ? sensorRawDecimalColor : 0xFFFFFF).toString(16).padStart(6, '0').toUpperCase();
             
             if (isColorClose(hexStr, CANONICAL_COLOR_MAP['red'])) { sensorDetectedColor = "red"; }
             else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['blue'])) { sensorDetectedColor = "blue"; }
@@ -402,18 +405,19 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     if (sensorDetectedColor === "white") { 
         if (challengeId === 'c21') { 
             const dist_raw = Math.sqrt(Math.pow(cx - (-6), 2) + Math.pow(cz - 0, 2));
-            const dist = Number.isFinite(dist_raw) ? dist_raw : 0;
+            const dist: number = typeof dist_raw === 'number' && Number.isFinite(dist_raw) ? dist_raw : 0;
             if (Math.abs(dist - 6.0) <= 0.25) { sensorDetectedColor = "black"; sensorIntensity = 5; sensorRawDecimalColor = 0x000000; }
         } else if (challengeId === 'c12') { 
             const ex = cx - 0; const ez = cz - (-8);
             const normDist_raw = Math.sqrt(Math.pow(ex/9, 2) + Math.pow(ez/6, 2));
-            const normDist = Number.isFinite(normDist_raw) ? normDist_raw : 0;
+            const normDist: number = typeof normDist_raw === 'number' && Number.isFinite(normDist_raw) ? normDist_raw : 0;
 
             if (Math.abs(normDist - 1.0) <= 0.04) {
                 sensorDetectedColor = "black"; sensorIntensity = 5; sensorRawDecimalColor = 0x000000;
                 const angle_raw = Math.atan2(ez, ex); 
-                const angle = Number.isFinite(angle_raw) ? angle_raw : 0;
-                const deg = (angle * 180 / Math.PI + 360) % 360;
+                const angle: number = typeof angle_raw === 'number' && Number.isFinite(angle_raw) ? angle_raw : 0;
+                const deg_raw = (angle * 180 / Math.PI + 360) % 360;
+                const deg: number = typeof deg_raw === 'number' && Number.isFinite(deg_raw) ? deg_raw : 0;
                 const markerThreshold = 4.0;
                 if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['red'], 0.1) || Math.abs(deg - 0) < markerThreshold || Math.abs(deg - 360) < markerThreshold) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; } 
                 else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['blue'], 0.1) || Math.abs(deg - 90) < markerThreshold) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; } 
@@ -421,23 +425,23 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
                 else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['yellow'], 0.1) || Math.abs(deg - 270) < markerThreshold) { sensorDetectedColor = "yellow"; sensorIntensity = 80; sensorRawDecimalColor = 0xFFFF00; } 
             }
         } else if (challengeId === 'c10') { 
-            if (Math.abs(cx) <= 1.25 && cz <= 0 && cz >= -15) {
+            if (typeof cx === 'number' && Number.isFinite(cx) && Math.abs(cx) <= 1.25 && cz <= 0 && cz >= -15) {
                 sensorDetectedColor = "#64748b"; sensorIntensity = 40; sensorRawDecimalColor = 0x64748b;
             }
         } else if (challengeId === 'c18') {
-            if (Math.abs(cx) <= 2.1 && cz <= -17.25 && cz >= -17.75) {
+            if (typeof cx === 'number' && Number.isFinite(cx) && Math.abs(cx) <= 2.1 && cz <= -17.25 && cz >= -17.75) {
                 sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000;
             }
         } else if (challengeId === 'c15' || challengeId === 'c14') {
-            if (Math.abs(cx) <= 1.5 && cz <= -9.5 && cz >= -12.5) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
-            else if (Math.abs(cx) <= 1.5 && cz <= -3.5 && cz >= -6.5) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
+            if (typeof cx === 'number' && Number.isFinite(cx) && Math.abs(cx) <= 1.5 && cz <= -9.5 && cz >= -12.5) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
+            else if (typeof cx === 'number' && Number.isFinite(cx) && Math.abs(cx) <= 1.5 && cz <= -3.5 && cz >= -6.5) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
         }
     }
 
 
     const touchSensorPressed = checkTouchSensorHit(safeX, safeZ, safeRotation, env.walls);
-    const physicalHitForMovement_raw_sin = Number.isFinite(sin) ? sin : 0;
-    const physicalHitForMovement_raw_cos = Number.isFinite(cos) ? cos : 0;
+    const physicalHitForMovement_raw_sin = sin;
+    const physicalHitForMovement_raw_cos = cos;
 
     const physicalHitForMovement = checkPhysicsHit(
         safeX + physicalHitForMovement_raw_sin * 1.5, 
@@ -445,32 +449,32 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
         env.walls
     );
 
-    let distance = 255; 
+    let distance: number = 255; 
     for (let d = 0; d < 40.0; d += 0.2) { 
         // Ensure sin/cos are finite before multiplication
-        const currentSin = Number.isFinite(sin) ? sin : 0;
-        const currentCos = Number.isFinite(cos) ? cos : 0;
+        const currentSin: number = sin;
+        const currentCos: number = cos;
 
         if (checkPhysicsHit(safeX + currentSin * (1.7 + d), safeZ + currentCos * (1.7 + d), env.walls)) { 
             const rawDistance = d * 10;
-            distance = Math.round(Number.isFinite(rawDistance) ? rawDistance : 255); 
+            distance = Math.round(typeof rawDistance === 'number' && Number.isFinite(rawDistance) ? rawDistance : 255); 
             break; 
         } 
     }
     
     return { 
-        gyro: Number.isFinite(gyro) ? gyro : 0, 
-        tilt: Number.isFinite(calculatedTilt) ? calculatedTilt : 0, 
-        roll: Number.isFinite(calculatedRoll) ? calculatedRoll : 0, 
-        y: Number.isFinite(calculatedY) ? calculatedY : 0, 
+        gyro: gyro, 
+        tilt: calculatedTilt, 
+        roll: calculatedRoll, 
+        y: calculatedY, 
         isTouching: touchSensorPressed, 
         physicalHit: physicalHitForMovement, 
-        distance: Number.isFinite(distance) ? distance : 255, 
+        distance: distance, 
         color: sensorDetectedColor, 
-        intensity: Number.isFinite(sensorIntensity) ? sensorIntensity : 100, 
-        rawDecimalColor: Number.isFinite(sensorRawDecimalColor) ? sensorRawDecimalColor : 0xFFFFFF, 
-        sensorX: Number.isFinite(cx) ? cx : 0, 
-        sensorZ: Number.isFinite(cz) ? cz : 0 
+        intensity: sensorIntensity, 
+        rawDecimalColor: sensorRawDecimalColor, 
+        sensorX: cx, 
+        sensorZ: cz 
     };
 };
 
@@ -536,9 +540,9 @@ const App: React.FC = () => {
     const rawStartZ = activeChallenge?.startPosition?.z;
     const rawStartRot = activeChallenge?.startRotation;
 
-    const startX: number = Number.isFinite(rawStartX) ? rawStartX as number : 0; 
-    const startZ: number = Number.isFinite(rawStartZ) ? rawStartZ as number : 0; 
-    const startRot: number = Number.isFinite(rawStartRot) ? rawStartRot as number : 180;
+    const startX: number = typeof rawStartX === 'number' && Number.isFinite(rawStartX) ? rawStartX : 0; 
+    const startZ: number = typeof rawStartZ === 'number' && Number.isFinite(rawStartZ) ? rawStartZ : 0; 
+    const startRot: number = typeof rawStartRot === 'number' && Number.isFinite(rawStartRot) ? rawStartRot : 180;
     
     // Initial sensor reading for start position
     const sd_initial: SensorReadings = calculateSensorReadings(startX, startZ, startRot, activeChallenge?.id, envObjs); 
@@ -587,15 +591,15 @@ const App: React.FC = () => {
       isPlacingRobot.current = true;
       const point = e.point;
       // FIX: Ensure point.x and point.z are finite numbers.
-      const safePointX: number = Number.isFinite(point.x) ? point.x as number : robotRef.current.x;
-      const safePointZ: number = Number.isFinite(point.z) ? point.z as number : robotRef.current.z;
-      const safeRobotRotation: number = Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation as number : 0;
+      const safePointX: number = typeof point.x === 'number' && Number.isFinite(point.x) ? point.x : robotRef.current.x;
+      const safePointZ: number = typeof point.z === 'number' && Number.isFinite(point.z) ? point.z : robotRef.current.z;
+      const safeRobotRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
 
       const sd: SensorReadings = calculateSensorReadings(safePointX, safePointZ, safeRobotRotation, activeChallenge?.id, customObjects);
-      const next = { 
+      const next: RobotState = { 
           ...robotRef.current, 
-          x: safePointX, // Use the sanitized value directly
-          z: safePointZ, // Use the sanitized value directly
+          x: safePointX, 
+          z: safePointZ, 
           y: sd.y, 
           tilt: sd.tilt, 
           roll: sd.roll, 
@@ -614,16 +618,15 @@ const App: React.FC = () => {
     if (isPlacingRobot.current && editorTool === 'ROBOT_MOVE') {
       const point = e.point;
       // FIX: Ensure point.x and point.z are finite numbers.
-      const safePointX: number = Number.isFinite(point.x) ? point.x as number : robotRef.current.x;
-      const safePointZ: number = Number.isFinite(point.z) ? point.z as number : robotRef.current.z;
-      const safeRobotRotation: number = Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation as number : 0;
-
+      const safePointX: number = typeof point.x === 'number' && Number.isFinite(point.x) ? point.x : robotRef.current.x;
+      const safePointZ: number = typeof point.z === 'number' && Number.isFinite(point.z) ? point.z : robotRef.current.z;
+      const safeRobotRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
 
       const sd: SensorReadings = calculateSensorReadings(safePointX, safePointZ, safeRobotRotation, activeChallenge?.id, customObjects);
-      const next = { 
+      const next: RobotState = { 
           ...robotRef.current, 
-          x: safePointX, // Use the sanitized value directly
-          z: safePointZ, // Use the sanitized value directly
+          x: safePointX, 
+          z: safePointZ, 
           y: sd.y, 
           tilt: sd.tilt, 
           roll: sd.roll, 
@@ -654,11 +657,11 @@ const App: React.FC = () => {
     const robotApi = {
       move: async (dist: number) => {
         checkAbort();
-        const startX = Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
-        const startZ = Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
+        const startX = typeof robotRef.current.x === 'number' && Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
+        const startZ = typeof robotRef.current.z === 'number' && Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
         const targetDist = Math.abs(dist) * 0.1; const direction = dist > 0 ? 1 : -1;
         const power = 100 * direction;
-        robotRef.current = { ...robotRef.current, motorLeftSpeed: Number.isFinite(power) ? power : 0, motorRightSpeed: Number.isFinite(power) ? power : 0 };
+        robotRef.current = { ...robotRef.current, motorLeftSpeed: typeof power === 'number' && Number.isFinite(power) ? power : 0, motorRightSpeed: typeof power === 'number' && Number.isFinite(power) ? power : 0 };
         while (true) {
           checkAbort();
           const moved = Math.sqrt(Math.pow(robotRef.current.x - startX, 2) + Math.pow(robotRef.current.z - startZ, 2));
@@ -671,40 +674,40 @@ const App: React.FC = () => {
       },
       turn: async (angle: number) => {
         checkAbort();
-        const initialRotation = normalizeAngle(Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0);
+        const initialRotation = normalizeAngle(typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0);
         const targetAbsoluteRotation = normalizeAngle(initialRotation + angle);
 
         const direction = angle > 0 ? 1 : -1;
         const power = 50 * direction; 
         
-        robotRef.current = { ...robotRef.current, motorLeftSpeed: Number.isFinite(-power) ? -power : 0, motorRightSpeed: Number.isFinite(power) ? power : 0 };
+        robotRef.current = { ...robotRef.current, motorLeftSpeed: typeof (-power) === 'number' && Number.isFinite(-power) ? -power : 0, motorRightSpeed: typeof power === 'number' && Number.isFinite(power) ? power : 0 };
 
         while (true) {
           checkAbort();
           await new Promise(r => setTimeout(r, TICK_RATE));
 
-          const currentRotation = normalizeAngle(Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0);
+          const currentRotation = normalizeAngle(typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0);
           const diffToTarget = getAngleDifference(targetAbsoluteRotation, currentRotation);
 
           if (direction > 0 && diffToTarget <= TURN_TOLERANCE) break; 
           if (direction < 0 && diffToTarget >= -TURN_TOLERANCE) break; 
         }
         robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
-        robotRef.current.rotation = Number.isFinite(targetAbsoluteRotation) ? targetAbsoluteRotation : robotRef.current.rotation;
+        robotRef.current.rotation = typeof targetAbsoluteRotation === 'number' && Number.isFinite(targetAbsoluteRotation) ? targetAbsoluteRotation : robotRef.current.rotation;
         setRobotState({ ...robotRef.current }); 
       },
       setHeading: async (targetAngle: number) => { 
         checkAbort(); 
-        const currentRot = normalizeAngle(Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0); 
+        const currentRot = normalizeAngle(typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0); 
         const normalizedTarget = normalizeAngle(targetAngle); 
         let diff = getAngleDifference(normalizedTarget, currentRot); 
         
-        await robotApi.turn(Number.isFinite(diff) ? diff : 0);
+        await robotApi.turn(typeof diff === 'number' && Number.isFinite(diff) ? diff : 0);
         checkAbort();
       },
       wait: (ms: number) => new Promise((resolve, reject) => { const t = setTimeout(resolve, ms); controller.signal.addEventListener('abort', () => { clearTimeout(t); reject(new Error("Simulation aborted")); }, { once: true }); }),
-      setMotorPower: async (left: number, right: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: Number.isFinite(left) ? left : 0, motorRightSpeed: Number.isFinite(right) ? right : 0 }; },
-      setSpeed: async (s: number) => { checkAbort(); robotRef.current.speed = Number.isFinite(s) ? s : 100; },
+      setMotorPower: async (left: number, right: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: typeof left === 'number' && Number.isFinite(left) ? left : 0, motorRightSpeed: typeof right === 'number' && Number.isFinite(right) ? right : 0 }; },
+      setSpeed: async (s: number) => { checkAbort(); robotRef.current.speed = typeof s === 'number' && Number.isFinite(s) ? s : 100; },
       stop: async () => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 }; },
       setPen: async (down: boolean) => { 
         checkAbort(); 
@@ -728,46 +731,41 @@ const App: React.FC = () => {
       },
       getDistance: async () => { 
         checkAbort(); 
-        // FIX: Ensure robotRef.current.x/z/rotation are finite before passing to calculateSensorReadings
-        const safeX: number = Number.isFinite(robotRef.current.x) ? robotRef.current.x as number : 0;
-        const safeZ: number = Number.isFinite(robotRef.current.z) ? robotRef.current.z as number : 0;
-        const safeRotation: number = Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation as number : 0;
+        const safeX: number = typeof robotRef.current.x === 'number' && Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
+        const safeZ: number = typeof robotRef.current.z === 'number' && Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
+        const safeRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
         const sd: SensorReadings = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects);
         return sd.distance; 
       },
       getTouch: async () => { 
         checkAbort(); 
-        // FIX: Ensure robotRef.current.x/z/rotation are finite before passing to calculateSensorReadings
-        const safeX: number = Number.isFinite(robotRef.current.x) ? robotRef.current.x as number : 0;
-        const safeZ: number = Number.isFinite(robotRef.current.z) ? robotRef.current.z as number : 0;
-        const safeRotation: number = Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation as number : 0;
+        const safeX: number = typeof robotRef.current.x === 'number' && Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
+        const safeZ: number = typeof robotRef.current.z === 'number' && Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
+        const safeRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
         const sd: SensorReadings = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects);
         return sd.isTouching; 
       },
       getGyro: async (mode: 'ANGLE' | 'TILT') => { 
         checkAbort(); 
-        // FIX: Ensure robotRef.current.x/z/rotation are finite before passing to calculateSensorReadings
-        const safeX: number = Number.isFinite(robotRef.current.x) ? robotRef.current.x as number : 0;
-        const safeZ: number = Number.isFinite(robotRef.current.z) ? robotRef.current.z as number : 0;
-        const safeRotation: number = Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation as number : 0;
+        const safeX: number = typeof robotRef.current.x === 'number' && Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
+        const safeZ: number = typeof robotRef.current.z === 'number' && Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
+        const safeRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
         const sd: SensorReadings = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects); 
         return mode === 'TILT' ? sd.tilt : sd.gyro; 
       },
       getColor: async () => { 
         checkAbort(); 
-        // FIX: Ensure robotRef.current.x/z/rotation are finite before passing to calculateSensorReadings
-        const safeX: number = Number.isFinite(robotRef.current.x) ? robotRef.current.x as number : 0;
-        const safeZ: number = Number.isFinite(robotRef.current.z) ? robotRef.current.z as number : 0;
-        const safeRotation: number = Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation as number : 0;
+        const safeX: number = typeof robotRef.current.x === 'number' && Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
+        const safeZ: number = typeof robotRef.current.z === 'number' && Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
+        const safeRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
         const sd: SensorReadings = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects); 
         return sd.color; 
       },
       isTouchingColor: async (hex: string) => { 
         checkAbort(); 
-        // FIX: Ensure robotRef.current.x/z/rotation are finite before passing to calculateSensorReadings
-        const safeX: number = Number.isFinite(robotRef.current.x) ? robotRef.current.x as number : 0;
-        const safeZ: number = Number.isFinite(robotRef.current.z) ? robotRef.current.z as number : 0;
-        const safeRotation: number = Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation as number : 0;
+        const safeX: number = typeof robotRef.current.x === 'number' && Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
+        const safeZ: number = typeof robotRef.current.z === 'number' && Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
+        const safeRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
         const sd: SensorReadings = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects); 
         let detectedColorToCompare = sd.color;
         return isColorClose(detectedColorToCompare, hex); 
@@ -778,7 +776,7 @@ const App: React.FC = () => {
       sendMessage: async (msg: string) => { checkAbort(); if (listenersRef.current.messages[msg]) await Promise.all(listenersRef.current.messages[msg].map(cb => cb())); },
       onColor: (color: string, cb: () => Promise<void>) => { listenersRef.current.colors.push({ color, cb, lastMatch: false }); },
       onObstacle: (cb: () => Promise<void>) => { listenersRef.current.obstacles.push({ cb, lastMatch: false }); },
-      onDistance: (threshold: number, cb: () => Promise<void>) => { listenersRef.current.distances.push({ threshold: Number.isFinite(threshold) ? threshold : 0, cb, lastMatch: false }); },
+      onDistance: (threshold: number, cb: () => Promise<void>) => { listenersRef.current.distances.push({ threshold: typeof threshold === 'number' && Number.isFinite(threshold) ? threshold : 0, cb, lastMatch: false }); },
       updateVariable: (name: string, val: any) => { setMonitoredValues(prev => ({ ...prev, [name]: val })); },
       stopProgram: async () => { controller.abort(); setIsRunning(false); }
     };
@@ -797,34 +795,34 @@ const App: React.FC = () => {
         const current = robotRef.current; 
 
         // --- Aggressive NaN and Finite Number Check at the start of each tick ---
-        const safeX = Number.isFinite(current.x) ? current.x : 0;
-        const safeY = Number.isFinite(current.y) ? current.y : 0;
-        const safeZ = Number.isFinite(current.z) ? current.z : 0;
-        const safeRotation = Number.isFinite(current.rotation) ? current.rotation : 0;
-        const safeTilt = Number.isFinite(current.tilt) ? current.tilt : 0;
-        const safeRoll = Number.isFinite(current.roll) ? current.roll : 0;
-        const safeSpeed = Number.isFinite(current.speed) ? current.speed : 100;
-        const safeMotorLeftSpeed = Number.isFinite(current.motorLeftSpeed) ? current.motorLeftSpeed : 0;
-        const safeMotorRightSpeed = Number.isFinite(current.motorRightSpeed) ? current.motorRightSpeed : 0;
+        const safeX: number = typeof current.x === 'number' && Number.isFinite(current.x) ? current.x : 0;
+        const safeY: number = typeof current.y === 'number' && Number.isFinite(current.y) ? current.y : 0;
+        const safeZ: number = typeof current.z === 'number' && Number.isFinite(current.z) ? current.z : 0;
+        const safeRotation: number = typeof current.rotation === 'number' && Number.isFinite(current.rotation) ? current.rotation : 0;
+        const safeTilt: number = typeof current.tilt === 'number' && Number.isFinite(current.tilt) ? current.tilt : 0;
+        const safeRoll: number = typeof current.roll === 'number' && Number.isFinite(current.roll) ? current.roll : 0;
+        const safeSpeed: number = typeof current.speed === 'number' && Number.isFinite(current.speed) ? current.speed : 100;
+        const safeMotorLeftSpeed: number = typeof current.motorLeftSpeed === 'number' && Number.isFinite(current.motorLeftSpeed) ? current.motorLeftSpeed : 0;
+        const safeMotorRightSpeed: number = typeof current.motorRightSpeed === 'number' && Number.isFinite(current.motorRightSpeed) ? current.motorRightSpeed : 0;
         // --- End Aggressive NaN and Finite Number Check ---
 
         // Simplified calculation of fV and rV from direct motor speeds (from working version)
-        const f = safeSpeed / 100.0; 
-        const pL = safeMotorLeftSpeed / 100.0; 
-        const pR = safeMotorRightSpeed / 100.0;
+        const f: number = safeSpeed / 100.0; 
+        const pL: number = safeMotorLeftSpeed / 100.0; 
+        const pR: number = safeMotorRightSpeed / 100.0;
         
         let fV_raw = ((pL + pR) / 2.0) * BASE_VELOCITY * f; 
-        let fV_adjusted = Number.isFinite(fV_raw) ? fV_raw : 0; // Sanitize fV_raw immediately
+        let fV_adjusted: number = typeof fV_raw === 'number' && Number.isFinite(fV_raw) ? fV_raw : 0; // Sanitize fV_raw immediately
         const rV_raw = (pR - pL) * BASE_TURN_SPEED * f; 
-        const rV = Number.isFinite(rV_raw) ? rV_raw : 0; // Sanitize rV_raw immediately
+        const rV: number = typeof rV_raw === 'number' && Number.isFinite(rV_raw) ? rV_raw : 0; // Sanitize rV_raw immediately
         
         // --- Dynamic Velocity Reduction (retained as an. improvement) ---
         const sd_current_for_tilt: SensorReadings = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects);
-        const currentTilt = sd_current_for_tilt.tilt; // Sanitize currentTilt
+        const currentTilt: number = sd_current_for_tilt.tilt; // Already guaranteed number by SensorReadings interface
 
         if (Math.abs(currentTilt) > 3) { 
-            let tiltFactor = Math.abs(currentTilt) / 25; 
-            tiltFactor = Number.isFinite(tiltFactor) ? Math.min(tiltFactor, 1) : 0; // Sanitize tiltFactor
+            let tiltFactor_raw = Math.abs(currentTilt) / 25; 
+            let tiltFactor: number = typeof tiltFactor_raw === 'number' && Number.isFinite(tiltFactor_raw) ? Math.min(tiltFactor_raw, 1) : 0; // Sanitize tiltFactor
             
             let reductionMultiplier = 1;
 
@@ -833,37 +831,37 @@ const App: React.FC = () => {
             } else if (fV_adjusted < 0 && currentTilt < 0) { 
                 reductionMultiplier = Math.max(0.2, 1 - tiltFactor * 0.8); 
             }
-            fV_adjusted = fV_adjusted * (Number.isFinite(reductionMultiplier) ? reductionMultiplier : 1); // Sanitize result
+            fV_adjusted = fV_adjusted * (typeof reductionMultiplier === 'number' && Number.isFinite(reductionMultiplier) ? reductionMultiplier : 1); // Sanitize result
         }
         // --- End Dynamic Velocity Reduction ---
 
         const nr_potential_raw = safeRotation + rV; 
-        const nr_potential = Number.isFinite(nr_potential_raw) ? nr_potential_raw : safeRotation; // Sanitize nr_potential
+        const nr_potential: number = typeof nr_potential_raw === 'number' && Number.isFinite(nr_potential_raw) ? nr_potential_raw : safeRotation; // Sanitize nr_potential
 
-        const nx_potential_raw = safeX + (Number.isFinite(Math.sin(nr_potential * Math.PI / 180)) ? Math.sin(nr_potential * Math.PI / 180) : 0) * fV_adjusted; 
-        const nx_potential = Number.isFinite(nx_potential_raw) ? nx_potential_raw : safeX; // Sanitize nx_potential
+        const nx_potential_raw = safeX + (typeof Math.sin(nr_potential * Math.PI / 180) === 'number' && Number.isFinite(Math.sin(nr_potential * Math.PI / 180)) ? Math.sin(nr_potential * Math.PI / 180) : 0) * fV_adjusted; 
+        const nx_potential: number = typeof nx_potential_raw === 'number' && Number.isFinite(nx_potential_raw) ? nx_potential_raw : safeX; // Sanitize nx_potential
         
-        const nz_potential_raw = safeZ + (Number.isFinite(Math.cos(nr_potential * Math.PI / 180)) ? Math.cos(nr_potential * Math.PI / 180) : 0) * fV_adjusted; 
-        const nz_potential = Number.isFinite(nz_potential_raw) ? nz_potential_raw : safeZ; // Sanitize nz_potential
+        const nz_potential_raw = safeZ + (typeof Math.cos(nr_potential * Math.PI / 180) === 'number' && Number.isFinite(Math.cos(nr_potential * Math.PI / 180)) ? Math.cos(nr_potential * Math.PI / 180) : 0) * fV_adjusted; 
+        const nz_potential: number = typeof nz_potential_raw === 'number' && Number.isFinite(nz_potential_raw) ? nz_potential_raw : safeZ; // Sanitize nz_potential
         
         // Calculate sensor readings for the *potential* next position
         const sd_predicted: SensorReadings = calculateSensorReadings(nx_potential, nz_potential, nr_potential, activeChallenge?.id, customObjects);
         
-        const finalX = sd_predicted.isTouching ? safeX : nx_potential; 
-        const finalZ = sd_predicted.isTouching ? safeZ : nz_potential;
+        const finalX: number = sd_predicted.isTouching ? safeX : nx_potential; 
+        const finalZ: number = sd_predicted.isTouching ? safeZ : nz_potential;
         
         const next: RobotState = { 
           ...current, 
-          x: Number.isFinite(finalX) ? finalX : safeX, 
-          z: Number.isFinite(finalZ) ? finalZ : safeZ, 
-          y: Number.isFinite(sd_predicted.y) ? (safeY + (sd_predicted.y - safeY) * 0.3) : safeY, 
-          tilt: Number.isFinite(sd_predicted.tilt) ? (safeTilt + (sd_predicted.tilt - safeTilt) * 0.3) : safeTilt, 
-          roll: Number.isFinite(sd_predicted.roll) ? (safeRoll + (sd_predicted.roll - safeRoll) * 0.3) : safeRoll, 
-          rotation: Number.isFinite(nr_potential) ? nr_potential : safeRotation, 
+          x: typeof finalX === 'number' && Number.isFinite(finalX) ? finalX : safeX, 
+          z: typeof finalZ === 'number' && Number.isFinite(finalZ) ? finalZ : safeZ, 
+          y: typeof sd_predicted.y === 'number' && Number.isFinite(sd_predicted.y) ? (safeY + (sd_predicted.y - safeY) * 0.3) : safeY, 
+          tilt: typeof sd_predicted.tilt === 'number' && Number.isFinite(sd_predicted.tilt) ? (safeTilt + (sd_predicted.tilt - safeTilt) * 0.3) : safeTilt, 
+          roll: typeof sd_predicted.roll === 'number' && Number.isFinite(sd_predicted.roll) ? (safeRoll + (sd_predicted.roll - safeRoll) * 0.3) : safeRoll, 
+          rotation: typeof nr_potential === 'number' && Number.isFinite(nr_potential) ? nr_potential : safeRotation, 
           isTouching: sd_predicted.isTouching, 
-          isMoving: Number.isFinite(fV_adjusted) && Number.isFinite(rV) && (Math.abs(fV_adjusted) > 0.001 || Math.abs(rV) > 0.001), 
-          sensorX: Number.isFinite(sd_predicted.sensorX) ? sd_predicted.sensorX : 0, 
-          sensorZ: Number.isFinite(sd_predicted.sensorZ) ? sd_predicted.sensorZ : 0, 
+          isMoving: (typeof fV_adjusted === 'number' && Number.isFinite(fV_adjusted) && typeof rV === 'number' && Number.isFinite(rV)) && (Math.abs(fV_adjusted) > 0.001 || Math.abs(rV) > 0.001), 
+          sensorX: typeof sd_predicted.sensorX === 'number' && Number.isFinite(sd_predicted.sensorX) ? sd_predicted.sensorX : 0, 
+          sensorZ: typeof sd_predicted.sensorZ === 'number' && Number.isFinite(sd_predicted.sensorZ) ? sd_predicted.sensorZ : 0, 
         }; 
         robotRef.current = next; setRobotState(next); 
 
@@ -886,22 +884,22 @@ const App: React.FC = () => {
         if (sd_predicted.isTouching) historyRef.current.touchedWall = true; 
         
         // Ensure startX and startZ from activeChallenge are finite
-        const histStartX: number = Number.isFinite(activeChallenge?.startPosition?.x) ? activeChallenge?.startPosition?.x as number : 0; 
-        const histStartZ: number = Number.isFinite(activeChallenge?.startPosition?.z) ? activeChallenge?.startPosition?.z as number : 0;
+        const histStartX: number = typeof activeChallenge?.startPosition?.x === 'number' && Number.isFinite(activeChallenge.startPosition.x) ? activeChallenge.startPosition.x : 0; 
+        const histStartZ: number = typeof activeChallenge?.startPosition?.z === 'number' && Number.isFinite(activeChallenge.startPosition.z) ? activeChallenge.startPosition.z : 0;
         const distMoved_raw = Math.sqrt(Math.pow(next.x - histStartX, 2) + Math.pow(next.z - histStartZ, 2));
-        historyRef.current.maxDistanceMoved = Math.max(historyRef.current.maxDistanceMoved, (Number.isFinite(distMoved_raw) ? distMoved_raw : 0) * 10); 
+        historyRef.current.maxDistanceMoved = Math.max(historyRef.current.maxDistanceMoved, (typeof distMoved_raw === 'number' && Number.isFinite(distMoved_raw) ? distMoved_raw : 0) * 10); 
         if (!historyRef.current.detectedColors.includes(curDetectedColor)) historyRef.current.detectedColors.push(curDetectedColor);
         
         // FIX: Ensure activeChallenge?.startRotation is explicitly a number
-        const startRotationForHistory: number = Number.isFinite(activeChallenge?.startRotation) ? activeChallenge?.startRotation as number : 180;
-        historyRef.current.totalRotation = Number.isFinite(robotRef.current.rotation) ? (robotRef.current.rotation - startRotationForHistory) : 0;
+        const startRotationForHistory: number = typeof activeChallenge?.startRotation === 'number' && Number.isFinite(activeChallenge.startRotation) ? activeChallenge.startRotation : 180;
+        historyRef.current.totalRotation = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? (robotRef.current.rotation - startRotationForHistory) : 0;
 
         // --- NEW DRAWING LOGIC ---
         if (next.penDown) { 
           const currPos: [number, number, number] = [
-            Number.isFinite(next.x) ? next.x : 0, 
-            Number.isFinite(next.y) ? (next.y + 0.02) : 0.02, 
-            Number.isFinite(next.z) ? next.z : 0
+            typeof next.x === 'number' && Number.isFinite(next.x) ? next.x : 0, 
+            typeof next.y === 'number' && Number.isFinite(next.y) ? (next.y + 0.02) : 0.02, 
+            typeof next.z === 'number' && Number.isFinite(next.z) ? next.z : 0
           ]; 
           
           setActiveDrawing(prevActiveDrawing => {
@@ -999,7 +997,7 @@ const App: React.FC = () => {
       props.enableRotate = false; 
       props.enablePan = false;    
       props.minPolarAngle = Math.PI / 6; 
-      maxPolarAngle: Math.PI / 2 - 0.1; 
+      props.maxPolarAngle = Math.PI / 2 - 0.1; // FIX: Added props. prefix
       props.mouseButtons = { 
         LEFT: THREE.MOUSE.DOLLY,
         MIDDLE: THREE.MOUSE.DOLLY,
