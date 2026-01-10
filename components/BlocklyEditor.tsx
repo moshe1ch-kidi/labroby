@@ -337,8 +337,8 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
         if (workspaceRef.current) workspaceRef.current.dispose();
         workspaceRef.current = null;
         // Clean up on unmount
-        (window as any).showBlocklyNumpad = undefined; // Assign undefined instead of delete
-        (window as any).showBlocklyColorPicker = undefined; // Assign undefined instead of delete
+        (window as any).showBlocklyNumpad = undefined; // Assign undefined instead of delete to avoid TS2790
+        (window as any).showBlocklyColorPicker = undefined; // Assign undefined instead of delete to avoid TS2790
         // The global BlocklyEnvironmentColors is managed by a separate useEffect. No need to delete here.
     };
   }, [generateAndNotify, notifyVariablesChange, onShowNumpad, onShowColorPicker]); // Removed environmentColors from dependencies
