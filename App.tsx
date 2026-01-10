@@ -1,5 +1,4 @@
-
-
+ 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -545,10 +544,10 @@ const App: React.FC = () => {
         await robotApi.turn(diff);
         checkAbort();
       },
-      wait: (ms: number) => new Promise((resolve, reject) => { const t = setTimeout(resolve, ms); controller.signal.addEventListener('abort', () => { clearTimeout(t); reject(new Error("Simulation aborted")); }, { once: true }); });
+      wait: (ms: number) => new Promise((resolve, reject) => { const t = setTimeout(resolve, ms); controller.signal.addEventListener('abort', () => { clearTimeout(t); reject(new Error("Simulation aborted")); }, { once: true }); }),
       setMotorPower: async (left: number, right: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: left, motorRightSpeed: right }; },
       setSpeed: async (s: number) => { checkAbort(); robotRef.current.speed = s; },
-      stop: async () => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 }; };
+      stop: async () => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 }; },
       setPen: async (down: boolean) => { 
         checkAbort(); 
         robotRef.current.penDown = down; 
@@ -583,12 +582,12 @@ const App: React.FC = () => {
       getCircumference: async () => 3.77,
       setLed: (side: 'left' | 'right' | 'both', color: string) => { checkAbort(); if (side === 'left' || side === 'both') robotRef.current.ledLeftColor = color; if (side === 'right' || side === 'both') robotRef.current.ledRightColor = color; setRobotState({ ...robotRef.current }); },
       onMessage: (msg: string, cb: () => Promise<void>) => { if (!listenersRef.current.messages[msg]) listenersRef.current.messages[msg] = []; listenersRef.current.messages[msg].push(cb); },
-      sendMessage: async (msg: string) => { checkAbort(); if (listenersRef.current.messages[msg]) await Promise.all(listenersRef.current.messages[msg].map(cb => cb())); };
-      onColor: (color: string, cb: () => Promise<void>) => { listenersRef.current.colors.push({ color, cb, lastMatch: false }); };
-      onObstacle: (cb: () => Promise<void>) => { listenersRef.current.obstacles.push({ cb, lastMatch: false }); };
-      onDistance: (threshold: number, cb: () => Promise<void>) => { listenersRef.current.distances.push({ threshold, cb, lastMatch: false }); };
-      updateVariable: (name: string, val: any) => { setMonitoredValues(prev => ({ ...prev, [name]: val })); };
-      stopProgram: async () => { controller.abort(); setIsRunning(false); }
+      sendMessage: async (msg: string) => { checkAbort(); if (listenersRef.current.messages[msg]) await Promise.all(listenersRef.current.messages[msg].map(cb => cb())); },
+      onColor: (color: string, cb: () => Promise<void>) => { listenersRef.current.colors.push({ color, cb, lastMatch: false }); },
+      onObstacle: (cb: () => Promise<void>) => { listenersRef.current.obstacles.push({ cb, lastMatch: false }); },
+      onDistance: (threshold: number, cb: () => Promise<void>) => { listenersRef.current.distances.push({ threshold, cb, lastMatch: false }); },
+      updateVariable: (name: string, val: any) => { setMonitoredValues(prev => ({ ...prev, [name]: val })); },
+      stopProgram: async () => { controller.abort(); setIsRunning(false); },
     };
     try { 
         const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor; 
