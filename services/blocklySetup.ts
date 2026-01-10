@@ -1,5 +1,4 @@
 
-
 // Initialize Blockly Setup
 
 // --- CONSTANTS ---
@@ -206,8 +205,10 @@ export const initBlockly = () => {
         dropperBtn.onclick = () => { 
           Blockly.DropDownDiv.hideIfOwner(self); // Use self here
           if (window.showBlocklyColorPicker) { 
+            // The `onPick` callback expects `(newColor: string, field: any) => void`
+            // We provide this callback to `window.showBlocklyColorPicker`
             window.showBlocklyColorPicker((newColor: string, field: any) => { 
-              self.setValue(newColor); // Use self here
+              self.setValue(newColor); // This sets the value of *this* Blockly field.
             }); 
           } 
         };
