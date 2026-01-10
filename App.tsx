@@ -1,4 +1,4 @@
- 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -21,7 +21,7 @@ const BASE_VELOCITY = 0.165; // Retained at 3x original for normal forward movem
 const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much faster turning
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwNC9wYXRoPjxwYXRoIGQ9MTAuNTQgOC40NmE1IDUgMCAxIDAtNy4wNyA3LjA3bDEuNDEgMS40MWEyIDIgMCAwIDAgMi44MyAwbDIuODMtMi44M2EyIDIgMCAwIDAgMC0yLjgzbC0xLjQxLTEuNDF6Ii8+PHBhdGggZD0ibTkgMTkgNW0tNy05IDUtNSIvPjxwYXRoIGQ9Ik05LjUgMTQuNSAzIDkiLz48cGF0aCBkPSJtMTggNiAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAg1IDAtMi44LTy2c29sZHVlciBkMi44bC0xLjQgMS40IDIuOCAy.4IDEuNC0x.4eiIvPjwvc3ZnPgo=') 0 24, crosshair`;
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwNC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzZmlsbC1vcGFhY2l0eT0iMSIgc3Ryb2tlPSIjZWM0ODk5IiBzdHJva2Utd2lkdGg9IjIiIHN0cmtLLWxpbmVjYXA9InJvdW5kIiBzdHJva2Utd2lkdGg9InJvdW5kIj48cGF0aCBkPSJtMTAuNTQgOC40NmE1IDUgMCAxIDAtNy4wNyA3LjA3bDEuNDEgMS40MWEyIDIgMCAwIDAgMi44MyAwbDIuODMtMi44M2EyIDIgMCAwIDAgMC0yLjgzbC0xLjQxLTEuNDF6Ii8+PHBhdGggZD0ibTkgMTkgNW0tNy05IDUtNSIvPjxwYXRoIGQ9Im05LjUgMTQuNSAzIDQuNS0zLTMuNSIvPjxwYXRoIGQ9Im0xOCAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAxLjQtMS40eiIvPjwvc3ZnPgo=') 0 24, crosshair`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -35,6 +35,11 @@ const CANONICAL_COLOR_MAP: Record<string, string> = {
     'magenta': '#EC4899', // From Blockly's pink diamond (using magenta as the name in code)
     'black': '#000000',
     'white': '#FFFFFF',
+    'darkgrey': '#374151', // For maze walls
+    'grayroad': '#64748b', // For gray road
+    'lightgrayroad': '#94a3b8', // For lighter gray road
+    'darkramp': '#334155', // For ramp base
+    'lightramp': '#475569', // For ramp surface
 };
 
 // Helper function to normalize angles to 0-360 degrees
@@ -386,7 +391,7 @@ const App: React.FC = () => {
   const [projectModal, setProjectModal] = useState<{isOpen: boolean, mode: 'save' | 'load'}>({isOpen: false, mode: 'save'});
   const [isPythonModalOpen, setIsPythonModalOpen] = useState(false);
   const [monitoredValues, setMonitoredValues] = useState<Record<string, any>>({});
-  // Fix: Initialize visibleVariables with useState to be a Set<string>
+  // Fix 1: `useState` should be called directly, not with `new`.
   const [visibleVariables, setVisibleVariables] = useState<Set<string>>(new Set());
   const blocklyEditorRef = useRef<BlocklyEditorHandle>(null);
   const controlsRef = useRef<any>(null); // Reference to OrbitControls
@@ -400,8 +405,8 @@ const App: React.FC = () => {
   const [completedDrawings, setCompletedDrawings] = useState<ContinuousDrawing[]>([]);
   const activeDrawingRef = useRef<ContinuousDrawing | null>(null); // Ref for immediate access in callbacks
 
-  // REMOVED: This useEffect is removed as activeDrawingRef.current will be updated directly.
-  // useEffect(() => { activeDrawingRef.current = activeDrawing; }, [activeDrawing]);
+  // NEW STATE: Holds unique colors from the environment
+  const [environmentColors, setEnvironmentColors] = useState<string[]>([]);
   
   const robotRef = useRef<RobotState>({ x: 0, y: 0, z: 0, rotation: 180, tilt: 0, roll: 0, speed: 100, motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', ledRightColor: 'black', isMoving: false, isTouching: false, penDown: false, penColor: '#000000' });
   const [robotState, setRobotState] = useState<RobotState>(robotRef.current);
@@ -410,8 +415,7 @@ const App: React.FC = () => {
   const listenersRef = useRef<{ messages: Record<string, (() => Promise<void>)[]>, colors: { color: string, cb: () => Promise<void>, lastMatch: boolean }[], obstacles: { cb: () => Promise<void>, lastMatch: boolean }[], distances: { threshold: number, cb: () => Promise<void>, lastMatch: boolean }[], variables: Record<string, any> }>({ messages: {}, colors: [], obstacles: [], distances: [], variables: {} });
 
   // New state to hold the Blockly color pick callback
-  // Updated type definition for blocklyColorPickCallback to accept a field argument
-  const [blocklyColorPickCallback, setBlocklyColorPickCallback] = useState<((newColor: string, field: any) => void) | null>(null);
+  const [blocklyColorPickCallback, setBlocklyColorPickCallback] = useState<((newColor: string) => void) | null>(null);
 
   const showToast = useCallback((message: string, type: 'success' | 'info' | 'error' = 'success') => { setToast({ message, type }); setTimeout(() => setToast(null), 4000); }, []);
 
@@ -444,6 +448,62 @@ const App: React.FC = () => {
   }, [activeChallenge]);
 
   useEffect(() => { handleReset(); }, [activeChallenge, handleReset]);
+
+  // Effect to extract unique colors from custom objects and active challenge
+  const extractUniqueColors = useCallback((
+    currentCustomObjects: CustomObject[],
+    currentActiveChallenge: Challenge | null
+  ) => {
+      const uniqueColors = new Set<string>();
+
+      // Add canonical colors first to ensure they are always present
+      Object.values(CANONICAL_COLOR_MAP).forEach(color => uniqueColors.add(color.toUpperCase()));
+
+      // Add colors from custom objects
+      currentCustomObjects.forEach(obj => {
+          if (obj.color) {
+              uniqueColors.add(obj.color.toUpperCase());
+          }
+          if (obj.type === 'RAMP') { // Ramps have default colors if not specified
+              uniqueColors.add(CANONICAL_COLOR_MAP['darkramp'].toUpperCase());
+              uniqueColors.add(CANONICAL_COLOR_MAP['lightramp'].toUpperCase());
+          }
+      });
+
+      // Add colors from the active challenge's environment objects
+      if (currentActiveChallenge && currentActiveChallenge.environmentObjects) {
+          currentActiveChallenge.environmentObjects.forEach(obj => {
+              if (obj.color) {
+                  uniqueColors.add(obj.color.toUpperCase());
+              }
+              if (obj.type === 'RAMP') {
+                  uniqueColors.add(CANONICAL_COLOR_MAP['darkramp'].toUpperCase());
+                  uniqueColors.add(CANONICAL_COLOR_MAP['lightramp'].toUpperCase());
+              }
+          });
+      }
+
+      // Add colors from hardcoded challenge elements in Environment.tsx that might not be in customObjects
+      // This is based on manual inspection of Environment.tsx
+      uniqueColors.add(CANONICAL_COLOR_MAP['white'].toUpperCase()); // Ground plane default
+      uniqueColors.add(CANONICAL_COLOR_MAP['grayroad'].toUpperCase()); // c10, c10_lines, c11, c9
+      uniqueColors.add(CANONICAL_COLOR_MAP['lightgrayroad'].toUpperCase()); // c14, c15
+      uniqueColors.add('#0000FF'); // Blue marker in c14, c15, c12
+      uniqueColors.add('#FF0000'); // Red marker in c14, c15, c18, c5, c10, c12
+      uniqueColors.add('#22C55E'); // Green marker in c12
+      uniqueColors.add('#FFFF00'); // Yellow marker in c12, c_square_loop paths (default)
+      uniqueColors.add('#000000'); // Black lines in c10_lines, c12, c21
+      uniqueColors.add('#D946EF'); // Magenta line in c9
+      uniqueColors.add('#06B6D4'); // Cyan line in c9
+      uniqueColors.add('#FACC15'); // Yellow line in c9
+      uniqueColors.add(CANONICAL_COLOR_MAP['darkgrey'].toUpperCase()); // c_maze_original walls
+
+      return Array.from(uniqueColors).sort();
+  }, [CANONICAL_COLOR_MAP]);
+
+  useEffect(() => {
+      setEnvironmentColors(extractUniqueColors(customObjects, activeChallenge));
+  }, [customObjects, activeChallenge, extractUniqueColors]);
 
   // General 3D environment pointer handlers for editor tools
   const handlePointerDown = useCallback((e: ThreeEvent<MouseEvent>) => {
@@ -547,7 +607,10 @@ const App: React.FC = () => {
       wait: (ms: number) => new Promise((resolve, reject) => { const t = setTimeout(resolve, ms); controller.signal.addEventListener('abort', () => { clearTimeout(t); reject(new Error("Simulation aborted")); }, { once: true }); }),
       setMotorPower: async (left: number, right: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: left, motorRightSpeed: right }; },
       setSpeed: async (s: number) => { checkAbort(); robotRef.current.speed = s; },
-      stop: async () => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 }; },
+      stop: async () => { checkAbort(); 
+        // Fix 2: Changed `motorRightRight` to `motorRightSpeed`
+        robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 }; 
+      },
       setPen: async (down: boolean) => { 
         checkAbort(); 
         robotRef.current.penDown = down; 
@@ -587,7 +650,7 @@ const App: React.FC = () => {
       onObstacle: (cb: () => Promise<void>) => { listenersRef.current.obstacles.push({ cb, lastMatch: false }); },
       onDistance: (threshold: number, cb: () => Promise<void>) => { listenersRef.current.distances.push({ threshold, cb, lastMatch: false }); },
       updateVariable: (name: string, val: any) => { setMonitoredValues(prev => ({ ...prev, [name]: val })); },
-      stopProgram: async () => { controller.abort(); setIsRunning(false); },
+      stopProgram: async () => { controller.abort(); setIsRunning(false); }
     };
     try { 
         const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor; 
@@ -844,11 +907,9 @@ const App: React.FC = () => {
   }, []);
 
   // Handler for when ColorPickerTool selects a color
-  // Ensure this function ONLY takes hexColor as an argument, as expected by ColorPickerTool
   const handlePickerSelect = useCallback((hexColor: string) => {
     if (blocklyColorPickCallback) {
-      // Call the stored Blockly callback, passing `null` for the field as it's not relevant here
-      blocklyColorPickCallback(hexColor, null); 
+      blocklyColorPickCallback(hexColor);
     }
     setIsColorPickerActive(false);
     setPickerHoverColor(null);
@@ -856,8 +917,7 @@ const App: React.FC = () => {
   }, [blocklyColorPickCallback]);
 
 
-  // Updated function signature to accept a field argument for the onPick callback
-  const showBlocklyColorPicker = useCallback((onPick: (newColor: string, field: any) => void) => {
+  const showBlocklyColorPicker = useCallback((onPick: (newColor: string) => void) => {
     setIsColorPickerActive(true); // Activate the color picker tool visually
     setBlocklyColorPickCallback(() => onPick); // Store the callback from Blockly
   }, []);
@@ -970,6 +1030,7 @@ const App: React.FC = () => {
               onToggleVariable={useCallback((n) => setVisibleVariables(v => { const next = new Set(v); if (next.has(n)) next.delete(n); else next.add(n); return next; }), [])} 
               onShowNumpad={showBlocklyNumpad} // Pass the numpad function
               onShowColorPicker={showBlocklyColorPicker} // Pass the color picker function
+              environmentColors={environmentColors} // Pass environment colors to BlocklyEditor
             />
           </div>
         </div>
