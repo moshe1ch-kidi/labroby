@@ -1,4 +1,4 @@
-
+ 
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Group, Vector3 } from 'three';
@@ -161,12 +161,12 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
       // Set absolute position. Wheels are at 0 internally but group is shifted up by 0.6.
       // So if state.y is 0, wheels touch 0.
       // Add a small visual offset (0.02) to prevent clipping with the ground/ramps.
-      groupRef.current.position.y = state.y + 0.02; 
-      groupRef.current.position.x = state.x;
-      groupRef.current.position.z = state.z;
-      groupRef.current.rotation.y = state.rotation * (Math.PI / 180);
-      groupRef.current.rotation.x = state.tilt * (Math.PI / 180);
-      groupRef.current.rotation.z = state.roll * (Math.PI / 180);
+      groupRef.current.position.y = (state.y as number) + 0.02; 
+      groupRef.current.position.x = state.x as number;
+      groupRef.current.position.z = state.z as number;
+      groupRef.current.rotation.y = (state.rotation as number) * (Math.PI / 180);
+      groupRef.current.rotation.x = (state.tilt as number) * (Math.PI / 180);
+      groupRef.current.rotation.z = (state.roll as number) * (Math.PI / 180);
     }
   });
 
