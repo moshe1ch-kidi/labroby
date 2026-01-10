@@ -1,4 +1,4 @@
-
+ 
 import React, { useState, useCallback, useEffect } from 'react';
 import { Html } from '@react-three/drei';
 import { Vector3, Mesh, Color, Layers } from 'three'; // Import Layers
@@ -37,7 +37,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
             return null;
         }
 
-        console.log(`ColorPickerTool: Mouse coords (normalized): x=${mouse.x.toFixed(2)}, y=${mouse.y.toFixed(2)}`);
+        // console.log(`ColorPickerTool: Mouse coords (normalized): x=${mouse.x.toFixed(2)}, y=${mouse.y.toFixed(2)}`);
         
         let intersects;
         let pickedColor: string | null = null;
@@ -47,12 +47,12 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
         raycaster.setFromCamera(mouse, camera);
         raycaster.layers = robotLayers(); // Only check ROBOT_LAYER
         intersects = raycaster.intersectObjects(scene.children, true);
-        console.log(`ColorPickerTool: Intersects (ROBOT_LAYER): ${intersects.length} hits`);
+        // console.log(`ColorPickerTool: Intersects (ROBOT_LAYER): ${intersects.length} hits`);
 
         for (const hit of intersects) {
             // Ensure hit, object, and point are defined before accessing properties
             if (!hit || !hit.object || !hit.point) {
-                console.warn("ColorPickerTool: Invalid hit object in ROBOT_LAYER intersection.");
+                // console.warn("ColorPickerTool: Invalid hit object in ROBOT_LAYER intersection.");
                 continue;
             }
 
@@ -69,7 +69,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
                     if (mat && mat.color instanceof Color && mat.opacity > 0) {
                         pickedColor = "#" + mat.color.getHexString().toUpperCase();
                         pickedPoint = hit.point;
-                        console.log(`ColorPickerTool: Detected ROBOT part: ${object.name || object.type} with color ${pickedColor} at point ${pickedPoint.x.toFixed(2)},${pickedPoint.y.toFixed(2)},${pickedPoint.z.toFixed(2)}`);
+                        // console.log(`ColorPickerTool: Detected ROBOT part: ${object.name || object.type} with color ${pickedColor} at point ${pickedPoint.x.toFixed(2)},${pickedPoint.y.toFixed(2)},${pickedPoint.z.toFixed(2)}`);
                         setCursorPos(pickedPoint);
                         return pickedColor; // Immediately return if robot part is found
                     }
@@ -80,14 +80,14 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
         // --- Phase 2: If no robot parts, try to hit other objects (e.g., ground, custom objects) ---
         raycaster.layers = environmentLayers(); // Check environment layers (default layer 0)
         intersects = raycaster.intersectObjects(scene.children, true);
-        console.log(`ColorPickerTool: Intersects (ENVIRONMENT_LAYER): ${intersects.length} hits`);
+        // console.log(`ColorPickerTool: Intersects (ENVIRONMENT_LAYER): ${intersects.length} hits`);
 
         let groundPlaneHit: { color: string, point: Vector3 } | null = null;
 
         for (const hit of intersects) {
             // Ensure hit, object, and point are defined before accessing properties
             if (!hit || !hit.object || !hit.point) {
-                console.warn("ColorPickerTool: Invalid hit object in ENVIRONMENT_LAYER intersection.");
+                // console.warn("ColorPickerTool: Invalid hit object in ENVIRONMENT_LAYER intersection.");
                 continue;
             }
 
@@ -103,7 +103,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
                     for (const mat of materials) {
                         if (mat && mat.color instanceof Color) { 
                             groundPlaneHit = { color: "#" + mat.color.getHexString().toUpperCase(), point: hit.point };
-                            console.log(`ColorPickerTool: Storing ground-plane as fallback with color ${groundPlaneHit.color} at point ${groundPlaneHit.point.x.toFixed(2)},${groundPlaneHit.point.y.toFixed(2)},${groundPlaneHit.point.z.toFixed(2)}.`);
+                            // console.log(`ColorPickerTool: Storing ground-plane as fallback with color ${groundPlaneHit.color} at point ${groundPlaneHit.point.x.toFixed(2)},${groundPlaneHit.point.y.toFixed(2)},${groundPlaneHit.point.z.toFixed(2)}.`);
                             break; 
                         }
                     }
@@ -118,7 +118,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
                     if (mat && mat.color instanceof Color && mat.opacity > 0) { 
                         pickedColor = "#" + mat.color.getHexString().toUpperCase();
                         pickedPoint = hit.point;
-                        console.log(`ColorPickerTool: Detected ENVIRONMENT object: ${object.name || object.type} with color ${pickedColor} at point ${pickedPoint.x.toFixed(2)},${pickedPoint.y.toFixed(2)},${pickedPoint.z.toFixed(2)}`);
+                        // console.log(`ColorPickerTool: Detected ENVIRONMENT object: ${object.name || object.type} with color ${pickedColor} at point ${pickedPoint.x.toFixed(2)},${pickedPoint.y.toFixed(2)},${pickedPoint.z.toFixed(2)}`);
                         setCursorPos(pickedPoint);
                         return pickedColor; // Immediately return if custom object is found
                     }
@@ -128,27 +128,27 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
 
         // If no distinct object found, fall back to ground plane color
         if (groundPlaneHit) {
-            console.log(`ColorPickerTool: Falling back to ground-plane color: ${groundPlaneHit.color}`);
+            // console.log(`ColorPickerTool: Falling back to ground-plane color: ${groundPlaneHit.color}`);
             setCursorPos(groundPlaneHit.point);
             return groundPlaneHit.color;
         }
         
         // Default to white if nothing is hit
-        console.log("ColorPickerTool: No colored object detected, returning default white.");
+        // console.log("ColorPickerTool: No colored object detected, returning default white.");
         setCursorPos(null);
         return "#FFFFFF";
     }, [raycaster, scene, camera, mouse, robotLayers, environmentLayers]);
 
 
     const handlePointerMove = useCallback((e: any) => {
-        console.log("ColorPickerTool: PointerMove event received.");
+        // console.log("ColorPickerTool: PointerMove event received.");
         e.stopPropagation();
         const hex = sampleColorUnderMouse();
         if (hex !== null) onColorHover(hex);
     }, [onColorHover, sampleColorUnderMouse]);
 
     const handleClick = useCallback((e: any) => {
-        console.log("ColorPickerTool: Click event received.");
+        // console.log("ColorPickerTool: Click event received.");
         e.stopPropagation();
         const hex = sampleColorUnderMouse();
         // MODIFIED: Pass the Blockly FieldColour instance from ref to onColorSelect
@@ -160,7 +160,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
     }, [onColorSelect, sampleColorUnderMouse, blocklyFieldRef]);
 
     const handlePointerOut = useCallback(() => {
-        console.log("ColorPickerTool: PointerOut event received.");
+        // console.log("ColorPickerTool: PointerOut event received.");
         setCursorPos(null);
         onColorHover("");
     }, [onColorHover]);
