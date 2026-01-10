@@ -340,6 +340,7 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
         if (workspaceRef.current) workspaceRef.current.dispose();
         workspaceRef.current = null;
         // Clean up on unmount
+        // These are now optional properties on Window in types.ts
         delete window.showBlocklyNumpad;
         delete window.showBlocklyColorPicker;
     };
