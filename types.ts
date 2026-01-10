@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 
 export type CameraMode = 'HOME' | 'TOP' | 'FOLLOW';
@@ -62,12 +61,12 @@ export interface SimulationHistory {
 
 declare global {
   interface Window {
-    showBlocklyNumpad: (
+    showBlocklyNumpad?: ( // Marked as optional
       initialValue: string | number, 
       onConfirm: (newValue: number) => void
     ) => void;
 
-    showBlocklyColorPicker: (
+    showBlocklyColorPicker?: ( // Marked as optional
       onPick: (newColor: string) => void
     ) => void;
 
