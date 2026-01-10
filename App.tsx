@@ -1,4 +1,4 @@
- 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -23,7 +23,7 @@ const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much f
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
 // Updated to a more appropriate dropper cursor SVG
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtcGlwZXR0ZSI%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTTkuNSAxNC41IDE2IDhsMyAzLTYuNSA2LjUtMy0zEiIvPjxwYXRoIGQ9Imm3LjUgMTEuNSAzLTVsLz48cGF0aCBkPSJtMTggMyAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAxLjQtMS40eiIvPjwvc3ZnPikgMCAyNCwgY3Jvc3NoYWly`;
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtcGlwZXR0ZSI%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTTkuNSAxNC41IDE2IDhsMyAzLTYuNSA2LjUtMy0zEiIvPjxwYXRoIGQ9Imm3LjUgMTEuNSAzLTVsLz48cGF0aCBkPSJmMTggMyAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAxLjQtMS40eiIvPjwvc3ZnPikgMCAyNCwgY3Jvc3NoYWly`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -411,7 +411,8 @@ const App: React.FC = () => {
   const [projectModal, setProjectModal] = useState<{isOpen: boolean, mode: 'save' | 'load'}>({isOpen: false, mode: 'save'});
   const [isPythonModalOpen, setIsPythonModalOpen] = useState(false);
   const [monitoredValues, setMonitoredValues] = useState<Record<string, any>>({});
-  const [visibleVariables, setVisibleVariables] = useState<Set<string>>(new Set());
+  // FIX: Correctly initialize visibleVariables as a Set<string> using useState
+  const [visibleVariables, setVisibleVariables] = useState<Set<string>>(new Set<string>());
   const blocklyEditorRef = useRef<BlocklyEditorHandle>(null);
   const controlsRef = useRef<any>(null); // Reference to OrbitControls
   const historyRef = useRef<SimulationHistory>({ maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 });
@@ -424,7 +425,8 @@ const App: React.FC = () => {
   const [completedDrawings, setCompletedDrawings] = useState<ContinuousDrawing[]>([]);
   const activeDrawingRef = useRef<ContinuousDrawing | null>(null); // Ref for immediate access in callbacks
 
-  const robotRef = useRef<RobotState>({ x: 0, y: 0, z: 0, rotation: 180, tilt: 0, roll: 0, speed: 100, motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', ledRightColor: 'black', isMoving: false, isTouching: false, penDown: false, penColor: '#000000' });
+  // FIX: Initialize sensorX and sensorZ to a number to prevent undefined at start
+  const robotRef = useRef<RobotState>({ x: 0, y: 0, z: 0, rotation: 180, tilt: 0, roll: 0, speed: 100, motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', ledRightColor: 'black', isMoving: false, isTouching: false, penDown: false, penColor: '#000000', sensorX: 0, sensorZ: 0 });
   const [robotState, setRobotState] = useState<RobotState>(robotRef.current);
   const isPlacingRobot = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -448,7 +450,24 @@ const App: React.FC = () => {
     
     // Initial sensor reading for start position
     const sd_initial = calculateSensorReadings(startX, startZ, startRot, activeChallenge?.id, envObjs); 
-    const d = { ...robotRef.current, x: startX, y: sd_initial.y, z: startZ, rotation: startRot, motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', ledRightColor: 'black', tilt: sd_initial.tilt, roll: sd_initial.roll, penDown: false, isTouching: false };
+    // FIX: Explicitly include sensorX and sensorZ in the new robot state
+    const d = { 
+        ...robotRef.current, 
+        x: startX, 
+        y: sd_initial.y, 
+        z: startZ, 
+        rotation: startRot, 
+        motorLeftSpeed: 0, 
+        motorRightSpeed: 0, 
+        ledLeftColor: 'black', 
+        ledRightColor: 'black', 
+        tilt: sd_initial.tilt, 
+        roll: sd_initial.roll, 
+        penDown: false, 
+        isTouching: false,
+        sensorX: sd_initial.sensorX, // FIX: Ensure sensorX is set
+        sensorZ: sd_initial.sensorZ  // FIX: Ensure sensorZ is set
+    };
     robotRef.current = d; 
     setRobotState(d); 
     setIsRunning(false); setChallengeSuccess(false); setMonitoredValues({}); 
@@ -674,8 +693,8 @@ const App: React.FC = () => {
           rotation: nr_potential, // Update rotation continuously
           isTouching: sd_predicted.isTouching, // Using sd_predicted for consistency
           isMoving: Math.abs(fV_adjusted) > 0.001 || Math.abs(rV) > 0.001, 
-          sensorX: sd_predicted.sensorX, 
-          sensorZ: sd_predicted.sensorZ,
+          sensorX: sd_predicted.sensorX, // Ensure sensorX is updated from predicted readings
+          sensorZ: sd_predicted.sensorZ, // Ensure sensorZ is updated from predicted readings
         }; 
         robotRef.current = next; setRobotState(next); 
 
