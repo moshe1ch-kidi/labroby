@@ -51,8 +51,8 @@ export interface RobotState {
   isTouching: boolean;
   penDown: boolean;
   penColor: string;
-  sensorX?: number; // Visual sensor projection X
-  sensorZ?: number; // Visual sensor projection Z
+  sensorX: number; // Visual sensor projection X - NOW REQUIRED
+  sensorZ: number; // Visual sensor projection Z - NOW REQUIRED
 }
 
 export interface SimulationHistory {
