@@ -1,29 +1,26 @@
-
 import React, { useMemo } from 'react';
 import { Grid, Environment as DreiEnvironment, ContactShadows, Text } from '@react-three/drei';
 import * as THREE from 'three';
-import { CustomObject, RobotState } from '../types'; // Removed ROBOT_LAYER as it's not needed here directly
-import { ThreeEvent } from '@react-three/fiber'; // Import ThreeEvent here
+import { CustomObject, RobotState } from '../types';
+import { ThreeEvent } from '@react-three/fiber';
 
 interface EnvironmentProps {
     challengeId?: string;
     customObjects?: CustomObject[];
     selectedObjectId?: string | null;
     onObjectSelect?: (id: string) => void;
-    onPointerDown?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
-    onPointerMove?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
-    onPointerUp?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
+    onPointerDown?: (e: ThreeEvent<MouseEvent>) => void;
+    onPointerMove?: (e: ThreeEvent<MouseEvent>) => void;
+    onPointerUp?: (e: ThreeEvent<MouseEvent>) => void;
     robotState?: RobotState;
-
-    // No longer needs isColorPickerActive, as ColorPickerTool handles its own events.
-    // isColorPickerActive?: boolean;
 }
 
 const EllipseMarker = ({ centerX, centerZ, radiusX, radiusZ, angle, width, color }: any) => {
     const x = radiusX * Math.cos(angle);
     const z = radiusZ * Math.sin(angle);
-    const nx = x / (radiusX * radiusX);
-    const nz = z / (radiusZ / radiusZ); // Changed from radiusZ * radiusZ to radiusZ / radiusZ for ellipse normal calculation
+    // תיקון חישוב הנורמל
+    const nx = x / (radiusX * radiusX || 1);
+    const nz = z / (radiusZ * radiusZ || 1); 
     const rotation = Math.atan2(nx, -nz);
     return (
         <mesh name="challenge-marker" position={[centerX + x, 0.025, centerZ + z]} rotation={[-Math.PI / 2, 0, rotation]}>
@@ -41,8 +38,10 @@ const UniformEllipse = ({ x = 0, y = 0, z = 0, radiusX = 12, radiusZ = 6, width 
             const t = (i / segments) * Math.PI * 2;
             const ct = Math.cos(t); const st = Math.sin(t);
             const px = radiusX * ct; const pz = radiusZ * st;
-            const nx = (2 * px) / (radiusX * radiusX); const nz = (2 * pz) / (radiusZ / radiusZ);
-            const mag = Math.sqrt(nx * nx + nz * nz);
+            // תיקון חישוב הנורמל כאן
+            const nx = (2 * px) / (radiusX * radiusX || 1); 
+            const nz = (2 * pz) / (radiusZ * radiusZ || 1);
+            const mag = Math.sqrt(nx * nx + nz * nz) || 1;
             const nnx = nx / mag; const nnz = nz / mag;
             const halfW = width / 2;
             vertices.push(px + nnx * halfW, 0, pz + nnz * halfW); 
@@ -98,8 +97,6 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
         rotation={[-Math.PI / 2, 0, 0]} 
         position={[0, -0.01, 0]} 
         receiveShadow 
-        // Reverted to always attach pointer events to ground-plane.
-        // ColorPickerTool's interaction plane will be positioned above it and handle stopping propagation.
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -117,7 +114,8 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
         <meshBasicMaterial color="#ff0000" />
       </mesh>
 
-    {robotState && robotState.sensorX !== undefined && robotState.sensorZ !== undefined && (
+    {/* הגנה משופרת על המיקום של הסנסור */}
+    {robotState && typeof robotState.sensorX === 'number' && typeof robotState.sensorZ === 'number' && (
     <group position={[robotState.sensorX, 0.03, robotState.sensorZ]}>
         <mesh rotation={[-Math.PI/2, 0, 0]}>
             <ringGeometry args={[0, 0.1, 16]} />
@@ -131,15 +129,13 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
 )}
       {customObjects.map((obj) => {
           const isSelected = obj.id === selectedObjectId;
-          // Updated handleSelect to check isColorPickerActive BEFORE handling selection,
-          // ensuring picker interaction is prioritized.
           const handleSelect = (e: ThreeEvent<MouseEvent>) => { 
             e.stopPropagation(); 
             if (onObjectSelect) onObjectSelect(obj.id); 
           };
 
           return (
-            <group key={obj.id} position={[obj.x, 0, obj.z]} rotation={[0, obj.rotation || 0, 0]}>
+            <group key={obj.id} position={[obj.x || 0, 0, obj.z || 0]} rotation={[0, obj.rotation || 0, 0]}>
                 {obj.type === 'WALL' && (
                     <mesh name="custom-wall" position={[0, 0.5, 0]} castShadow receiveShadow onClick={handleSelect}>
                         <boxGeometry args={[obj.width, 1, obj.length]} />
@@ -154,26 +150,22 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                             const h = obj.height || 1.0;
                             const slopeL = Math.sqrt(section * section + h * h);
                             const slopeAngle = Math.atan2(h, section);
-                            const t = 0.05; // עובי המשטח
+                            const t = 0.05; 
                             
                             return (
                                 <>
-                                    {/* משטח עלייה */}
                                     <mesh rotation={[-slopeAngle, 0, 0]} position={[0, h/2, -section]}>
                                         <boxGeometry args={[obj.width, t, slopeL]} />
                                         <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
-                                    {/* משטח עליון ישר */}
                                     <mesh position={[0, h, 0]}>
                                         <boxGeometry args={[obj.width, t, section]} />
                                         <meshStandardMaterial color={obj.color || "#475569"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
-                                    {/* משטח ירידה */}
                                     <mesh rotation={[slopeAngle, 0, 0]} position={[0, h/2, section]}>
                                         <boxGeometry args={[obj.width, t, slopeL]} />
                                         <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
-                                    {/* גוף מילוי מתחת למשטח הישר */}
                                     <mesh position={[0, h/2, 0]}>
                                         <boxGeometry args={[obj.width, h, section]} />
                                         <meshStandardMaterial color={obj.color || "#1e293b"} transparent opacity={(obj.opacity ?? 1) * 0.4} />
@@ -217,7 +209,6 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
           );
       })}
 
-      {/* Reintroduced environment elements from the working version */}
       {config.isGrayRoad && (
           <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -7.5]} receiveShadow><planeGeometry args={[2.5, 15]} /><meshStandardMaterial color="#64748b" roughness={0.8} /></mesh>
       )}
