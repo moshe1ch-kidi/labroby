@@ -1,4 +1,4 @@
- 
+
 import React, { useState, useCallback } from 'react';
 import { Html } from '@react-three/drei';
 import { Vector3, Mesh, Color, Material } from 'three'; // Import Material type
