@@ -1,4 +1,4 @@
- 
+
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Html } from '@react-three/drei';
 import { Vector3, Mesh, Color, Layers, Group } from 'three'; // Import Layers and Group
@@ -112,8 +112,8 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
             return { color: groundPlaneHit.color, point: groundPlaneHit.point };
         }
         
-        // Default to white if nothing is hit
-        return { color: "#FFFFFF", point: new Vector3(mouse.x * 5, 0, mouse.y * 5) }; // Return a point related to mouse for some visual feedback
+        // Default to white with a safe fallback point if nothing is hit
+        return { color: "#FFFFFF", point: new Vector3(0, 0, 0) }; 
     }, [raycaster, scene, camera, mouse, robotLayers, environmentLayers]);
 
 
@@ -127,7 +127,8 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
             setIsHoveringObject(true); // Raycaster hit something
         } else {
             // No object hit, perhaps show a default color or nothing
-            setCursorPos(new Vector3(e.point.x, e.point.y, e.point.z)); // Update cursor position to current mouse point
+            // Use the fallback point from sampleColorUnderMouse if no valid point is returned
+            setCursorPos(sampleColorUnderMouse().point as Vector3); 
             onColorHover("#FFFFFF"); // Default hover color
             setIsHoveringObject(false);
         }
