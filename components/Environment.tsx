@@ -1,4 +1,4 @@
-
+ 
 import React, { useMemo } from 'react';
 import { Grid, Environment as DreiEnvironment, ContactShadows, Text } from '@react-three/drei';
 import * as THREE from 'three';
@@ -120,7 +120,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
       {robotState && robotState.sensorX !== undefined && (
           <group position={[robotState.sensorX, 0.03, robotState.sensorZ]}>
               <mesh rotation={[-Math.PI/2, 0, 0]}>
-                  <ringGeometry args={[0, 0.1, 16]} />
+                  <ringGeometry args={[0 as number, 0.1 as number, 16 as number]} />
                   <meshBasicMaterial color="#ec4899" transparent opacity={0.6} toneMapped={false} />
               </mesh>
               <mesh rotation={[-Math.PI/2, 0, 0]}>
