@@ -119,8 +119,8 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
         <meshBasicMaterial color="#ff0000" />
       </mesh>
 
-      {robotState && robotState.sensorX !== undefined && robotState.sensorZ !== undefined && ( // Ensure both are defined
-          <group position={[robotState.sensorX!, 0.03, robotState.sensorZ!]}> {/* Added non-null assertions */}
+      {robotState && robotState.sensorX !== undefined && (
+          <group position={[robotState.sensorX, 0.03, robotState.sensorZ]}>
               <mesh rotation={[-Math.PI/2, 0, 0]}>
                   <ringGeometry args={[0, 0.1, 16]} />
                   <meshBasicMaterial color="#ec4899" transparent opacity={0.6} toneMapped={false} />
