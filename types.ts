@@ -6,9 +6,6 @@ export type CameraMode = 'HOME' | 'TOP' | 'FOLLOW';
 export type EditorTool = 'NONE' | 'ROTATE' | 'PAN' | 'WALL' | 'RAMP' | 'COLOR_LINE' | 'PATH' | 'ROBOT_MOVE';
 export type PathShape = 'STRAIGHT' | 'CORNER' | 'CURVED';
 
-// Define a specific layer for robot parts to optimize raycasting
-export const ROBOT_LAYER = 1; 
-
 export interface CustomObject {
     id: string;
     type: EditorTool;
@@ -52,26 +49,9 @@ export interface RobotState {
   isTouching: boolean;
   penDown: boolean;
   penColor: string;
-  sensorX: number; // Visual sensor projection X
-  sensorZ: number; // Visual sensor projection Z
+  sensorX?: number; // Visual sensor projection X
+  sensorZ?: number; // Visual sensor projection Z
 }
-
-// NEW: Interface for the explicit return type of calculateSensorReadings
-export interface SensorReadings {
-  gyro: number;
-  tilt: number;
-  roll: number;
-  y: number;
-  isTouching: boolean;
-  physicalHit: boolean;
-  distance: number;
-  color: string; // This is a string (e.g., hex or name)
-  intensity: number;
-  rawDecimalColor: number;
-  sensorX: number;
-  sensorZ: number;
-}
-
 
 export interface SimulationHistory {
     maxDistanceMoved: number;
@@ -82,18 +62,19 @@ export interface SimulationHistory {
 
 declare global {
   interface Window {
-    showBlocklyNumpad: (
+    showBlocklyNumpad?: ( // Marked as optional
       initialValue: string | number, 
       onConfirm: (newValue: number) => void
     ) => void;
 
-    // Modified to pass the Blockly FieldColour instance directly
-    showBlocklyColorPicker: (
-      field: any // This will be the Blockly.FieldColour instance
+    // Updated onPick callback to also accept a 'field' argument
+    showBlocklyColorPicker?: ( // Marked as optional
+      onPick: (newColor: string, field: any) => void
     ) => void;
   }
 }
 
 // Extend the existing interface or define a new one if this is for internal use
 // to include the 'type' for complex zones.
+// This is not directly used in the CustomObject interface, but rather in getEnvironmentConfig's internal structure.
 // No direct change to CustomObject itself is needed for this.
