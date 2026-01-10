@@ -1,4 +1,4 @@
- 
+
 
 // Initialize Blockly Setup
 
@@ -172,8 +172,6 @@ export const initBlockly = () => {
   class FieldDropperColor extends Blockly.FieldColour {
     constructor(value?: string, validator?: Function) { super(value, validator); }
     showEditor_() {
-        const self = this; // Capture the correct 'this' context
-
         const pickerDiv = document.createElement('div');
         pickerDiv.className = 'p-3 bg-white rounded-xl shadow-xl border-2 border-slate-100 flex flex-col gap-3 min-w-[160px]';
         const grid = document.createElement('div');
@@ -195,7 +193,7 @@ export const initBlockly = () => {
             const btn = document.createElement('button');
             btn.className = 'w-8 h-8 rounded-lg border border-slate-200 transition-transform hover:scale-110 active:scale-95 shadow-sm';
             btn.style.backgroundColor = c;
-            btn.onclick = () => { self.setValue(c); Blockly.DropDownDiv.hideIfOwner(self); }; // Use 'self' here
+            btn.onclick = () => { this.setValue(c); Blockly.DropDownDiv.hideIfOwner(this); };
             grid.appendChild(btn);
         });
         pickerDiv.appendChild(grid);
@@ -203,18 +201,20 @@ export const initBlockly = () => {
         dropperBtn.className = 'flex items-center justify-center gap-2 w-full py-2.5 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-xl font-bold transition-all border border-pink-100 shadow-sm';
         dropperBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m2 22 5-5"/><path d="M9.5 14.5 16 8l3 3-6.5 6.5-3-3z"/><path d="m18 6 3-3"/><path d="M20.9 7.1a2 2 0 1 0-2.8-2.8l-1.4 1.4 2.8 2.8 1.4-1.4z"/></svg><span class="text-xs uppercase tracking-tight">Pick from Stage</span>`;
         
-        // MODIFIED: Pass 'self' (the FieldDropperColor instance) directly to the global function
-        // The global function will then call self.setValue()
+        // Fix for TS2345: Capture `this` explicitly as `self`
+        const self = this; 
         dropperBtn.onclick = () => { 
-            Blockly.DropDownDiv.hideIfOwner(self);
-            if (window.showBlocklyColorPicker) { 
-                window.showBlocklyColorPicker(self); 
-            } 
+          Blockly.DropDownDiv.hideIfOwner(self); // Use self here
+          if (window.showBlocklyColorPicker) { 
+            window.showBlocklyColorPicker((newColor: string, field: any) => { 
+              self.setValue(newColor); // Use self here
+            }); 
+          } 
         };
         pickerDiv.appendChild(dropperBtn);
         Blockly.DropDownDiv.getContentDiv().appendChild(pickerDiv);
         Blockly.DropDownDiv.setColour('#ffffff', '#ffffff');
-        Blockly.DropDownDiv.showPositionedByField(self, () => {}); // Use 'self' here
+        Blockly.DropDownDiv.showPositionedByField(this, () => {});
     }
   }
 
