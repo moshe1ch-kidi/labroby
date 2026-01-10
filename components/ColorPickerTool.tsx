@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Html } from '@react-three/drei';
-import { Vector3, Mesh, Color, Material } from 'three'; // Import Material type
+import { Vector3, Mesh, Color } from 'three';
 import { useThree } from '@react-three/fiber';
 
 interface ColorPickerToolProps {
@@ -17,7 +17,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(scene.children, true);
 
-        console.log("ColorPickerTool: Intersects found:", intersects.length, intersects.map(i => ({ name: i.object.name, type: i.object.type, position: i.object.position.toArray() })));
+        // console.log("ColorPickerTool: Intersects found:", intersects.length, intersects.map(i => ({ name: i.object.name, type: i.object.type, position: i.object.position.toArray() })));
         
         let groundPlaneHit: { color: string, point: Vector3 } | null = null;
 
@@ -31,7 +31,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
                 object.name === 'grid-helper' ||
                 object.userData?.isRobotPart
             ) {
-                console.log(`ColorPickerTool: Skipping helper/robot part: ${object.name || object.type}`);
+                // console.log(`ColorPickerTool: Skipping helper/robot part: ${object.name || object.type}`);
                 continue;
             }
 
@@ -41,13 +41,10 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
                 if (object instanceof Mesh && object.material) {
                     const materials = Array.isArray(object.material) ? object.material : [object.material];
                     for (const mat of materials) {
-                        // Check if the material has a 'color' property and it's a THREE.Color instance
-                        if (mat && 'color' in mat && (mat as any).color instanceof Color) {
-                            groundPlaneHit = { color: "#" + (mat as any).color.getHexString().toUpperCase(), point: hit.point };
-                            console.log("ColorPickerTool: Storing ground-plane as fallback.");
+                        if (mat.color && mat.color instanceof Color) {
+                            groundPlaneHit = { color: "#" + mat.color.getHexString().toUpperCase(), point: hit.point };
+                            // console.log("ColorPickerTool: Storing ground-plane as fallback.");
                             break; // Only need one color from ground
-                        } else {
-                            console.warn(`ColorPickerTool: Ground-plane material ${mat?.type} found but no valid color property.`);
                         }
                     }
                 }
@@ -59,41 +56,37 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
                 const materials = Array.isArray(object.material) ? object.material : [object.material];
                 
                 for (const mat of materials) {
-                    // Check if the material has a 'color' property and it's a THREE.Color instance
-                    if (mat && 'color' in mat && (mat as any).color instanceof Color) {
-                        const hex = "#" + (mat as any).color.getHexString().toUpperCase();
+                    // Ensure material has color and is not fully transparent.
+                    // Transparent white objects shouldn't block picking a color underneath.
+                    if (mat.color && mat.color instanceof Color && mat.opacity > 0) {
+                        const hex = "#" + mat.color.getHexString().toUpperCase();
                         
                         // If we find a non-white, non-transparent color, this is the best hit.
                         // Prioritize this immediately.
-                        // We also check for mat.opacity to avoid picking invisible objects if they exist in the scene graph.
-                        if (hex !== '#FFFFFF' && (mat as Material).opacity > 0) {
-                            console.log(`ColorPickerTool: Detected primary colored object: ${object.name || object.type} with color ${hex}, material type: ${mat.type}`);
+                        if (hex !== '#FFFFFF' && hex !== '#000000' && mat.opacity > 0.1) { // Also skip transparent/black objects as primary pick unless explicitly intended
+                            // console.log(`ColorPickerTool: Detected primary colored object: ${object.name || object.type} with color ${hex}, material type: ${mat.type}`);
                             setCursorPos(hit.point);
                             return hex; // Found the color, return it immediately
                         } else {
-                            // If it's a white or transparent object, keep searching for something else.
-                            console.log(`ColorPickerTool: Skipping white or transparent object: ${object.name || object.type}, material type: ${mat.type}, looking for something more specific.`);
+                            // If it's a white, black or transparent object, keep searching for something else.
+                            // console.log(`ColorPickerTool: Skipping white/black/transparent object: ${object.name || object.type}, material type: ${mat.type}, looking for something more specific.`);
                             continue;
                         }
-                    } else {
-                        console.warn(`ColorPickerTool: Object ${object.name || object.type} material ${mat?.type} found but no valid color property.`);
                     }
                 }
-            } else {
-                console.log(`ColorPickerTool: Object ${object.name || object.type} is not a Mesh or has no material, skipping.`);
             }
         }
 
-        // If we reached here, no distinct non-white object was found.
+        // If we reached here, no distinct non-white/non-black object was found.
         // Fallback to the ground plane's color if it was hit.
         if (groundPlaneHit) {
-            console.log(`ColorPickerTool: Falling back to ground-plane color: ${groundPlaneHit.color}`);
+            // console.log(`ColorPickerTool: Falling back to ground-plane color: ${groundPlaneHit.color}`);
             setCursorPos(groundPlaneHit.point);
             return groundPlaneHit.color;
         }
         
         // If nothing else, return default white
-        console.log("ColorPickerTool: No colored object or ground-plane detected, returning default white.");
+        // console.log("ColorPickerTool: No colored object or ground-plane detected, returning default white.");
         return "#FFFFFF";
     }, [raycaster, scene, camera, mouse]);
 
