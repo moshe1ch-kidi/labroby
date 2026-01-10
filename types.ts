@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 export type CameraMode = 'HOME' | 'TOP' | 'FOLLOW';
@@ -51,9 +52,26 @@ export interface RobotState {
   isTouching: boolean;
   penDown: boolean;
   penColor: string;
-  sensorX: number; // Visual sensor projection X - NOW REQUIRED
-  sensorZ: number; // Visual sensor projection Z - NOW REQUIRED
+  sensorX: number; // Visual sensor projection X
+  sensorZ: number; // Visual sensor projection Z
 }
+
+// NEW: Interface for the explicit return type of calculateSensorReadings
+export interface SensorReadings {
+  gyro: number;
+  tilt: number;
+  roll: number;
+  y: number;
+  isTouching: boolean;
+  physicalHit: boolean;
+  distance: number;
+  color: string; // This is a string (e.g., hex or name)
+  intensity: number;
+  rawDecimalColor: number;
+  sensorX: number;
+  sensorZ: number;
+}
+
 
 export interface SimulationHistory {
     maxDistanceMoved: number;
@@ -78,5 +96,4 @@ declare global {
 
 // Extend the existing interface or define a new one if this is for internal use
 // to include the 'type' for complex zones.
-// This is not directly used in the CustomObject interface, but rather in getEnvironmentConfig's internal structure.
 // No direct change to CustomObject itself is needed for this.
