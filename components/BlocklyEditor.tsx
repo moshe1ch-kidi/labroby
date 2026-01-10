@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { initBlockly, toolbox, getScratchTheme, HAT_BLOCKS } from '../services/blocklySetup';
-import { X, Check, Trash2, Edit2, Eye, EyeOff } from 'lucide-react';
+import { Play } from 'lucide-react';
 
 interface BlocklyEditorProps {
   onCodeChange: (code: string, startBlockCount: number) => void;
