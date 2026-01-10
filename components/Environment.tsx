@@ -1,8 +1,9 @@
 
+
 import React, { useMemo } from 'react';
 import { Grid, Environment as DreiEnvironment, ContactShadows, Text } from '@react-three/drei';
 import * as THREE from 'three';
-import { CustomObject, RobotState } from '../types'; // Removed ROBOT_LAYER as it's not needed here directly
+import { CustomObject, RobotState } from '../types';
 import { ThreeEvent } from '@react-three/fiber'; // Import ThreeEvent here
 
 interface EnvironmentProps {
@@ -13,81 +14,41 @@ interface EnvironmentProps {
     onPointerDown?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
     onPointerMove?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
     onPointerUp?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
-    robotState: RobotState; // Changed from optional to required
+    robotState?: RobotState;
+
+    // No longer needs isColorPickerActive, as ColorPickerTool handles its own events.
+    // isColorPickerActive?: boolean;
 }
 
 const EllipseMarker = ({ centerX, centerZ, radiusX, radiusZ, angle, width, color }: any) => {
-    // Ensure all inputs are finite numbers
-    const safeCenterX: number = Number.isFinite(centerX) ? centerX : 0;
-    const safeCenterZ: number = Number.isFinite(centerZ) ? centerZ : 0;
-    const safeRadiusX: number = Number.isFinite(radiusX) && radiusX > 0 ? radiusX : 1;
-    const safeRadiusZ: number = Number.isFinite(radiusZ) && radiusZ > 0 ? radiusZ : 1;
-    const safeAngle: number = Number.isFinite(angle) ? angle : 0;
-    const safeWidth: number = Number.isFinite(width) && width > 0 ? width : 0.1;
-
-    const x_raw = safeRadiusX * Math.cos(safeAngle);
-    const z_raw = safeRadiusZ * Math.sin(safeAngle);
-    const x: number = Number.isFinite(x_raw) ? x_raw : 0;
-    const z: number = Number.isFinite(z_raw) ? z_raw : 0;
-    
-    // Ensure denominators are not zero before division
-    const safeRadXSq: number = safeRadiusX * safeRadiusX;
-    const safeRadZSq: number = safeRadiusZ * safeRadiusZ;
-
-    const nx_raw = (safeRadXSq > 0 ? x / safeRadXSq : 0);
-    const nz_raw = (safeRadZSq > 0 ? z / safeRadZSq : 0);
-    const nx: number = Number.isFinite(nx_raw) ? nx_raw : 0;
-    const nz: number = Number.isFinite(nz_raw) ? nz_raw : 0;
-
-    const rotation_raw = Number.isFinite(nx) && Number.isFinite(nz) ? Math.atan2(nx, -nz) : 0; // Ensure rotation is finite
-    const rotation: number = Number.isFinite(rotation_raw) ? rotation_raw : 0;
-
+    const x = radiusX * Math.cos(angle);
+    const z = radiusZ * Math.sin(angle);
+    const nx = x / (radiusX * radiusX);
+    const nz = z / (radiusZ / radiusZ); // Changed from radiusZ * radiusZ to radiusZ / radiusZ for ellipse normal calculation
+    const rotation = Math.atan2(nx, -nz);
     return (
-        <mesh name="challenge-marker" position={[safeCenterX + x, 0.025, safeCenterZ + z]} rotation={[-Math.PI / 2, 0, rotation]}>
-            <planeGeometry args={[safeWidth, 0.45]} />
+        <mesh name="challenge-marker" position={[centerX + x, 0.025, centerZ + z]} rotation={[-Math.PI / 2, 0, rotation]}>
+            <planeGeometry args={[width, 0.45]} />
             <meshBasicMaterial color={color} />
         </mesh>
     );
 };
 
 const UniformEllipse = ({ x = 0, y = 0, z = 0, radiusX = 12, radiusZ = 6, width = 0.4, segments = 128, color = "black" }: any) => {
-    // Ensure all inputs are finite numbers and positive for dimensions
-    const safeX: number = Number.isFinite(x) ? x : 0;
-    const safeY: number = Number.isFinite(y) ? y : 0;
-    const safeZ: number = Number.isFinite(z) ? z : 0;
-    const safeRadiusX: number = Number.isFinite(radiusX) && radiusX > 0 ? radiusX : 1;
-    const safeRadiusZ: number = Number.isFinite(radiusZ) && radiusZ > 0 ? radiusZ : 1;
-    const safeWidth: number = Number.isFinite(width) && width > 0 ? width : 0.1;
-    const safeSegments: number = Number.isFinite(segments) && segments > 0 ? Math.floor(segments) : 128; // Ensure integer segments
-
     const geometry = useMemo(() => {
         const vertices = [];
         const indices = [];
-        for (let i = 0; i <= safeSegments; i++) {
-            const t: number = (i / safeSegments) * Math.PI * 2;
+        for (let i = 0; i <= segments; i++) {
+            const t = (i / segments) * Math.PI * 2;
             const ct = Math.cos(t); const st = Math.sin(t);
-            const px_raw = safeRadiusX * ct; const pz_raw = safeRadiusZ * st;
-            const px: number = Number.isFinite(px_raw) ? px_raw : 0;
-            const pz: number = Number.isFinite(pz_raw) ? pz_raw : 0;
-
-            // Ensure denominators are not zero
-            const safeRadXSq: number = safeRadiusX * safeRadiusX;
-            const safeRadZSq: number = safeRadiusZ * safeRadiusZ;
-
-            const nx_raw = (safeRadXSq > 0 ? (2 * px) / safeRadXSq : 0);
-            const nz_raw = (safeRadZSq > 0 ? (2 * pz) / safeRadZSq : 0);
-            const nx: number = Number.isFinite(nx_raw) ? nx_raw : 0;
-            const nz: number = Number.isFinite(nz_raw) ? nz_raw : 0;
-
-            const mag_raw = Math.sqrt(nx * nx + nz * nz);
-            const mag: number = Number.isFinite(mag_raw) && mag_raw > 0 ? mag_raw : 1;
-
+            const px = radiusX * ct; const pz = radiusZ * st;
+            const nx = (2 * px) / (radiusX * radiusX); const nz = (2 * pz) / (radiusZ * radiusZ);
+            const mag = Math.sqrt(nx * nx + nz * nz);
             const nnx = nx / mag; const nnz = nz / mag;
-            const halfW = safeWidth / 2;
-            
-            vertices.push(px + (Number.isFinite(nnx) ? nnx : 0) * halfW, 0, pz + (Number.isFinite(nnz) ? nnz : 0) * halfW); 
-            vertices.push(px - (Number.isFinite(nnx) ? nnx : 0) * halfW, 0, pz - (Number.isFinite(nnz) ? nnz : 0) * halfW); 
-            if (i < safeSegments) {
+            const halfW = width / 2;
+            vertices.push(px + nnx * halfW, 0, pz + nnz * halfW); 
+            vertices.push(px - nnx * halfW, 0, pz - nnz * halfW); 
+            if (i < segments) {
                 const base = i * 2;
                 indices.push(base, base + 1, base + 2);
                 indices.push(base + 1, base + 3, base + 2);
@@ -96,9 +57,9 @@ const UniformEllipse = ({ x = 0, y = 0, z = 0, radiusX = 12, radiusZ = 6, width 
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
         geo.setIndex(indices); geo.computeVertexNormals(); return geo;
-    }, [safeRadiusX, safeRadiusZ, safeWidth, safeSegments]);
+    }, [radiusX, radiusZ, width, segments]);
     return (
-        <mesh name="challenge-path" geometry={geometry} position={[safeX, safeY, safeZ]} receiveShadow>
+        <mesh name="challenge-path" geometry={geometry} position={[x, y, z]} receiveShadow>
             <meshBasicMaterial color={color} side={THREE.DoubleSide} />
         </mesh>
     );
@@ -113,6 +74,8 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
     onPointerMove, 
     onPointerUp,
     robotState,
+    // Removed isColorPickerActive prop as it's no longer needed here
+    // isColorPickerActive
 }) => {
   const config = useMemo(() => {
       const isRoomNav = challengeId === 'c1';
@@ -139,7 +102,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
         position={[0, -0.01, 0]} 
         receiveShadow 
         // Reverted to always attach pointer events to ground-plane.
-        // ColorPickerTool's interaction plane will be positioned above it and handles stopping propagation.
+        // ColorPickerTool's interaction plane will be positioned above it and handle stopping propagation.
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -153,83 +116,72 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
       <ContactShadows resolution={1024} scale={20} blur={2} opacity={0.5} far={10} color="#000000" />
       
       <mesh name="start-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-        <ringGeometry args={[1.4, 1.5, 4, 1, Math.PI/4, Math.PI * 2]} />
+        <ringGeometry args={[1.4, 1.5, 4, 1, Math.PI/4]} />
         <meshBasicMaterial color="#ff0000" />
       </mesh>
 
-      {/* Sensor position display - robotState is now guaranteed to be defined */}
-      <group position={[
-          Number.isFinite(robotState.sensorX) ? robotState.sensorX : 0, 
-          0.03, 
-          Number.isFinite(robotState.sensorZ) ? robotState.sensorZ : 0
-      ]}> 
-          <mesh rotation={[-Math.PI/2, 0, 0]}>
-              <ringGeometry args={[0, 0.1, 16]} />
-              <meshBasicMaterial color="#ec4899" transparent opacity={0.6} toneMapped={false} />
-          </mesh>
-          <mesh rotation={[-Math.PI/2, 0, 0]}>
-              <ringGeometry args={[0.08, 0.12, 16]} />
-              <meshBasicMaterial color="#ec4899" toneMapped={false} />
-          </mesh>
-      </group>
+      {robotState && robotState.sensorX !== undefined && robotState.sensorZ !== undefined && ( // Ensure both are defined
+          <group position={[robotState.sensorX, 0.03, robotState.sensorZ]}>
+              <mesh rotation={[-Math.PI/2, 0, 0]}>
+                  <ringGeometry args={[0, 0.1, 16]} />
+                  <meshBasicMaterial color="#ec4899" transparent opacity={0.6} toneMapped={false} />
+              </mesh>
+              <mesh rotation={[-Math.PI/2, 0, 0]}>
+                  <ringGeometry args={[0.08, 0.12, 16]} />
+                  <meshBasicMaterial color="#ec4899" toneMapped={false} />
+              </mesh>
+          </group>
+      )}
 
       {customObjects.map((obj) => {
           const isSelected = obj.id === selectedObjectId;
+          // Updated handleSelect to check isColorPickerActive BEFORE handling selection,
+          // ensuring picker interaction is prioritized.
           const handleSelect = (e: ThreeEvent<MouseEvent>) => { 
+            // if (isColorPickerActive) { e.stopPropagation(); return; } // Removed conditional
             e.stopPropagation(); 
             if (onObjectSelect) onObjectSelect(obj.id); 
           };
 
-          // Sanitize obj properties before passing to mesh geometries/positions
-          const safeObjX: number = typeof obj.x === 'number' && Number.isFinite(obj.x) ? obj.x : 0;
-          const safeObjZ: number = typeof obj.z === 'number' && Number.isFinite(obj.z) ? obj.z : 0;
-          const safeObjRotation: number = typeof obj.rotation === 'number' && Number.isFinite(obj.rotation) ? obj.rotation : 0;
-          const safeObjWidth: number = typeof obj.width === 'number' && Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.1;
-          const safeObjLength: number = typeof obj.length === 'number' && Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.1;
-          const safeObjHeight: number = typeof obj.height === 'number' && Number.isFinite(obj.height) && (obj.height as number) >= 0 ? (obj.height as number) : 0.1;
-          const safeObjOpacity: number = typeof obj.opacity === 'number' && Number.isFinite(obj.opacity) ? obj.opacity : 1;
-
-
           return (
-            <group key={obj.id} position={[safeObjX, 0, safeObjZ]} rotation={[0, safeObjRotation, 0]}>
+            <group key={obj.id} position={[obj.x, 0, obj.z]} rotation={[0, obj.rotation || 0, 0]}>
                 {obj.type === 'WALL' && (
                     <mesh name="custom-wall" position={[0, 0.5, 0]} castShadow receiveShadow onClick={handleSelect}>
-                        <boxGeometry args={[safeObjWidth, 1, safeObjLength]} />
-                        <meshStandardMaterial color={obj.color || "#ef4444"} roughness={0.2} transparent opacity={safeObjOpacity} />
-                        {isSelected && ( <mesh scale={[1.02, 1.02, 1.02]}><boxGeometry args={[safeObjWidth, 1, safeObjLength]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.5} /></mesh> )}
+                        <boxGeometry args={[obj.width, 1, obj.length]} />
+                        <meshStandardMaterial color={obj.color || "#ef4444"} roughness={0.2} transparent opacity={obj.opacity ?? 1} />
+                        {isSelected && ( <mesh scale={[1.02, 1.02, 1.02]}><boxGeometry args={[obj.width, 1, obj.length]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.5} /></mesh> )}
                     </mesh>
                 )}
                 {obj.type === 'RAMP' && (
                     <group name="custom-ramp" onClick={handleSelect}>
                         {(() => {
-                            // Ensure section and slopeL are calculated with finite, positive numbers
-                            const section: number = safeObjLength / 3;
-                            const h: number = safeObjHeight; // Use the sanitized height
-                            const slopeL: number = Number.isFinite(section) && Number.isFinite(h) ? Math.sqrt(section * section + h * h) : 0.1;
+                            const section = obj.length / 3;
+                            const h = obj.height || 1.0;
+                            const slopeL = Math.sqrt(section * section + h * h);
+                            const slopeAngle = Math.atan2(h, section);
                             const t = 0.05; // עובי המשטח
-                            const slopeAngle: number = Number.isFinite(h) && Number.isFinite(section) && section !== 0 ? Math.atan2(h, section) : 0;
                             
                             return (
                                 <>
                                     {/* משטח עלייה */}
                                     <mesh rotation={[-slopeAngle, 0, 0]} position={[0, h/2, -section]}>
-                                        <boxGeometry args={[safeObjWidth, t, slopeL]} />
-                                        <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={safeObjOpacity} />
+                                        <boxGeometry args={[obj.width, t, slopeL]} />
+                                        <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
                                     {/* משטח עליון ישר */}
                                     <mesh position={[0, h, 0]}>
-                                        <boxGeometry args={[safeObjWidth, t, section]} />
-                                        <meshStandardMaterial color={obj.color || "#475569"} transparent opacity={safeObjOpacity} />
+                                        <boxGeometry args={[obj.width, t, section]} />
+                                        <meshStandardMaterial color={obj.color || "#475569"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
                                     {/* משטח ירידה */}
                                     <mesh rotation={[slopeAngle, 0, 0]} position={[0, h/2, section]}>
-                                        <boxGeometry args={[safeObjWidth, t, slopeL]} />
-                                        <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={safeObjOpacity} />
+                                        <boxGeometry args={[obj.width, t, slopeL]} />
+                                        <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
                                     {/* גוף מילוי מתחת למשטח הישר */}
                                     <mesh position={[0, h/2, 0]}>
-                                        <boxGeometry args={[safeObjWidth, h, section]} />
-                                        <meshStandardMaterial color={obj.color || "#1e293b"} transparent opacity={safeObjOpacity * 0.4} />
+                                        <boxGeometry args={[obj.width, h, section]} />
+                                        <meshStandardMaterial color={obj.color || "#1e293b"} transparent opacity={(obj.opacity ?? 1) * 0.4} />
                                     </mesh>
                                 </>
                             );
@@ -238,32 +190,32 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                 )}
                 {obj.type === 'COLOR_LINE' && (
                     <mesh name="custom-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} onClick={handleSelect}>
-                        <planeGeometry args={[safeObjWidth, safeObjLength]} />
-                        <meshBasicMaterial color={obj.color || '#FF0000'} transparent opacity={safeObjOpacity} />
+                        <planeGeometry args={[obj.width, obj.length]} />
+                        <meshBasicMaterial color={obj.color || '#FF0000'} transparent opacity={obj.opacity ?? 1} />
                     </mesh>
                 )}
                 {obj.type === 'PATH' && (
                     <group name="custom-path" onClick={handleSelect}>
                         {(!obj.shape || obj.shape === 'STRAIGHT') && (
                             <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[safeObjWidth, safeObjLength]} /><meshBasicMaterial color="black" transparent opacity={safeObjOpacity} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}><planeGeometry args={[0.2, safeObjLength]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={safeObjOpacity} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width, obj.length]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}><planeGeometry args={[0.2, obj.length]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
                         {obj.shape === 'CORNER' && (
                             <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[safeObjWidth, safeObjWidth]} /><meshBasicMaterial color="black" transparent opacity={safeObjOpacity} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[safeObjWidth/4 - 0.05, 0.025, 0]}><planeGeometry args={[(safeObjWidth/2 + 0.1), 0.2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={safeObjOpacity} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -safeObjWidth/4 + 0.05]}><planeGeometry args={[0.2, (safeObjWidth/2 + 0.1)]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={safeObjOpacity} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width, obj.width]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[obj.width/4 - 0.05, 0.025, 0]}><planeGeometry args={[obj.width/2 + 0.1, 0.2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -obj.width/4 + 0.05]}><planeGeometry args={[0.2, obj.width/2 + 0.1]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
                         {obj.shape === 'CURVED' && (
                             <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-safeObjLength/2, 0.02, 0]}><ringGeometry args={[(safeObjLength/2 - safeObjWidth/2), (safeObjLength/2 + safeObjWidth/2), 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color="black" transparent opacity={safeObjOpacity} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-safeObjLength/2, 0.025, 0]}><ringGeometry args={[(safeObjLength/2 - 0.1), (safeObjLength/2 + 0.1), 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={safeObjOpacity} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.02, 0]}><ringGeometry args={[obj.length/2 - obj.width/2, obj.length/2 + obj.width/2, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.025, 0]}><ringGeometry args={[obj.length/2 - 0.1, obj.length/2 + 0.1, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
-                        {isSelected && ( <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.03, 0]}><planeGeometry args={[(safeObjWidth + 0.2), ((obj.shape === 'CORNER' ? safeObjWidth : safeObjLength) + 0.2)]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.3} /></mesh> )}
+                        {isSelected && ( <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.03, 0]}><planeGeometry args={[obj.width + 0.2, (obj.shape === 'CORNER' ? obj.width : obj.length) + 0.2]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.3} /></mesh> )}
                     </group>
                 )}
             </group>
@@ -302,7 +254,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
               <mesh rotation={[0.523, 0, 0]} position={[0, 0.86 - 0.05, -2]} receiveShadow castShadow><boxGeometry args={[4.2, 0.1, 3.46]} /><meshStandardMaterial color="#334155" /></mesh>
               <mesh position={[0, 1.73 - 0.05, -5.5]} receiveShadow castShadow><boxGeometry args={[4.2, 0.1, 4]} /><meshStandardMaterial color="#475569" /></mesh>
               <mesh rotation={[-0.523, 0, 0]} position={[0, 0.86 - 0.05, -9]} receiveShadow castShadow><boxGeometry args={[4.2, 0.1, 3.46]} /><meshStandardMaterial color="#334155" /></mesh>
-              <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -14.5]} receiveShadow><planeGeometry args={[4.2, 8]} /><meshStandardMaterial color="#64748b" roughness={0.8} /></mesh>
+              <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -14.5]} receiveShadow><planeGeometry args={[4.2, 8]} /><meshStandardMaterial color="#64748b" /></mesh>
               <mesh name="challenge-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, -17.5]}><planeGeometry args={[4.2, 0.5]} /><meshBasicMaterial color="#ff0000" /></mesh>
               <Text position={[0, 0.1, -0.4]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.3} color="white">STEEP RAMP</Text>
           </group>
