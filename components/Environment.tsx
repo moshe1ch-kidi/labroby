@@ -113,7 +113,8 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
       <ContactShadows resolution={1024} scale={20} blur={2} opacity={0.5} far={10} color="#000000" />
       
       <mesh name="start-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-        <ringGeometry args={[1.4, 1.5, 4, 1, Math.PI/4]} />
+        {/* Line 121: Explicitly defining all 6 args and casting the array to ensure strict number types */}
+        <ringGeometry args={[1.4, 1.5, 4, 1, Math.PI/4, Math.PI * 2] as [number, number, number, number, number, number]} />
         <meshBasicMaterial color="#ff0000" />
       </mesh>
 
