@@ -1,4 +1,4 @@
-
+ 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -23,7 +23,7 @@ const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much f
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
 // Updated to a more appropriate dropper cursor SVG
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtcGlwZXR0ZSI%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTTkuNSAxNC41IDE2IDhsMyAzLTYuNSA2LjUtMy0zEiIvPjxwYXRoIGQ9Imm3LjUgMTEuNSAzLTVsLz48cGF0aCBkPSJmMTggMyAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAxLjQtMS40eiIvPjwvc3ZnPikgMCAyNCwgY3Jvc3NoYWly`;
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtcGlwZXR0ZSI%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTTkuNSAxNC41IDE2IDhsMyAzLTYuNSA2LjUtMy0zEiIvPjxwYXRoIGQ9Imm3LjUgMTEuNSAzLTVsLz48cGF0aCBkPSJmMTggMyAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAx.NC0x.NCeiIvPjxwYXRoIGQ9Im0xOCAzIDMtMyIvPjxwYXRoIGQ9Ik0yMC45IDcuMWEyIDIgMCAxIDAtMi44LTIuOGwtMS40IDEuNCAyLjggMi44IDEuNC0xLjR6Ii8%2BPC9zdmc%2B) 0 24, crosshair`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -425,8 +425,16 @@ const App: React.FC = () => {
   const [completedDrawings, setCompletedDrawings] = useState<ContinuousDrawing[]>([]);
   const activeDrawingRef = useRef<ContinuousDrawing | null>(null); // Ref for immediate access in callbacks
 
-  // FIX: Initialize sensorX and sensorZ to a number to prevent undefined at start
-  const robotRef = useRef<RobotState>({ x: 0, y: 0, z: 0, rotation: 180, tilt: 0, roll: 0, speed: 100, motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', ledRightColor: 'black', isMoving: false, isTouching: false, penDown: false, penColor: '#000000', sensorX: 0, sensorZ: 0 });
+  // FIX: Initialize all RobotState numeric properties explicitly
+  const robotRef = useRef<RobotState>({ 
+    x: 0, y: 0, z: 0, 
+    rotation: 180, tilt: 0, roll: 0, 
+    speed: 100, motorLeftSpeed: 0, motorRightSpeed: 0, 
+    ledLeftColor: 'black', ledRightColor: 'black', 
+    isMoving: false, isTouching: false, 
+    penDown: false, penColor: '#000000', 
+    sensorX: 0, sensorZ: 0 
+  });
   const [robotState, setRobotState] = useState<RobotState>(robotRef.current);
   const isPlacingRobot = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -450,9 +458,8 @@ const App: React.FC = () => {
     
     // Initial sensor reading for start position
     const sd_initial = calculateSensorReadings(startX, startZ, startRot, activeChallenge?.id, envObjs); 
-    // FIX: Explicitly include sensorX and sensorZ in the new robot state
-    const d = { 
-        ...robotRef.current, 
+    // Ensure all numeric properties are explicitly set
+    const d: RobotState = { 
         x: startX, 
         y: sd_initial.y, 
         z: startZ, 
@@ -465,8 +472,11 @@ const App: React.FC = () => {
         roll: sd_initial.roll, 
         penDown: false, 
         isTouching: false,
-        sensorX: sd_initial.sensorX, // FIX: Ensure sensorX is set
-        sensorZ: sd_initial.sensorZ  // FIX: Ensure sensorZ is set
+        isMoving: false, // Ensure isMoving is reset
+        speed: 100, // Ensure speed is reset
+        penColor: '#000000', // Ensure penColor is reset
+        sensorX: sd_initial.sensorX, 
+        sensorZ: sd_initial.sensorZ  
     };
     robotRef.current = d; 
     setRobotState(d); 
@@ -495,7 +505,7 @@ const App: React.FC = () => {
       isPlacingRobot.current = true;
       const point = e.point;
       const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
-      const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll };
+      const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll, sensorX: sd.sensorX, sensorZ: sd.sensorZ };
       robotRef.current = next;
       setRobotState(next);
     }
@@ -509,7 +519,7 @@ const App: React.FC = () => {
     if (isPlacingRobot.current && editorTool === 'ROBOT_MOVE') {
       const point = e.point;
       const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
-      const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll };
+      const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll, sensorX: sd.sensorX, sensorZ: sd.sensorZ };
       robotRef.current = next;
       setRobotState(next);
     }
@@ -683,7 +693,7 @@ const App: React.FC = () => {
         const finalZ = sd_predicted.isTouching ? current.z : nz_potential;
         
         // Reverted: Use smoothed Y, Tilt, Roll for the next state (from working version)
-        const next = { 
+        const next: RobotState = { 
           ...current, 
           x: finalX, 
           z: finalZ, 
