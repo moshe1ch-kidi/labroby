@@ -1,4 +1,4 @@
- 
+
 import React, { useMemo } from 'react';
 import { Grid, Environment as DreiEnvironment, ContactShadows, Text } from '@react-three/drei';
 import * as THREE from 'three';
@@ -18,29 +18,29 @@ interface EnvironmentProps {
 
 const EllipseMarker = ({ centerX, centerZ, radiusX, radiusZ, angle, width, color }: any) => {
     // Ensure all inputs are finite numbers
-    const safeCenterX = Number.isFinite(centerX) ? centerX : 0;
-    const safeCenterZ = Number.isFinite(centerZ) ? centerZ : 0;
-    const safeRadiusX = Number.isFinite(radiusX) && radiusX > 0 ? radiusX : 1;
-    const safeRadiusZ = Number.isFinite(radiusZ) && radiusZ > 0 ? radiusZ : 1;
-    const safeAngle = Number.isFinite(angle) ? angle : 0;
-    const safeWidth = Number.isFinite(width) && width > 0 ? width : 0.1;
+    const safeCenterX: number = Number.isFinite(centerX) ? centerX : 0;
+    const safeCenterZ: number = Number.isFinite(centerZ) ? centerZ : 0;
+    const safeRadiusX: number = Number.isFinite(radiusX) && radiusX > 0 ? radiusX : 1;
+    const safeRadiusZ: number = Number.isFinite(radiusZ) && radiusZ > 0 ? radiusZ : 1;
+    const safeAngle: number = Number.isFinite(angle) ? angle : 0;
+    const safeWidth: number = Number.isFinite(width) && width > 0 ? width : 0.1;
 
     const x_raw = safeRadiusX * Math.cos(safeAngle);
     const z_raw = safeRadiusZ * Math.sin(safeAngle);
-    const x = Number.isFinite(x_raw) ? x_raw : 0;
-    const z = Number.isFinite(z_raw) ? z_raw : 0;
+    const x: number = Number.isFinite(x_raw) ? x_raw : 0;
+    const z: number = Number.isFinite(z_raw) ? z_raw : 0;
     
     // Ensure denominators are not zero before division
-    const safeRadXSq = safeRadiusX * safeRadiusX;
-    const safeRadZSq = safeRadiusZ * safeRadiusZ;
+    const safeRadXSq: number = safeRadiusX * safeRadiusX;
+    const safeRadZSq: number = safeRadiusZ * safeRadiusZ;
 
     const nx_raw = (safeRadXSq > 0 ? x / safeRadXSq : 0);
     const nz_raw = (safeRadZSq > 0 ? z / safeRadZSq : 0);
-    const nx = Number.isFinite(nx_raw) ? nx_raw : 0;
-    const nz = Number.isFinite(nz_raw) ? nz_raw : 0;
+    const nx: number = Number.isFinite(nx_raw) ? nx_raw : 0;
+    const nz: number = Number.isFinite(nz_raw) ? nz_raw : 0;
 
     const rotation_raw = Number.isFinite(nx) && Number.isFinite(nz) ? Math.atan2(nx, -nz) : 0; // Ensure rotation is finite
-    const rotation = Number.isFinite(rotation_raw) ? rotation_raw : 0;
+    const rotation: number = Number.isFinite(rotation_raw) ? rotation_raw : 0;
 
     return (
         <mesh name="challenge-marker" position={[safeCenterX + x, 0.025, safeCenterZ + z]} rotation={[-Math.PI / 2, 0, rotation]}>
@@ -52,35 +52,35 @@ const EllipseMarker = ({ centerX, centerZ, radiusX, radiusZ, angle, width, color
 
 const UniformEllipse = ({ x = 0, y = 0, z = 0, radiusX = 12, radiusZ = 6, width = 0.4, segments = 128, color = "black" }: any) => {
     // Ensure all inputs are finite numbers and positive for dimensions
-    const safeX = Number.isFinite(x) ? x : 0;
-    const safeY = Number.isFinite(y) ? y : 0;
-    const safeZ = Number.isFinite(z) ? z : 0;
-    const safeRadiusX = Number.isFinite(radiusX) && radiusX > 0 ? radiusX : 1;
-    const safeRadiusZ = Number.isFinite(radiusZ) && radiusZ > 0 ? radiusZ : 1;
-    const safeWidth = Number.isFinite(width) && width > 0 ? width : 0.1;
-    const safeSegments = Number.isFinite(segments) && segments > 0 ? Math.floor(segments) : 128; // Ensure integer segments
+    const safeX: number = Number.isFinite(x) ? x : 0;
+    const safeY: number = Number.isFinite(y) ? y : 0;
+    const safeZ: number = Number.isFinite(z) ? z : 0;
+    const safeRadiusX: number = Number.isFinite(radiusX) && radiusX > 0 ? radiusX : 1;
+    const safeRadiusZ: number = Number.isFinite(radiusZ) && radiusZ > 0 ? radiusZ : 1;
+    const safeWidth: number = Number.isFinite(width) && width > 0 ? width : 0.1;
+    const safeSegments: number = Number.isFinite(segments) && segments > 0 ? Math.floor(segments) : 128; // Ensure integer segments
 
     const geometry = useMemo(() => {
         const vertices = [];
         const indices = [];
         for (let i = 0; i <= safeSegments; i++) {
-            const t = (i / safeSegments) * Math.PI * 2;
+            const t: number = (i / safeSegments) * Math.PI * 2;
             const ct = Math.cos(t); const st = Math.sin(t);
             const px_raw = safeRadiusX * ct; const pz_raw = safeRadiusZ * st;
-            const px = Number.isFinite(px_raw) ? px_raw : 0;
-            const pz = Number.isFinite(pz_raw) ? pz_raw : 0;
+            const px: number = Number.isFinite(px_raw) ? px_raw : 0;
+            const pz: number = Number.isFinite(pz_raw) ? pz_raw : 0;
 
             // Ensure denominators are not zero
-            const safeRadXSq = safeRadiusX * safeRadiusX;
-            const safeRadZSq = safeRadiusZ * safeRadiusZ;
+            const safeRadXSq: number = safeRadiusX * safeRadiusX;
+            const safeRadZSq: number = safeRadiusZ * safeRadiusZ;
 
             const nx_raw = (safeRadXSq > 0 ? (2 * px) / safeRadXSq : 0);
             const nz_raw = (safeRadZSq > 0 ? (2 * pz) / safeRadZSq : 0);
-            const nx = Number.isFinite(nx_raw) ? nx_raw : 0;
-            const nz = Number.isFinite(nz_raw) ? nz_raw : 0;
+            const nx: number = Number.isFinite(nx_raw) ? nx_raw : 0;
+            const nz: number = Number.isFinite(nz_raw) ? nz_raw : 0;
 
             const mag_raw = Math.sqrt(nx * nx + nz * nz);
-            const mag = Number.isFinite(mag_raw) && mag_raw > 0 ? mag_raw : 1;
+            const mag: number = Number.isFinite(mag_raw) && mag_raw > 0 ? mag_raw : 1;
 
             const nnx = nx / mag; const nnz = nz / mag;
             const halfW = safeWidth / 2;
