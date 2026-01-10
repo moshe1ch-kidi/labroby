@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { initBlockly, toolbox, getScratchTheme, HAT_BLOCKS } from '../services/blocklySetup';
@@ -338,8 +337,8 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
         if (workspaceRef.current) workspaceRef.current.dispose();
         workspaceRef.current = null;
         // Clean up on unmount
-        delete window.showBlocklyNumpad;
-        delete window.showBlocklyColorPicker;
+        (window as any).showBlocklyNumpad = undefined; // Assign undefined instead of delete
+        (window as any).showBlocklyColorPicker = undefined; // Assign undefined instead of delete
         // The global BlocklyEnvironmentColors is managed by a separate useEffect. No need to delete here.
     };
   }, [generateAndNotify, notifyVariablesChange, onShowNumpad, onShowColorPicker]); // Removed environmentColors from dependencies
