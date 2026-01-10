@@ -1,4 +1,4 @@
- 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -381,8 +381,10 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
         }
 
         if (onZone) {
-            sensorRawDecimalColor = zZone.color; 
-            const hexStr = "#" + (typeof sensorRawDecimalColor === 'number' && Number.isFinite(sensorRawDecimalColor) ? sensorRawDecimalColor : 0xFFFFFF).toString(16).padStart(6, '0').toUpperCase();
+            // Ensure sensorRawDecimalColor is a finite number
+            const currentZoneColor: number = Number.isFinite(zZone.color) ? zZone.color : 0xFFFFFF;
+            sensorRawDecimalColor = currentZoneColor; 
+            const hexStr = "#" + currentZoneColor.toString(16).padStart(6, '0').toUpperCase();
             
             if (isColorClose(hexStr, CANONICAL_COLOR_MAP['red'])) { sensorDetectedColor = "red"; }
             else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['blue'])) { sensorDetectedColor = "blue"; }
@@ -997,7 +999,7 @@ const App: React.FC = () => {
       props.enableRotate = false; 
       props.enablePan = false;    
       props.minPolarAngle = Math.PI / 6; 
-      props.maxPolarAngle = Math.PI / 2 - 0.1; // FIX: Added props. prefix
+      props.maxPolarAngle = Math.PI / 2 - 0.1; 
       props.mouseButtons = { 
         LEFT: THREE.MOUSE.DOLLY,
         MIDDLE: THREE.MOUSE.DOLLY,
