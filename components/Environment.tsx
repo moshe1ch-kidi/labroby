@@ -1,4 +1,4 @@
- 
+
 import React, { useMemo } from 'react';
 import { Grid, Environment as DreiEnvironment, ContactShadows, Text } from '@react-three/drei';
 import * as THREE from 'three';
@@ -176,7 +176,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                                     </mesh>
                                     {/* גוף מילוי מתחת למשטח הישר */}
                                     <mesh position={[0, h/2, 0]}>
-                                        <boxGeometry args={[obj.width, h, section]} />
+                                        <boxGeometry args={[obj.width as number, h, section]} />
                                         <meshStandardMaterial color={obj.color || "#1e293b"} transparent opacity={(obj.opacity ?? 1) * 0.4} />
                                     </mesh>
                                 </>
@@ -250,7 +250,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
               <mesh rotation={[0.523, 0, 0]} position={[0, 0.86 - 0.05, -2]} receiveShadow castShadow><boxGeometry args={[4.2, 0.1, 3.46]} /><meshStandardMaterial color="#334155" /></mesh>
               <mesh position={[0, 1.73 - 0.05, -5.5]} receiveShadow castShadow><boxGeometry args={[4.2, 0.1, 4]} /><meshStandardMaterial color="#475569" /></mesh>
               <mesh rotation={[-0.523, 0, 0]} position={[0, 0.86 - 0.05, -9]} receiveShadow castShadow><boxGeometry args={[4.2, 0.1, 3.46]} /><meshStandardMaterial color="#334155" /></mesh>
-              <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -14.5]} receiveShadow><planeGeometry args={[4.2, 8]} /><meshStandardMaterial color="#64748b" /></mesh>
+              <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -14.5]} receiveShadow><planeGeometry args={[4.2, 8]} /><meshStandardMaterial color="#64748b" roughness={0.8} /></mesh>
               <mesh name="challenge-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, -17.5]}><planeGeometry args={[4.2, 0.5]} /><meshBasicMaterial color="#ff0000" /></mesh>
               <Text position={[0, 0.1, -0.4]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.3} color="white">STEEP RAMP</Text>
           </group>
