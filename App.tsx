@@ -1,4 +1,4 @@
- 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -23,7 +23,7 @@ const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much f
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
 // Updated to a more appropriate dropper cursor SVG
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtcGlwZXR0ZSI%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTTkuNSAxNC41IDE2IDhsM3AzLTYuNSA2LjUtMy0zEiIvPjxwYXRoIGQ9Imm3LjUgMTEuNSAzLTVsLz48cGF0aCBkPSJmMTggMyAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAxLjQtMS40eiIvPjxwYXRoIGQ9Im11OCAzIDMtMyIvPjxwYXRoIGQ9Ik0yMC45IDcuMWEyIDIgMCAxIDAtMi44LTIuOGwtMS40IDEuNCAyLjggMi44IDEuNC0xLjR6Ii8%2BPC9zdmc%2B) 0 24, crosshair`;
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtcGlwZXR0ZSI%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTTkuNSAxNC41IDE2IDhsM3AzLTYuNSA2LjUtMy0zEiIvPjxwYXRoIGQ9Imm3LjUgMTEuNSAzLTVsLz48cGF0aCBkPSJmMTggMyAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAx.NC0x.NCeiIvPjxwYXRoIGQ9Im11OCAzIDMtMyIvPjxwYXRoIGQ9Ik0yMC45IDcuMWEyIDIgMCAxIDAtMi44LTIuOGwtMS40IDEuNCAyLjggMi44IDEuNC0xLjR6Ii8%2BPC9zdmc%2B) 0 24, crosshair`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -111,10 +111,10 @@ const getEnvironmentConfig = (challengeId?: string, customObjects: CustomObject[
         // Sanitize object properties here to prevent NaN/undefined from entering calculation logic
         const safeX = Number.isFinite(obj.x) ? obj.x : 0;
         const safeZ = Number.isFinite(obj.z) ? obj.z : 0;
-        const safeWidth = Number.isFinite(obj.width) ? Math.max(0.01, obj.width) : 0.01; // Min width to avoid division by zero
-        const safeLength = Number.isFinite(obj.length) ? Math.max(0.01, obj.length) : 0.01; // Min length
+        const safeWidth = Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.01; // Min width to avoid division by zero
+        const safeLength = Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.01; // Min length
         const safeRotation = Number.isFinite(obj.rotation) ? obj.rotation : 0;
-        const safeHeight = Number.isFinite(obj.height) ? Math.max(0.01, obj.height) : 0.01; // Min height
+        const safeHeight = Number.isFinite(obj.height) && obj.height > 0 ? obj.height : 0.01; // Min height
 
         if (obj.type === 'WALL') { 
             const hW = safeWidth / 2; 
@@ -153,9 +153,9 @@ const getSurfaceHeightAt = (qx: number, qz: number, challengeId?: string, custom
             const safeObjX = Number.isFinite(obj.x) ? obj.x : 0;
             const safeObjZ = Number.isFinite(obj.z) ? obj.z : 0;
             const safeObjRotation = Number.isFinite(obj.rotation) ? obj.rotation : 0;
-            const safeObjWidth = Number.isFinite(obj.width) ? Math.max(0.01, obj.width) : 0.01;
-            const safeObjLength = Number.isFinite(obj.length) ? Math.max(0.01, obj.length) : 0.01;
-            const safeObjHeight = Number.isFinite(obj.height) ? Math.max(0.01, obj.height) : 0.01;
+            const safeObjWidth = Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.01;
+            const safeObjLength = Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.01;
+            const safeObjHeight = Number.isFinite(obj.height) && obj.height > 0 ? obj.height : 0.01;
 
             const { lx, lz } = getLocalCoords(safeQx, safeQz, safeObjX, safeObjZ, safeObjRotation);
             const hW = safeObjWidth / 2; 
@@ -302,8 +302,8 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
         const safeZoneX = Number.isFinite(zZone.x) ? zZone.x : 0;
         const safeZoneZ = Number.isFinite(zZone.z) ? zZone.z : 0;
         const safeZoneRotation = Number.isFinite(zZone.rotation) ? zZone.rotation : 0;
-        const safeZoneWidth = Number.isFinite(zZone.width) ? Math.max(0.01, zZone.width) : 0.01;
-        const safeZoneLength = Number.isFinite(zZone.length) ? Math.max(0.01, zZone.length) : 0.01;
+        const safeZoneWidth = Number.isFinite(zZone.width) && zZone.width > 0 ? zZone.width : 0.01;
+        const safeZoneLength = Number.isFinite(zZone.length) && zZone.length > 0 ? zZone.length : 0.01;
 
         const dx_raw = cx - safeZoneX; 
         const dz_raw = cz - safeZoneZ;
@@ -503,12 +503,20 @@ const App: React.FC = () => {
     const envObjs = activeChallenge?.environmentObjects || [];
     setCustomObjects(envObjs);
     setSelectedObjectId(null);
-    const startX = activeChallenge?.startPosition?.x ?? 0; 
-    const startZ = activeChallenge?.startPosition?.z ?? 0; 
-    const startRot = activeChallenge?.startRotation ?? 180;
+    
+    // FIX: Ensure startX, startZ, startRot are always finite numbers before passing.
+    const rawStartX = activeChallenge?.startPosition?.x;
+    const rawStartZ = activeChallenge?.startPosition?.z;
+    const rawStartRot = activeChallenge?.startRotation;
+
+    const startX = Number.isFinite(rawStartX) ? rawStartX : 0; 
+    const startZ = Number.isFinite(rawStartZ) ? rawStartZ : 0; 
+    const startRot = Number.isFinite(rawStartRot) ? rawStartRot : 180;
     
     // Initial sensor reading for start position
     const sd_initial = calculateSensorReadings(startX, startZ, startRot, activeChallenge?.id, envObjs); 
+    
+    // FIX: Explicitly ensure all numeric RobotState properties are finite.
     const d: RobotState = { 
         x: Number.isFinite(startX) ? startX : 0, 
         y: Number.isFinite(sd_initial.y) ? sd_initial.y : 0, 
@@ -551,11 +559,15 @@ const App: React.FC = () => {
     if (editorTool === 'ROBOT_MOVE') {
       isPlacingRobot.current = true;
       const point = e.point;
-      const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
+      // FIX: Ensure point.x and point.z are finite numbers.
+      const safePointX = Number.isFinite(point.x) ? point.x : robotRef.current.x;
+      const safePointZ = Number.isFinite(point.z) ? point.z : robotRef.current.z;
+
+      const sd = calculateSensorReadings(safePointX, safePointZ, robotRef.current.rotation, activeChallenge?.id, customObjects);
       const next = { 
           ...robotRef.current, 
-          x: Number.isFinite(point.x) ? point.x : robotRef.current.x, 
-          z: Number.isFinite(point.z) ? point.z : robotRef.current.z, 
+          x: Number.isFinite(safePointX) ? safePointX : robotRef.current.x, 
+          z: Number.isFinite(safePointZ) ? safePointZ : robotRef.current.z, 
           y: Number.isFinite(sd.y) ? sd.y : robotRef.current.y, 
           tilt: Number.isFinite(sd.tilt) ? sd.tilt : robotRef.current.tilt, 
           roll: Number.isFinite(sd.roll) ? sd.roll : robotRef.current.roll, 
@@ -573,11 +585,15 @@ const App: React.FC = () => {
     e.stopPropagation(); 
     if (isPlacingRobot.current && editorTool === 'ROBOT_MOVE') {
       const point = e.point;
-      const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
+      // FIX: Ensure point.x and point.z are finite numbers.
+      const safePointX = Number.isFinite(point.x) ? point.x : robotRef.current.x;
+      const safePointZ = Number.isFinite(point.z) ? point.z : robotRef.current.z;
+
+      const sd = calculateSensorReadings(safePointX, safePointZ, robotRef.current.rotation, activeChallenge?.id, customObjects);
       const next = { 
           ...robotRef.current, 
-          x: Number.isFinite(point.x) ? point.x : robotRef.current.x, 
-          z: Number.isFinite(point.z) ? point.z : robotRef.current.z, 
+          x: Number.isFinite(safePointX) ? safePointX : robotRef.current.x, 
+          z: Number.isFinite(safePointZ) ? safePointZ : robotRef.current.z, 
           y: Number.isFinite(sd.y) ? sd.y : robotRef.current.y, 
           tilt: Number.isFinite(sd.tilt) ? sd.tilt : robotRef.current.tilt, 
           roll: Number.isFinite(sd.roll) ? sd.roll : robotRef.current.roll, 
@@ -680,13 +696,46 @@ const App: React.FC = () => {
         setActiveDrawing(null); 
         activeDrawingRef.current = null; 
       },
-      getDistance: async () => { checkAbort(); return calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects).distance; },
-      getTouch: async () => { checkAbort(); return calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects).isTouching; },
-      getGyro: async (mode: 'ANGLE' | 'TILT') => { checkAbort(); const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects); return mode === 'TILT' ? sd.tilt : sd.gyro; },
-      getColor: async () => { checkAbort(); return calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects).color; },
+      getDistance: async () => { 
+        checkAbort(); 
+        // FIX: Ensure robotRef.current.x/z/rotation are finite before passing to calculateSensorReadings
+        const safeX = Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
+        const safeZ = Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
+        const safeRotation = Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
+        return calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects).distance; 
+      },
+      getTouch: async () => { 
+        checkAbort(); 
+        // FIX: Ensure robotRef.current.x/z/rotation are finite before passing to calculateSensorReadings
+        const safeX = Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
+        const safeZ = Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
+        const safeRotation = Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
+        return calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects).isTouching; 
+      },
+      getGyro: async (mode: 'ANGLE' | 'TILT') => { 
+        checkAbort(); 
+        // FIX: Ensure robotRef.current.x/z/rotation are finite before passing to calculateSensorReadings
+        const safeX = Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
+        const safeZ = Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
+        const safeRotation = Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
+        const sd = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects); 
+        return mode === 'TILT' ? sd.tilt : sd.gyro; 
+      },
+      getColor: async () => { 
+        checkAbort(); 
+        // FIX: Ensure robotRef.current.x/z/rotation are finite before passing to calculateSensorReadings
+        const safeX = Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
+        const safeZ = Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
+        const safeRotation = Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
+        return calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects).color; 
+      },
       isTouchingColor: async (hex: string) => { 
         checkAbort(); 
-        const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects); 
+        // FIX: Ensure robotRef.current.x/z/rotation are finite before passing to calculateSensorReadings
+        const safeX = Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
+        const safeZ = Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
+        const safeRotation = Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
+        const sd = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects); 
         let detectedColorToCompare = sd.color;
         return isColorClose(detectedColorToCompare, hex); 
       },
