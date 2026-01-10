@@ -1,3 +1,4 @@
+ 
 
 import React, { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -11,7 +12,7 @@ interface CameraManagerProps {
 }
 
 // New component to manage camera layers
-const CameraLayerManager: React.FC = () => {
+export const CameraLayerManager: React.FC = () => {
   const { camera } = useThree();
 
   useEffect(() => {
