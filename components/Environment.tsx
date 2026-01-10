@@ -144,9 +144,9 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
             <group key={obj.id} position={[obj.x, 0, obj.z]} rotation={[0, obj.rotation || 0, 0]}>
                 {obj.type === 'WALL' && (
                     <mesh name="custom-wall" position={[0, 0.5, 0]} castShadow receiveShadow onClick={handleSelect}>
-                        <boxGeometry args={[obj.width as number, 1, obj.length as number]} />
+                        <boxGeometry args={[obj.width as number, 1 as number, obj.length as number] as [number, number, number]} />
                         <meshStandardMaterial color={obj.color || "#ef4444"} roughness={0.2} transparent opacity={obj.opacity ?? 1} />
-                        {isSelected && ( <mesh scale={[1.02, 1.02, 1.02]}><boxGeometry args={[obj.width as number, 1, obj.length as number]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.5} /></mesh> )}
+                        {isSelected && ( <mesh scale={[1.02, 1.02, 1.02]}><boxGeometry args={[obj.width as number, 1 as number, obj.length as number] as [number, number, number]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.5} /></mesh> )}
                     </mesh>
                 )}
                 {obj.type === 'RAMP' && (
@@ -155,29 +155,29 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                             const section = (obj.length as number) / 3;
                             const h = obj.height || 1.0;
                             const slopeL = Math.sqrt(section * section + h * h);
-                            const slopeAngle = Math.atan2(h, section);
                             const t = 0.05; // עובי המשטח
+                            const slopeAngle = Math.atan2(h, section);
                             
                             return (
                                 <>
                                     {/* משטח עלייה */}
                                     <mesh rotation={[-slopeAngle, 0, 0]} position={[0, h/2, -section]}>
-                                        <boxGeometry args={[obj.width as number, t, slopeL]} />
+                                        <boxGeometry args={[obj.width as number, t as number, slopeL as number] as [number, number, number]} />
                                         <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
                                     {/* משטח עליון ישר */}
                                     <mesh position={[0, h, 0]}>
-                                        <boxGeometry args={[obj.width as number, t, section]} />
+                                        <boxGeometry args={[obj.width as number, t as number, section as number] as [number, number, number]} />
                                         <meshStandardMaterial color={obj.color || "#475569"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
                                     {/* משטח ירידה */}
                                     <mesh rotation={[slopeAngle, 0, 0]} position={[0, h/2, section]}>
-                                        <boxGeometry args={[obj.width as number, t, slopeL]} />
+                                        <boxGeometry args={[obj.width as number, t as number, slopeL as number] as [number, number, number]} />
                                         <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
                                     {/* גוף מילוי מתחת למשטח הישר */}
                                     <mesh position={[0, h/2, 0]}>
-                                        <boxGeometry args={[obj.width as number, h, section]} />
+                                        <boxGeometry args={[obj.width as number, h as number, section as number] as [number, number, number]} />
                                         <meshStandardMaterial color={obj.color || "#1e293b"} transparent opacity={(obj.opacity ?? 1) * 0.4} />
                                     </mesh>
                                 </>
@@ -187,7 +187,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                 )}
                 {obj.type === 'COLOR_LINE' && (
                     <mesh name="custom-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} onClick={handleSelect}>
-                        <planeGeometry args={[obj.width as number, obj.length as number]} />
+                        <planeGeometry args={[obj.width as number, obj.length as number] as [number, number]} />
                         <meshBasicMaterial color={obj.color || '#FF0000'} transparent opacity={obj.opacity ?? 1} />
                     </mesh>
                 )}
@@ -195,24 +195,24 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                     <group name="custom-path" onClick={handleSelect}>
                         {(!obj.shape || obj.shape === 'STRAIGHT') && (
                             <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width as number, obj.length as number]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}><planeGeometry args={[0.2, obj.length as number]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width as number, obj.length as number] as [number, number]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}><planeGeometry args={[0.2 as number, obj.length as number] as [number, number]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
                         {obj.shape === 'CORNER' && (
                             <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width as number, obj.width as number]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[(obj.width as number)/4 - 0.05, 0.025, 0]}><planeGeometry args={[(obj.width as number)/2 + 0.1, 0.2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -(obj.width as number)/4 + 0.05]}><planeGeometry args={[0.2, (obj.width as number)/2 + 0.1]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width as number, obj.width as number] as [number, number]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[(obj.width as number)/4 - 0.05, 0.025, 0]}><planeGeometry args={[((obj.width as number)/2 + 0.1) as number, 0.2 as number] as [number, number]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -(obj.width as number)/4 + 0.05]}><planeGeometry args={[0.2 as number, ((obj.width as number)/2 + 0.1) as number] as [number, number]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
                         {obj.shape === 'CURVED' && (
                             <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-(obj.length as number)/2, 0.02, 0]}><ringGeometry args={[((obj.length as number)/2 - (obj.width as number)/2) as number, ((obj.length as number)/2 + (obj.width as number)/2) as number, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-(obj.length as number)/2, 0.025, 0]}><ringGeometry args={[((obj.length as number)/2 - 0.1) as number, ((obj.length as number)/2 + 0.1) as number, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-(obj.length as number)/2, 0.02, 0]}><ringGeometry args={[((obj.length as number)/2 - (obj.width as number)/2) as number, ((obj.length as number)/2 + (obj.width as number)/2) as number, 64 as number, 1 as number, 0 as number, Math.PI/2 as number] as [number, number, number, number, number, number]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-(obj.length as number)/2, 0.025, 0]}><ringGeometry args={[((obj.length as number)/2 - 0.1) as number, ((obj.length as number)/2 + 0.1) as number, 64 as number, 1 as number, 0 as number, Math.PI/2 as number] as [number, number, number, number, number, number]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
-                        {isSelected && ( <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.03, 0]}><planeGeometry args={[((obj.width as number) + 0.2) as number, ((obj.shape === 'CORNER' ? obj.width : obj.length) as number) + 0.2]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.3} /></mesh> )}
+                        {isSelected && ( <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.03, 0]}><planeGeometry args={[((obj.width as number) + 0.2) as number, ((obj.shape === 'CORNER' ? obj.width : obj.length) as number) + 0.2] as [number, number]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.3} /></mesh> )}
                     </group>
                 )}
             </group>
