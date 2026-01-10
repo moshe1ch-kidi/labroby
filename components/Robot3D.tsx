@@ -158,16 +158,21 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
   
   useFrame(() => {
     if (groupRef.current) {
-      // Set absolute position. Wheels are at 0 internally but group is shifted up by 0.6.
-      // So if state.y is 0, wheels touch 0.
-      // Add a small visual offset (0.02) to prevent clipping with the ground/ramps.
-      // Use nullish coalescing to ensure numeric values.
-      groupRef.current.position.y = (state.y ?? 0) + 0.02; 
-      groupRef.current.position.x = state.x ?? 0;
-      groupRef.current.position.z = state.z ?? 0;
-      groupRef.current.rotation.y = (state.rotation ?? 0) * (Math.PI / 180);
-      groupRef.current.rotation.x = (state.tilt ?? 0) * (Math.PI / 180);
-      groupRef.current.rotation.z = (state.roll ?? 0) * (Math.PI / 180);
+      // Ensure all values are finite numbers before assigning to Three.js properties
+      // FIX: Changed Math.isFinite to Number.isFinite
+      const safeY = Number.isFinite(state.y) ? state.y : 0; 
+      const safeX = Number.isFinite(state.x) ? state.x : 0;
+      const safeZ = Number.isFinite(state.z) ? state.z : 0;
+      const safeRotation = Number.isFinite(state.rotation) ? state.rotation : 0;
+      const safeTilt = Number.isFinite(state.tilt) ? state.tilt : 0;
+      const safeRoll = Number.isFinite(state.roll) ? state.roll : 0;
+
+      groupRef.current.position.y = safeY + 0.02; 
+      groupRef.current.position.x = safeX;
+      groupRef.current.position.z = safeZ;
+      groupRef.current.rotation.y = safeRotation * (Math.PI / 180);
+      groupRef.current.rotation.x = safeTilt * (Math.PI / 180);
+      groupRef.current.rotation.z = safeRoll * (Math.PI / 180);
     }
   });
 
