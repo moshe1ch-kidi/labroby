@@ -1,4 +1,4 @@
-
+ 
 import React, { useMemo } from 'react';
 import { Grid, Environment as DreiEnvironment, ContactShadows, Text } from '@react-three/drei';
 import * as THREE from 'three';
@@ -181,13 +181,13 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
           };
 
           // Sanitize obj properties before passing to mesh geometries/positions
-          const safeObjX = Number.isFinite(obj.x) ? obj.x : 0;
-          const safeObjZ = Number.isFinite(obj.z) ? obj.z : 0;
-          const safeObjRotation = Number.isFinite(obj.rotation) ? obj.rotation : 0;
-          const safeObjWidth = Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.1;
-          const safeObjLength = Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.1;
-          const safeObjHeight = Number.isFinite(obj.height) && (obj.height as number) >= 0 ? (obj.height as number) : 0.1; // Ensure height is explicitly number
-          const safeObjOpacity = Number.isFinite(obj.opacity) ? obj.opacity : 1;
+          const safeObjX: number = typeof obj.x === 'number' && Number.isFinite(obj.x) ? obj.x : 0;
+          const safeObjZ: number = typeof obj.z === 'number' && Number.isFinite(obj.z) ? obj.z : 0;
+          const safeObjRotation: number = typeof obj.rotation === 'number' && Number.isFinite(obj.rotation) ? obj.rotation : 0;
+          const safeObjWidth: number = typeof obj.width === 'number' && Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.1;
+          const safeObjLength: number = typeof obj.length === 'number' && Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.1;
+          const safeObjHeight: number = typeof obj.height === 'number' && Number.isFinite(obj.height) && (obj.height as number) >= 0 ? (obj.height as number) : 0.1;
+          const safeObjOpacity: number = typeof obj.opacity === 'number' && Number.isFinite(obj.opacity) ? obj.opacity : 1;
 
 
           return (
@@ -203,11 +203,11 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                     <group name="custom-ramp" onClick={handleSelect}>
                         {(() => {
                             // Ensure section and slopeL are calculated with finite, positive numbers
-                            const section = safeObjLength / 3;
-                            const h = safeObjHeight; // Use the sanitized height
-                            const slopeL = Number.isFinite(section) && Number.isFinite(h) ? Math.sqrt(section * section + h * h) : 0.1;
+                            const section: number = safeObjLength / 3;
+                            const h: number = safeObjHeight; // Use the sanitized height
+                            const slopeL: number = Number.isFinite(section) && Number.isFinite(h) ? Math.sqrt(section * section + h * h) : 0.1;
                             const t = 0.05; // עובי המשטח
-                            const slopeAngle = Number.isFinite(h) && Number.isFinite(section) && section !== 0 ? Math.atan2(h, section) : 0;
+                            const slopeAngle: number = Number.isFinite(h) && Number.isFinite(section) && section !== 0 ? Math.atan2(h, section) : 0;
                             
                             return (
                                 <>
