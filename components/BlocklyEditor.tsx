@@ -1,4 +1,4 @@
-
+ 
 
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
@@ -12,8 +12,8 @@ interface BlocklyEditorProps {
   onToggleVariable: (name: string) => void;
   onVariablesChanged?: (allVarNames: string[], renameInfo?: {oldName: string, newName: string}) => void;
   onShowNumpad: (initialValue: string | number, onConfirm: (newValue: number) => void) => void; // New prop
-  // MODIFIED: onShowColorPicker now receives the Blockly FieldColour instance directly
-  onShowColorPicker: (field: any) => void; // New prop
+  // Updated onShowColorPicker prop type to accept a field argument in its callback
+  onShowColorPicker: (onPick: (newColor: string, field: any) => void) => void; // New prop
 }
 
 export interface BlocklyEditorHandle {
@@ -202,9 +202,9 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
     const python = (window as any).python;
     if (!Blockly || !javascript || !python) return;
 
-    // MODIFIED: window.showBlocklyNumpad now receives the Blockly FieldColour instance directly
+    // Expose these functions globally for Blockly to use, before initBlockly
     window.showBlocklyNumpad = onShowNumpad;
-    window.showBlocklyColorPicker = (field: any) => onShowColorPicker(field);
+    window.showBlocklyColorPicker = onShowColorPicker; // This line still assigns the prop
 
     initBlockly();
     const scratchTheme = getScratchTheme();
@@ -313,6 +313,11 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
             notifyVariablesChange();
         }
 
+        if (e.type === Blockly.Events.VAR_RENAME) {
+            // Blockly's VAR_RENAME event provides oldName and newName directly
+            notifyVariablesChange({ oldName: e.oldName, newName: e.newName });
+        }
+
         if (e.type !== Blockly.Events.UI) {
             generateAndNotify();
         }
@@ -335,11 +340,8 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
         if (workspaceRef.current) workspaceRef.current.dispose();
         workspaceRef.current = null;
         // Clean up on unmount
-        // MODIFIED: showBlocklyNumpad & showBlocklyColorPicker are no longer direct callbacks in window
-        // but now pass a direct instance, so cleaning up can be simpler.
-        // It's still good practice to clear them if they were set.
-        delete (window as any).showBlocklyNumpad;
-        delete (window as any).showBlocklyColorPicker;
+        delete window.showBlocklyNumpad;
+        delete window.showBlocklyColorPicker;
     };
   }, [generateAndNotify, notifyVariablesChange, onShowNumpad, onShowColorPicker]);
 
