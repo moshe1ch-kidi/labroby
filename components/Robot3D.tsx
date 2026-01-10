@@ -1,8 +1,7 @@
-
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Group, Vector3 } from 'three';
-import { RobotState, ROBOT_LAYER } from '../types'; // Import ROBOT_LAYER
+import { Group } from 'three';
+import { RobotState, ROBOT_LAYER } from '../types';
 
 interface Robot3DProps {
   state: RobotState;
@@ -62,10 +61,10 @@ const CasterWheel = ({ position }: { position: [number, number, number] }) => {
   );
 };
 
-const LegoLight = ({ position, color }: { position: [number, number, number], color: string }) => {
-  const c = color.toLowerCase();
+const LegoLight = ({ position, color }: { position: [number, number, number], color?: string }) => {
+  const c = (color || '#000000').toLowerCase();
   const isOff = c === 'black' || c === '#000000' || c === '#000';
-  const displayColor = isOff ? '#333' : color;
+  const displayColor = isOff ? '#333' : c;
   const intensity = isOff ? 0 : 3;
   return (
     <group position={position} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
@@ -76,22 +75,27 @@ const LegoLight = ({ position, color }: { position: [number, number, number], co
   );
 };
 
-const RobotPen = ({ position, isDown, color }: { position: [number, number, number], isDown: boolean, color: string }) => {
+const RobotPen = ({ position, isDown, color }: { position: [number, number, number], isDown?: boolean, color?: string }) => {
     const groupRef = useRef<Group>(null);
-    useFrame(() => { if (groupRef.current) { const targetY = isDown ? -0.4 : 0.2; groupRef.current.position.y += (targetY - groupRef.current.position.y) * 0.1; } });
+    useFrame(() => { 
+      if (groupRef.current) { 
+        const targetY = isDown ? -0.4 : 0.2; 
+        groupRef.current.position.y += (targetY - groupRef.current.position.y) * 0.1; 
+      } 
+    });
     return (
         <group position={position} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
              <mesh position={[0, 0.2, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.3, 0.4, 0.3]} /><meshStandardMaterial color={THEME.darkGrey} /></mesh>
             <group ref={groupRef} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
                 <mesh position={[0, 0, 0]} rotation={[0, 0, 0]} castShadow layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><cylinderGeometry args={[0.08, 0.08, 1, 16]} /><meshStandardMaterial color={THEME.lightGrey} /></mesh>
-                <mesh position={[0, -0.5, 0]} rotation={[Math.PI, 0, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><coneGeometry args={[0.08, 0.2, 16]} /><meshStandardMaterial color={color} /></mesh>
-                <mesh position={[0, 0.3, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><cylinderGeometry args={[0.1, 0.1, 0.4, 16]} /><meshStandardMaterial color={color} /></mesh>
+                <mesh position={[0, -0.5, 0]} rotation={[Math.PI, 0, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><coneGeometry args={[0.08, 0.2, 16]} /><meshStandardMaterial color={color || '#000'} /></mesh>
+                <mesh position={[0, 0.3, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><cylinderGeometry args={[0.1, 0.1, 0.4, 16]} /><meshStandardMaterial color={color || '#000'} /></mesh>
             </group>
         </group>
     );
 };
 
-const TouchSensor = ({ position, pressed }: { position: [number, number, number], pressed: boolean }) => {
+const TouchSensor = ({ position, pressed }: { position: [number, number, number], pressed?: boolean }) => {
     const plungerPos = pressed ? -0.1 : 0.2;
     return (
         <group position={position} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
@@ -157,22 +161,26 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
   const groupRef = useRef<Group>(null);
   
   useFrame(() => {
-    if (groupRef.current) {
-      // Set absolute position. Wheels are at 0 internally but group is shifted up by 0.6.
-      // So if state.y is 0, wheels touch 0.
-      // Add a small visual offset (0.02) to prevent clipping with the ground/ramps.
-      groupRef.current.position.y = state.y + 0.02; 
-      groupRef.current.position.x = state.x;
-      groupRef.current.position.z = state.z;
-      groupRef.current.rotation.y = state.rotation * (Math.PI / 180);
-      groupRef.current.rotation.x = state.tilt * (Math.PI / 180);
-      groupRef.current.rotation.z = state.roll * (Math.PI / 180);
+    // הוספת בדיקה שגם groupRef וגם state קיימים
+    if (groupRef.current && state) {
+      // שימוש בערכי ברירת מחדל כדי למנוע NaN אם ערך חסר ב-state
+      const x = state.x ?? 0;
+      const y = state.y ?? 0;
+      const z = state.z ?? 0;
+      const rotation = (state.rotation ?? 0) * (Math.PI / 180);
+      const tilt = (state.tilt ?? 0) * (Math.PI / 180);
+      const roll = (state.roll ?? 0) * (Math.PI / 180);
+
+      groupRef.current.position.set(x, y + 0.02, z);
+      groupRef.current.rotation.set(tilt, rotation, roll);
     }
   });
 
+  // אם ה-state עדיין לא הגיע, אל תרנדר את הרובוט כדי למנוע שגיאות
+  if (!state) return null;
+
   return (
     <group ref={groupRef} dispose={null} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-      {/* Visual center is shifted up by wheel radius (0.6) so ground contact is at y=0 */}
       <group position={[0, 0.6, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
           {isPlacementMode && (
               <group position={[0, -0.6, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
@@ -201,7 +209,6 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
           <LegoLight position={[0.6, 1.0, 0.9]} color={state.ledRightColor} />
           <ColorSensor position={[0, -0.1, 0.9]} />
           <UltrasonicSensor position={[0, 0.5, 1.1]} />
-          {/* שינוי מיקום חיישן המגע קדימה */}
           <TouchSensor position={[0, -0.2, 1.7]} pressed={state.isTouching} /> 
           <RobotPen position={[0, 0.1, -0.6]} isDown={state.penDown} color={state.penColor} />
           <group position={[0.6, 1.1, -0.5]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
