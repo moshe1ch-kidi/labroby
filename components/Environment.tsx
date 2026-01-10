@@ -13,10 +13,7 @@ interface EnvironmentProps {
     onPointerDown?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
     onPointerMove?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
     onPointerUp?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
-    robotState?: RobotState;
-
-    // No longer needs isColorPickerActive, as ColorPickerTool handles its own events.
-    // isColorPickerActive?: boolean;
+    robotState: RobotState; // Changed from optional to required
 }
 
 const EllipseMarker = ({ centerX, centerZ, radiusX, radiusZ, angle, width, color }: any) => {
@@ -118,19 +115,17 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
         <meshBasicMaterial color="#ff0000" />
       </mesh>
 
-      {/* Sensor position display - sensorX and sensorZ are now guaranteed numbers */}
-      {robotState && ( 
-          <group position={[robotState.sensorX, 0.03, robotState.sensorZ]}> 
-              <mesh rotation={[-Math.PI/2, 0, 0]}>
-                  <ringGeometry args={[0, 0.1, 16] as [number, number, number]} />
-                  <meshBasicMaterial color="#ec4899" transparent opacity={0.6} toneMapped={false} />
-              </mesh>
-              <mesh rotation={[-Math.PI/2, 0, 0]}>
-                  <ringGeometry args={[0.08, 0.12, 16]} />
-                  <meshBasicMaterial color="#ec4899" toneMapped={false} />
-              </mesh>
-          </group>
-      )}
+      {/* Sensor position display - robotState is now guaranteed to be defined */}
+      <group position={[robotState.sensorX, 0.03, robotState.sensorZ]}> 
+          <mesh rotation={[-Math.PI/2, 0, 0]}>
+              <ringGeometry args={[0, 0.1, 16] as [number, number, number]} />
+              <meshBasicMaterial color="#ec4899" transparent opacity={0.6} toneMapped={false} />
+          </mesh>
+          <mesh rotation={[-Math.PI/2, 0, 0]}>
+              <ringGeometry args={[0.08, 0.12, 16]} />
+              <meshBasicMaterial color="#ec4899" toneMapped={false} />
+          </mesh>
+      </group>
 
       {customObjects.map((obj) => {
           const isSelected = obj.id === selectedObjectId;
