@@ -1,41 +1,15 @@
- 
+
 
 import React, { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Vector3, Layers } from 'three'; // Import Layers
-import { RobotState, CameraMode, ROBOT_LAYER } from '../types'; // Import ROBOT_LAYER
+import { Vector3 } from 'three';
+import { RobotState, CameraMode } from '../types';
 
 interface CameraManagerProps {
     robotState: RobotState;
     cameraMode: CameraMode;
     controlsRef: React.MutableRefObject<any>;
 }
-
-// New component to manage camera layers
-export const CameraLayerManager: React.FC = () => {
-  const { camera } = useThree();
-
-  useEffect(() => {
-    // Enable default layer (0) and ROBOT_LAYER (1)
-    // This ensures the camera sees both the environment and the robot.
-    const layersToEnable = new Layers();
-    layersToEnable.enable(0); 
-    layersToEnable.enable(ROBOT_LAYER);
-    camera.layers = layersToEnable;
-
-    // Ensure camera's frustum is updated if layers change in a way that affects rendering
-    camera.updateProjectionMatrix();
-
-    // No specific cleanup needed as these layers should remain enabled for the main view
-    return () => {
-      // Potentially reset to default layers if this component were conditionally rendered
-      // but for this app, it's globally active.
-    };
-  }, [camera]); 
-
-  return null;
-};
-
 
 const CameraManager: React.FC<CameraManagerProps> = ({ robotState, cameraMode, controlsRef }) => {
     const { camera } = useThree();
