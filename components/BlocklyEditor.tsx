@@ -1,8 +1,7 @@
-
-import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef, useCallback } from 'react';
+import { useEffect, useRef, useState, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { initBlockly, toolbox, getScratchTheme, HAT_BLOCKS } from '../services/blocklySetup';
-import { Play } from 'lucide-react';
+import { X, Eye, EyeOff } from 'lucide-react'; // הוסרו: Check, Trash2, Edit2 שלא היו בשימוש
 
 interface BlocklyEditorProps {
   onCodeChange: (code: string, startBlockCount: number) => void;
@@ -10,9 +9,8 @@ interface BlocklyEditorProps {
   visibleVariables: Set<string>;
   onToggleVariable: (name: string) => void;
   onVariablesChanged?: (allVarNames: string[], renameInfo?: {oldName: string, newName: string}) => void;
-  onShowNumpad: (initialValue: string | number, onConfirm: (newValue: number) => void) => void; // New prop
-  // MODIFIED: onShowColorPicker now receives the Blockly Field instance
-  onShowColorPicker: (field: any) => void; // New prop
+  onShowNumpad: (initialValue: string | number, onConfirm: (newValue: number) => void) => void;
+  onShowColorPicker: (field: any) => void;
 }
 
 export interface BlocklyEditorHandle {
@@ -92,7 +90,7 @@ const VariableModal = ({ isOpen, mode, initialValue, onClose, onConfirm }: { isO
     );
 };
 
-const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onCodeChange, onEval, visibleVariables, onToggleVariable, onVariablesChanged, onShowNumpad, onShowColorPicker }, ref) => {
+const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onCodeChange, visibleVariables, onToggleVariable, onVariablesChanged, onShowNumpad, onShowColorPicker }, ref) => {
   const blocklyDiv = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<any>(null);
   const [modalConfig, setModalConfig] = useState<{isOpen: boolean, mode: 'create' | 'rename', initialValue?: string, variableId?: string, onResult?: (res: string | null) => void}>({
@@ -201,14 +199,12 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
     const python = (window as any).python;
     if (!Blockly || !javascript || !python) return;
 
-    // MODIFIED: window.showBlocklyColorPicker now receives the Blockly Field instance directly
     window.showBlocklyNumpad = onShowNumpad;
     window.showBlocklyColorPicker = (field: any) => onShowColorPicker(field);
 
     initBlockly();
     const scratchTheme = getScratchTheme();
 
-    // Override Blockly dialogs to use our React Modal
     Blockly.dialog.setPrompt((message: string, defaultValue: string, callback: (res: string | null) => void) => {
         const isRename = message.toLowerCase().includes('rename');
         setModalConfig({
@@ -289,7 +285,7 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
           const changeNum = document.createElement('field');
           changeNum.setAttribute('name', 'NUM');
           changeNum.innerText = '1';
-          setShadow.appendChild(changeNum);
+          changeShadow.appendChild(changeNum); // תוקן: changeShadow במקום setShadow
           changeValue.appendChild(changeShadow);
           changeBlock.appendChild(changeValue);
           xmlList.push(changeBlock);
@@ -333,10 +329,6 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
         window.removeEventListener('resize', handleResize);
         if (workspaceRef.current) workspaceRef.current.dispose();
         workspaceRef.current = null;
-        // Clean up on unmount
-        // MODIFIED: showBlocklyNumpad & showBlocklyColorPicker are no longer direct callbacks in window
-        // but now pass a direct instance, so cleaning up can be simpler.
-        // It's still good practice to clear them if they were set.
         delete (window as any).showBlocklyNumpad;
         delete (window as any).showBlocklyColorPicker;
     };
@@ -351,7 +343,6 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
     <div className="w-full h-full relative">
       <div ref={blocklyDiv} className="absolute inset-0" />
       
-      {/* Variable Action Overlay - Monitor Only */}
       {activeCategory === 'Variables' && variablePositions.map((pos) => (
           <div 
             key={pos.id}
@@ -362,7 +353,6 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
             }}
             onPointerDown={(e) => e.stopPropagation()} 
           >
-            {/* Monitor Toggle */}
             <div 
                 onClick={() => onToggleVariable(pos.name)}
                 className={`p-2 cursor-pointer bg-white shadow-md border rounded-xl transition-all flex items-center justify-center hover:scale-110 active:scale-95 ${visibleVariables.has(pos.name) ? 'border-orange-400 text-orange-600' : 'border-slate-200 text-slate-400'}`}
@@ -390,9 +380,9 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
                 } else if (modalConfig.variableId) {
                     const oldName = modalConfig.initialValue || "";
                     workspaceRef.current.renameVariableById(modalConfig.variableId, name);
-                    const toolbox = workspaceRef.current.getToolbox();
-                    if (toolbox) {
-                        toolbox.refreshSelection();
+                    const toolboxComp = workspaceRef.current.getToolbox();
+                    if (toolboxComp) {
+                      toolboxComp.refreshSelection();
                     }
                     notifyVariablesChange({ oldName, newName: name });
                 }
