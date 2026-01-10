@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -7,23 +8,21 @@ import * as THREE from 'three';
 import BlocklyEditor, { BlocklyEditorHandle } from './components/BlocklyEditor';
 import Robot3D from './components/Robot3D';
 import SimulationEnvironment from './components/Environment';
-import { RobotState, CustomObject, ContinuousDrawing, SimulationHistory, CameraMode, EditorTool, PathShape, SensorReadings } from './types'; // Import SensorReadings
+import { RobotState, CustomObject, ContinuousDrawing, SimulationHistory, CameraMode, EditorTool, PathShape } from './types';
 import Numpad from './components/Numpad';
 import SensorDashboard from './components/SensorDashboard';
 import RulerTool from './components/RulerTool';
 import ColorPickerTool from './components/ColorPickerTool';
-import CameraManager, { CameraLayerManager } from './components/CameraManager'; // ייבוא CameraManager ו-CameraLayerManager
+import CameraManager from './components/CameraManager'; // ייבוא CameraManager
 import { CHALLENGES, Challenge } from './data/challenges';
-import { ThreeEvent, useThree } from '@react-three/fiber'; // Import ThreeEvent and useThree here
-import { ROBOT_LAYER } from './types'; // Import ROBOT_LAYER
+import { ThreeEvent } from '@react-three/fiber'; // Import ThreeEvent here
 
 const TICK_RATE = 16; 
 const BASE_VELOCITY = 0.165; // Retained at 3x original for normal forward movement
 const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much faster turning
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
-// Updated to a more appropriate dropper cursor SVG
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC92c3QyMi9zdmcgZX0%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTTkuNSAxNC41IDE2IDhsM3AzLTYuNSA2LjUtMy0zEiIvPjxwYXRoIGQ9Imm3LjUgMTE.1IDMtNWwuMzg2Nzk1IC0wLjYzNjIyNiA2Ljc3ODczNiA2Ljc3ODczNiAyLjgzNjIyNiAtMi44MzYyMjYiLz48cGF0aCBkPSJmMTggNiAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAx.NC0x.NCeiIvPjxwYXRoIGQ9Im11OCAzIDMtMyIvPjxwYXRoIGQ9Ik0yMC45IDcuMWEyIDIgMCAxIDAtMi44LTIuOGwtMS40IDEuNCAyLjggMi44IDEuNC0xLjR6Ii8%2BPC9zdmc%2B) 0 24, crosshair`;
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwNC9wYXRoPjxwYXRoIGQ9MTAuNTQgOC40NmE1IDUgMCAxIDAtNy4wNyA3LjA3bDEuNDEgMS40MWEyIDIgMCAwIDAgMi44MyAwbDIuODMtMi44M2EyIDIgMCAwIDAgMC0yLjgzbC0xLjQxLTEuNDF6Ii8+PHBhdGggZD0ibTkgMTkgNW0tNy05IDUtNSIvPjxwYXRoIGQ9Ik05LjUgMTQuNSAzIDkiLz48cGF0aCBkPSJtMTggNiAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAg1IDAtMi44LTy2c29sZHVlciBkMi44bC0xLjQgMS40IDIuOCAy.4IDEuNC0x.4eiIvPjwvc3ZnPgo=') 0 24, crosshair`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -108,34 +107,15 @@ const getEnvironmentConfig = (challengeId?: string, customObjects: CustomObject[
     let complexZones: {x: number, z: number, width: number, length: number, rotation: number, color: number, shape?: PathShape, type: EditorTool}[] = [];
     if (['c10', 'c16', 'c19', 'c20'].includes(challengeId || '')) walls.push({ minX: -3, maxX: 3, minZ: -10.25, maxZ: -9.75 });
     customObjects.forEach(obj => {
-        // Sanitize object properties here to prevent NaN/undefined from entering calculation logic
-        const safeX: number = typeof obj.x === 'number' && Number.isFinite(obj.x) ? obj.x : 0;
-        const safeZ: number = typeof obj.z === 'number' && Number.isFinite(obj.z) ? obj.z : 0;
-        // Ensure dimensions are positive to prevent errors like division by zero or negative geometry args
-        const safeWidth: number = typeof obj.width === 'number' && Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.01; 
-        const safeLength: number = typeof obj.length === 'number' && Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.01; 
-        const safeRotation: number = typeof obj.rotation === 'number' && Number.isFinite(obj.rotation) ? obj.rotation : 0;
-        // For height, use a default if undefined/non-finite, but it can be 0.01 for minimal height
-        const safeHeight: number = typeof obj.height === 'number' && Number.isFinite(obj.height) && (obj.height as number) >= 0 ? (obj.height as number) : 0.01; 
-
-        if (obj.type === 'WALL') { 
-            const hW = safeWidth / 2; 
-            const hL = safeLength / 2; 
-            walls.push({ minX: safeX - hW, maxX: safeX + hW, minZ: safeZ - hL, maxZ: safeZ + hL }); 
-        }
-        else if (obj.type === 'PATH') { 
-            const lineHex = obj.color || '#FFFF00'; 
-            const colorVal = parseInt(lineHex.replace('#', '0x'), 16); 
-            complexZones.push({ x: safeX, z: safeZ, width: safeWidth, length: safeLength, rotation: safeRotation, color: colorVal, shape: obj.shape || 'STRAIGHT', type: obj.type }); 
-        } 
-        else if (obj.type === 'COLOR_LINE') { 
-            const hC = obj.color || '#FF0000'; 
-            complexZones.push({ x: safeX, z: safeZ, width: safeWidth, length: safeLength, rotation: safeRotation, color: parseInt(hC.replace('#', '0x'), 16), type: obj.type }); 
-        }
-        else if (obj.type === 'RAMP') { 
-            const rampHex = obj.color || '#334155';
-            const colorVal = parseInt(rampHex.replace('#', '0x'), 16);
-            complexZones.push({ x: safeX, z: safeZ, width: safeWidth, length: safeLength, rotation: safeRotation, color: colorVal, type: obj.type });
+        if (obj.type === 'WALL') { const hW = obj.width / 2; const hL = obj.length / 2; walls.push({ minX: obj.x - hW, maxX: obj.x + hW, minZ: obj.z - hL, maxZ: obj.z + hL }); }
+        else if (obj.type === 'PATH') { const lineHex = obj.color || '#FFFF00'; const colorVal = parseInt(lineHex.replace('#', '0x'), 16); complexZones.push({ x: obj.x, z: obj.z, width: obj.width, length: obj.length, rotation: obj.rotation || 0, color: colorVal, shape: obj.shape || 'STRAIGHT', type: obj.type }); } 
+        else if (obj.type === 'COLOR_LINE') { const hC = obj.color || '#FF0000'; complexZones.push({ x: obj.x, z: obj.z, width: obj.width, length: obj.length, rotation: obj.rotation || 0, color: parseInt(hC.replace('#', '0x'), 16), type: obj.type }); }
+        else if (obj.type === 'RAMP') { // Ramps can also have colors
+          const rampHex = obj.color || '#334155';
+          const colorVal = parseInt(rampHex.replace('#', '0x'), 16);
+          // For ramps, the detection zone could be the entire ramp area.
+          // For simplicity, let's treat it as a broad color zone for now.
+          complexZones.push({ x: obj.x, z: obj.z, width: obj.width, length: obj.length, rotation: obj.rotation || 0, color: colorVal, type: obj.type });
         }
     });
     return { walls, complexZones };
@@ -144,130 +124,76 @@ const getEnvironmentConfig = (challengeId?: string, customObjects: CustomObject[
 
 // Modified to include challengeId parameter and c18 specific logic
 const getSurfaceHeightAt = (qx: number, qz: number, challengeId?: string, customObjects: CustomObject[] = []) => {
-    // Sanitize inputs
-    const safeQx: number = typeof qx === 'number' && Number.isFinite(qx) ? qx : 0;
-    const safeQz: number = typeof qz === 'number' && Number.isFinite(qz) ? qz : 0;
-
     let maxHeight = 0;
     for (const obj of customObjects) {
         if (obj.type === 'RAMP') {
-            // Sanitize object properties before use
-            const safeObjX: number = typeof obj.x === 'number' && Number.isFinite(obj.x) ? obj.x : 0;
-            const safeObjZ: number = typeof obj.z === 'number' && Number.isFinite(obj.z) ? obj.z : 0;
-            const safeObjRotation: number = typeof obj.rotation === 'number' && Number.isFinite(obj.rotation) ? obj.rotation : 0;
-            const safeObjWidth: number = typeof obj.width === 'number' && Number.isFinite(obj.width) && obj.width > 0 ? obj.width : 0.01;
-            const safeObjLength: number = typeof obj.length === 'number' && Number.isFinite(obj.length) && obj.length > 0 ? obj.length : 0.01;
-            const safeObjHeight: number = typeof obj.height === 'number' && Number.isFinite(obj.height) && (obj.height as number) >= 0 ? (obj.height as number) : 0.01;
-            
-            const { lx, lz } = getLocalCoords(safeQx, safeQz, safeObjX, safeObjZ, safeObjRotation);
-            const hW = safeObjWidth / 2; 
-            const hL = safeObjLength / 2; 
-            const h = safeObjHeight; // Use the sanitized height
-            
-            if (Number.isFinite(lx) && Number.isFinite(lz) && Math.abs(lx) <= hW && Math.abs(lz) <= hL) {
-                const section = safeObjLength / 3; 
+            const { lx, lz } = getLocalCoords(qx, qz, obj.x, obj.z, obj.rotation || 0);
+            const hW = obj.width / 2; 
+            const hL = obj.length / 2; 
+            const h = obj.height || 1.0; 
+            if (Math.abs(lx) <= hW && Math.abs(lz) <= hL) {
+                const section = obj.length / 3; 
                 const uphillEnd = -hL + section; 
                 const downhillStart = hL - section;
-                let currentY_raw = 0; // Initialize raw currentY
-                
-                if (Number.isFinite(section) && section > 0) { // Avoid division by zero
-                    if (lz < uphillEnd) {
-                        const t_raw = (lz - (-hL)) / section;
-                        currentY_raw = typeof t_raw === 'number' && Number.isFinite(t_raw) ? t_raw * h : 0;
-                    } else if (lz < downhillStart) {
-                        currentY_raw = h;
-                    } else {
-                        const t_raw = (lz - downhillStart) / section;
-                        currentY_raw = typeof t_raw === 'number' && Number.isFinite(t_raw) ? h - (t_raw * h) : h;
-                    }
+                let currentY = 0;
+                if (lz < uphillEnd) {
+                    const t = (lz - (-hL)) / section;
+                    currentY = t * h;
+                } else if (lz < downhillStart) {
+                    currentY = h;
                 } else {
-                    currentY_raw = h; // Default to max height if section is invalid or zero
+                    const t = (lz - downhillStart) / section;
+                    currentY = h - (t * h);
                 }
-                const currentY = Number.isFinite(currentY_raw) ? currentY_raw : 0; // Sanitize currentY
                 maxHeight = Math.max(maxHeight, currentY);
             }
         }
     }
     // Reintroduced challenge-specific ramp logic from the user's working version
     if (challengeId === 'c18') {
-        let calculatedHeight_raw = 0; // Initialize raw calculatedHeight
-        if (safeQx >= -2.1 && safeQx <= 2.1) {
-            if (safeQz < -0.2 && safeQz > -3.7) calculatedHeight_raw = ((safeQz - (-0.2)) / -3.5) * 1.73;
-            else if (safeQz <= -3.7 && safeQz >= -7.4) calculatedHeight_raw = 1.73;
-            else if (safeQz < -7.4 && safeQz > -10.9) calculatedHeight_raw = 1.73 - (((safeQz - (-7.4)) / -3.5) * 1.73);
-            
-            const calculatedHeight = Number.isFinite(calculatedHeight_raw) ? calculatedHeight_raw : 0; // Sanitize calculatedHeight
-            maxHeight = Math.max(maxHeight, calculatedHeight);
+        if (qx >= -2.1 && qx <= 2.1) {
+            if (qz < -0.2 && qz > -3.7) maxHeight = Math.max(maxHeight, ((qz - (-0.2)) / -3.5) * 1.73);
+            else if (qz <= -3.7 && qz >= -7.4) maxHeight = Math.max(maxHeight, 1.73);
+            else if (qz < -7.4 && qz > -10.9) maxHeight = Math.max(maxHeight, 1.73 - (((qz - (-7.4)) / -3.5) * 1.73));
         }
     }
-    return Number.isFinite(maxHeight) ? maxHeight : 0; // Ensure final return is finite
+    return maxHeight;
 };
 
 // New simplified checkTouchSensorHit to use `walls` directly
 const checkTouchSensorHit = (x: number, z: number, rotation: number, walls: {minX: number, maxX: number, minZ: number, maxZ: number}[]) => {
-    const safeX: number = typeof x === 'number' && Number.isFinite(x) ? x : 0;
-    const safeZ: number = typeof z === 'number' && Number.isFinite(z) ? z : 0;
-    const safeRotation: number = typeof rotation === 'number' && Number.isFinite(rotation) ? rotation : 0;
-
-    const rad_raw = (safeRotation * Math.PI) / 180;
-    const rad: number = typeof rad_raw === 'number' && Number.isFinite(rad_raw) ? rad_raw : 0;
-    const sin_raw = Math.sin(rad); 
-    const cos_raw = Math.cos(rad);
-    const sin: number = typeof sin_raw === 'number' && Number.isFinite(sin_raw) ? sin_raw : 0;
-    const cos: number = typeof cos_raw === 'number' && Number.isFinite(cos_raw) ? cos_raw : 0;
-    
-    const sensorTipX_raw = safeX + sin * 1.7; 
-    const sensorTipZ_raw = safeZ + cos * 1.7;
-    const sensorTipX: number = typeof sensorTipX_raw === 'number' && Number.isFinite(sensorTipX_raw) ? sensorTipX_raw : safeX;
-    const sensorTipZ: number = typeof sensorTipZ_raw === 'number' && Number.isFinite(sensorTipZ_raw) ? sensorTipZ_raw : safeZ;
+    const rad = (rotation * Math.PI) / 180; 
+    const sin = Math.sin(rad); 
+    const cos = Math.cos(rad);
+    const sensorTipX = x + sin * 1.7; 
+    const sensorTipZ = z + cos * 1.7;
 
     for (const w of walls) { 
-        if (Number.isFinite(sensorTipX) && Number.isFinite(sensorTipZ) &&
-            sensorTipX >= w.minX && sensorTipX <= w.maxX && sensorTipZ >= w.minZ && sensorTipZ <= w.maxZ) return true; 
+        if (sensorTipX >= w.minX && sensorTipX <= w.maxX && sensorTipZ >= w.minZ && sensorTipZ <= w.maxZ) return true; 
     }
     return false;
 };
 
 // New simplified checkPhysicsHit to use `walls` directly
 const checkPhysicsHit = (px: number, pz: number, walls: {minX: number, maxX: number, minZ: number, maxZ: number}[]) => {
-    const safePx: number = typeof px === 'number' && Number.isFinite(px) ? px : 0;
-    const safePz: number = typeof pz === 'number' && Number.isFinite(pz) ? pz : 0;
-
     for (const w of walls) { 
-        if (Number.isFinite(safePx) && Number.isFinite(safePz) &&
-            safePx >= w.minX && safePx <= w.maxX && safePz >= w.minZ && safePz <= w.maxZ) return true; 
+        if (px >= w.minX && px <= w.maxX && pz >= w.minZ && pz <= w.maxZ) return true; 
     }
     return false;
 };
 
 // Modified to include challengeId parameter and use getEnvironmentConfig
-const calculateSensorReadings = (x: number, z: number, rotation: number, challengeId?: string, customObjects: CustomObject[] = []): SensorReadings => {
-    // Sanitize inputs before calculations
-    const safeX: number = typeof x === 'number' && Number.isFinite(x) ? x : 0;
-    const safeZ: number = typeof z === 'number' && Number.isFinite(z) ? z : 0;
-    const safeRotation: number = typeof rotation === 'number' && Number.isFinite(rotation) ? rotation : 0;
-
-    const rad_raw = (safeRotation * Math.PI) / 180; 
-    const rad: number = typeof rad_raw === 'number' && Number.isFinite(rad_raw) ? rad_raw : 0;
-    const sin_raw = Math.sin(rad); 
-    const cos_raw = Math.cos(rad);
-    const sin: number = typeof sin_raw === 'number' && Number.isFinite(sin_raw) ? sin_raw : 0;
-    const cos: number = typeof cos_raw === 'number' && Number.isFinite(cos_raw) ? cos_raw : 0;
-
+const calculateSensorReadings = (x: number, z: number, rotation: number, challengeId?: string, customObjects: CustomObject[] = []) => {
+    const rad = (rotation * Math.PI) / 180; 
+    const sin = Math.sin(rad); 
+    const cos = Math.cos(rad);
     const env = getEnvironmentConfig(challengeId, customObjects); // Use getEnvironmentConfig here
-    const gyro_raw = Math.round(normalizeAngle(safeRotation)); // Use normalizeAngle here
-    const gyro: number = typeof gyro_raw === 'number' && Number.isFinite(gyro_raw) ? gyro_raw : 0;
+    const gyro = Math.round(normalizeAngle(rotation)); // Use normalizeAngle here
     
-    const getPointWorldPos = (lx: number, lz: number) => {
-        const safeLx: number = typeof lx === 'number' && Number.isFinite(lx) ? lx : 0; // Sanitize internal arguments
-        const safeLz: number = typeof lz === 'number' && Number.isFinite(lz) ? lz : 0; // Sanitize internal arguments
-        const wx_raw = safeX + (safeLx * cos + safeLz * sin);
-        const wz_raw = safeZ + (-safeLx * sin + safeLz * cos);
-        return { 
-            wx: typeof wx_raw === 'number' && Number.isFinite(wx_raw) ? wx_raw : safeX,
-            wz: typeof wz_raw === 'number' && Number.isFinite(wz_raw) ? wz_raw : safeZ
-        };
-    };
+    const getPointWorldPos = (lx: number, lz: number) => ({
+        wx: x + (lx * Math.cos(rad) + lz * Math.sin(rad)),
+        wz: z + (-lx * Math.sin(rad) + lz * Math.cos(rad))
+    });
 
     // Positions for robot's contact points (wheels/casters)
     const wheelOffsetZ = 0.5; // Approx half of robot body length
@@ -280,198 +206,162 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     const backCasterPos = getPointWorldPos(0, casterOffsetZ);
 
     // Get surface heights at these points, passing challengeId
-    const rawHLeft = getSurfaceHeightAt(leftWheelPos.wx, leftWheelPos.wz, challengeId, customObjects);
-    const hLeft: number = typeof rawHLeft === 'number' && Number.isFinite(rawHLeft) ? rawHLeft : 0;
-    const rawHRight = getSurfaceHeightAt(rightWheelPos.wx, rightWheelPos.wz, challengeId, customObjects);
-    const hRight: number = typeof rawHRight === 'number' && Number.isFinite(rawHRight) ? rawHRight : 0;
-    const rawHBack = getSurfaceHeightAt(backCasterPos.wx, backCasterPos.wz, challengeId, customObjects);
-    const hBack: number = typeof rawHBack === 'number' && Number.isFinite(rawHBack) ? rawHBack : 0;
-    const rawHFront = getSurfaceHeightAt(frontSensorPos.wx, frontSensorPos.wz, challengeId, customObjects);
-    const hFront: number = typeof rawHFront === 'number' && Number.isFinite(rawHFront) ? rawHFront : 0;
+    const hLeft = getSurfaceHeightAt(leftWheelPos.wx, leftWheelPos.wz, challengeId, customObjects);
+    const hRight = getSurfaceHeightAt(rightWheelPos.wx, rightWheelPos.wz, challengeId, customObjects);
+    const hBack = getSurfaceHeightAt(backCasterPos.wx, backCasterPos.wz, challengeId, customObjects);
+    const hFront = getSurfaceHeightAt(frontSensorPos.wx, frontSensorPos.wz, challengeId, customObjects);
 
 
     // Reverted: Calculate y as the average of the contact points (from working version)
-    const rawCalculatedY = (hLeft + hRight + hBack) / 3; 
-    const calculatedY: number = typeof rawCalculatedY === 'number' && Number.isFinite(rawCalculatedY) ? rawCalculatedY : 0;
+    const y = (hLeft + hRight + hBack) / 3; 
 
     // Tilt and Roll calculations using the front/back/side height differences (from working version)
-    const rawFrontAvg = (hLeft + hRight) / 2;
-    const frontAvg: number = typeof rawFrontAvg === 'number' && Number.isFinite(rawFrontAvg) ? rawFrontAvg : 0;
-    const rawCalculatedTilt = Math.atan2(frontAvg - hBack, 1.3) * (180 / Math.PI); // Distance between front/back effective points (1.3 from working version)
-    const calculatedTilt: number = typeof rawCalculatedTilt === 'number' && Number.isFinite(rawCalculatedTilt) ? rawCalculatedTilt : 0;
-    const rawCalculatedRoll = Math.atan2(hLeft - hRight, wheelOffsetX * 2) * (180 / Math.PI); // Distance between left/right wheels
-    const calculatedRoll: number = typeof rawCalculatedRoll === 'number' && Number.isFinite(rawCalculatedRoll) ? rawCalculatedRoll : 0;
+    const frontAvg = (hLeft + hRight) / 2;
+    const tilt = Math.atan2(frontAvg - hBack, 1.3) * (180 / Math.PI); // Distance between front/back effective points (1.3 from working version)
+    const roll = Math.atan2(hLeft - hRight, wheelOffsetX * 2) * (180 / Math.PI); // Distance between left/right wheels
 
     // Sensor color reading position (remains the same)
-    const cx_raw = safeX + sin * 0.9; 
-    const cz_raw = safeZ + cos * 0.9;
-    const cx: number = typeof cx_raw === 'number' && Number.isFinite(cx_raw) ? cx_raw : 0;
-    const cz: number = typeof cz_raw === 'number' && Number.isFinite(cz_raw) ? cz_raw : 0;
-
-    let sensorDetectedColor: string = "white"; // Renamed for clarity
-    let sensorIntensity: number = 100; // Add intensity as it's in the old working version, though not used widely
-    let sensorRawDecimalColor: number = 0xFFFFFF;
+    const cx = x + sin * 0.9; 
+    const cz = z + cos * 0.9;
+    let sensorDetectedColor = "white"; // Renamed for clarity
+    let sensorIntensity = 100; // Add intensity as it's in the old working version, though not used widely
+    let sensorRawDecimalColor = 0xFFFFFF;
 
     // --- NEW LOGIC: Prioritize Custom Objects for Color Detection ---
     for (const zZone of env.complexZones) {
-        // Sanitize zZone properties as well (already done in getEnvironmentConfig, but defensive check)
-        const safeZoneX: number = typeof zZone.x === 'number' && Number.isFinite(zZone.x) ? zZone.x : 0;
-        const safeZoneZ: number = typeof zZone.z === 'number' && Number.isFinite(zZone.z) ? zZone.z : 0;
-        const safeZoneRotation: number = typeof zZone.rotation === 'number' && Number.isFinite(zZone.rotation) ? zZone.rotation : 0;
-        const safeZoneWidth: number = typeof zZone.width === 'number' && Number.isFinite(zZone.width) && zZone.width > 0 ? zZone.width : 0.01;
-        const safeZoneLength: number = typeof zZone.length === 'number' && Number.isFinite(zZone.length) && zZone.length > 0 ? zZone.length : 0.01;
-
-        const dx_raw = cx - safeZoneX; 
-        const dz_raw = cz - safeZoneZ;
-        const dx: number = typeof dx_raw === 'number' && Number.isFinite(dx_raw) ? dx_raw : 0;
-        const dz: number = typeof dz_raw === 'number' && Number.isFinite(dz_raw) ? dz_raw : 0;
-
-        const cR_raw = Math.cos(-safeZoneRotation); 
-        const sR_raw = Math.sin(-safeZoneRotation);
-        const cR: number = typeof cR_raw === 'number' && Number.isFinite(cR_raw) ? cR_raw : 0;
-        const sR: number = typeof sR_raw === 'number' && Number.isFinite(sR_raw) ? sR_raw : 0;
-
-        const lX_raw = dx * cR - dz * sR; 
-        const lZ_raw = dx * sR + dz * cR;
-        const lX: number = typeof lX_raw === 'number' && Number.isFinite(lX_raw) ? lX_raw : 0;
-        const lZ: number = typeof lZ_raw === 'number' && Number.isFinite(lZ_raw) ? lZ_raw : 0;
-        
+        const dx = cx - zZone.x; 
+        const dz = cz - zZone.z;
+        const cR = Math.cos(-zZone.rotation); 
+        const sR = Math.sin(-zZone.rotation);
+        const lX = dx * cR - dz * sR; 
+        const lZ = dx * sR + dz * cR;
         let onZone = false; 
         
         // Dynamically calculate tolerance based on object dimensions
         // Add a small epsilon (0.1) to the half-width/length for detection "fudge factor"
-        const xTolerance = safeZoneWidth / 2 + 0.1; 
-        const zTolerance = safeZoneLength / 2 + 0.1; 
+        const xTolerance = zZone.width / 2 + 0.1; 
+        const zTolerance = zZone.length / 2 + 0.1; 
 
         if (zZone.type === 'RAMP') {
-          const hW_ramp = safeZoneWidth / 2;
-          const hL_ramp = safeZoneLength / 2;
+          // For ramps, check if the sensor is within the ramp's 2D footprint
+          const hW_ramp = zZone.width / 2;
+          const hL_ramp = zZone.length / 2;
           if (Math.abs(lX) <= (hW_ramp + 0.1) && Math.abs(lZ) <= (hL_ramp + 0.1)) {
             onZone = true;
           }
         }
-        else if (zZone.shape === 'STRAIGHT' || !zZone.shape) { 
+        else if (zZone.shape === 'STRAIGHT' || !zZone.shape) { // Applies to PATH and COLOR_LINE (default STRAIGHT)
             if (Math.abs(lX) <= xTolerance && Math.abs(lZ) <= zTolerance) onZone = true;
         } else if (zZone.shape === 'CORNER') {
-            const halfCornerWidth = safeZoneWidth / 2;
+            // Check if within a square area defined by 'width' for corner paths
+            const halfCornerWidth = zZone.width / 2;
             if (
-                (Math.abs(lX) <= (xTolerance) && lZ >= -0.1 && lZ <= (halfCornerWidth + 0.1)) || 
-                (Math.abs(lZ) <= (zTolerance) && lX >= -0.1 && lX <= (halfCornerWidth + 0.1))    
+                (Math.abs(lX) <= (xTolerance) && lZ >= -0.1 && lZ <= (halfCornerWidth + 0.1)) || // Horizontal arm
+                (Math.abs(lZ) <= (zTolerance) && lX >= -0.1 && lX <= (halfCornerWidth + 0.1))    // Vertical arm
             ) {
                 onZone = true;
             }
         } else if (zZone.shape === 'CURVED') {
-            const midRadius = safeZoneLength / 2; 
-            const shiftedLX_raw = lX + midRadius;
-            const shiftedLX: number = typeof shiftedLX_raw === 'number' && Number.isFinite(shiftedLX_raw) ? shiftedLX_raw : 0;
+            const midRadius = zZone.length / 2; // This is the nominal radius of the curved path
+            // Shift local coordinates to be relative to the arc's center (which is at -midRadius along local X)
+            const shiftedLX = lX + midRadius;
+            const distFromArcCenter = Math.sqrt(Math.pow(shiftedLX, 2) + Math.pow(lZ, 2)); 
+            const angle = Math.atan2(lZ, shiftedLX); // Angle relative to the arc's center
 
-            const distFromArcCenter_raw = Math.sqrt(Math.pow(shiftedLX, 2) + Math.pow(lZ, 2)); 
-            const distFromArcCenter: number = typeof distFromArcCenter_raw === 'number' && Number.isFinite(distFromArcCenter_raw) ? distFromArcCenter_raw : 0;
-            
-            const angle_raw = Math.atan2(lZ, shiftedLX); 
-            const angle: number = typeof angle_raw === 'number' && Number.isFinite(angle_raw) ? angle_raw : 0;
-
-            const halfPathWidth = safeZoneWidth / 2;
+            // Check if within the ring's width and arc angle (0 to PI/2 for quarter circle)
+            const halfPathWidth = zZone.width / 2;
             if (
-                Math.abs(distFromArcCenter - midRadius) <= (halfPathWidth + 0.1) && 
-                angle >= -0.1 && angle <= Math.PI/2 + 0.1 
+                Math.abs(distFromArcCenter - midRadius) <= (halfPathWidth + 0.1) && // Sensor is within the path's thickness
+                angle >= -0.1 && angle <= Math.PI/2 + 0.1 // Sensor is within the 0 to 90 degree arc segment
             ) {
                 onZone = true;
             }
         }
 
         if (onZone) {
-            // Ensure sensorRawDecimalColor is a finite number
-            const currentZoneColor: number = Number.isFinite(zZone.color) ? zZone.color : 0xFFFFFF;
-            sensorRawDecimalColor = currentZoneColor; 
-            const hexStr = "#" + currentZoneColor.toString(16).padStart(6, '0').toUpperCase();
+            sensorRawDecimalColor = zZone.color; 
+            const hexStr = "#" + sensorRawDecimalColor.toString(16).padStart(6, '0').toUpperCase();
             
-            if (isColorClose(hexStr, CANONICAL_COLOR_MAP['red'])) { sensorDetectedColor = "red"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['blue'])) { sensorDetectedColor = "blue"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['green'])) { sensorDetectedColor = "green"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['yellow'])) { sensorDetectedColor = "yellow"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['orange'])) { sensorDetectedColor = "orange"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['purple'])) { sensorDetectedColor = "purple"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['cyan'])) { sensorDetectedColor = "cyan"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['magenta'])) { sensorDetectedColor = "magenta"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['black'])) { sensorDetectedColor = "black"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['white'])) { sensorDetectedColor = "white"; }
+            console.log(`Sensor: Raw detected HEX: ${hexStr} (from object type: ${zZone.type}, shape: ${zZone.shape})`);
+
+            // Map detected hex to common names for easier comparison in Blockly
+            // Using the new CANONICAL_COLOR_MAP for consistent naming
+            if (isColorClose(hexStr, CANONICAL_COLOR_MAP['red'])) { console.log(`Sensor: Matched RED`); sensorDetectedColor = "red"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['blue'])) { console.log(`Sensor: Matched BLUE`); sensorDetectedColor = "blue"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['green'])) { console.log(`Sensor: Matched GREEN`); sensorDetectedColor = "green"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['yellow'])) { console.log(`Sensor: Matched YELLOW`); sensorDetectedColor = "yellow"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['orange'])) { console.log(`Sensor: Matched ORANGE`); sensorDetectedColor = "orange"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['purple'])) { console.log(`Sensor: Matched PURPLE`); sensorDetectedColor = "purple"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['cyan'])) { console.log(`Sensor: Matched CYAN`); sensorDetectedColor = "cyan"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['magenta'])) { console.log(`Sensor: Matched MAGENTA`); sensorDetectedColor = "magenta"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['black'])) { console.log(`Sensor: Matched BLACK`); sensorDetectedColor = "black"; }
+            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['white'])) { console.log(`Sensor: Matched WHITE`); sensorDetectedColor = "white"; }
             else { 
-              sensorDetectedColor = hexStr; 
+              sensorDetectedColor = hexStr; // Fallback to raw hex if not a recognized common color
+              console.log(`Sensor: No canonical match, using raw HEX: ${hexStr}`);
             }
+            
+            // If a custom object is detected, it takes precedence. Break and use this color.
             break; 
         }
     }
 
     // --- OLD LOGIC: Challenge-specific overrides, ONLY IF no custom object color found ---
-    if (sensorDetectedColor === "white") { 
+    if (sensorDetectedColor === "white") { // Only check if no custom object or non-white color found yet
         if (challengeId === 'c21') { 
-            const dist_raw = Math.sqrt(Math.pow(cx - (-6), 2) + Math.pow(cz - 0, 2));
-            const dist: number = typeof dist_raw === 'number' && Number.isFinite(dist_raw) ? dist_raw : 0;
+            const dist = Math.sqrt(Math.pow(cx - (-6), 2) + Math.pow(cz - 0, 2));
             if (Math.abs(dist - 6.0) <= 0.25) { sensorDetectedColor = "black"; sensorIntensity = 5; sensorRawDecimalColor = 0x000000; }
         } else if (challengeId === 'c12') { 
             const ex = cx - 0; const ez = cz - (-8);
-            const normDist_raw = Math.sqrt(Math.pow(ex/9, 2) + Math.pow(ez/6, 2));
-            const normDist: number = typeof normDist_raw === 'number' && Number.isFinite(normDist_raw) ? normDist_raw : 0;
-
+            const normDist = Math.sqrt(Math.pow(ex/9, 2) + Math.pow(ez/6, 2));
             if (Math.abs(normDist - 1.0) <= 0.04) {
                 sensorDetectedColor = "black"; sensorIntensity = 5; sensorRawDecimalColor = 0x000000;
-                const angle_raw = Math.atan2(ez, ex); 
-                const angle: number = typeof angle_raw === 'number' && Number.isFinite(angle_raw) ? angle_raw : 0;
-                const deg_raw = (angle * 180 / Math.PI + 360) % 360;
-                const deg: number = typeof deg_raw === 'number' && Number.isFinite(deg_raw) ? deg_raw : 0;
+                const angle = Math.atan2(ez, ex); 
+                const deg = (angle * 180 / Math.PI + 360) % 360;
                 const markerThreshold = 4.0;
-                if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['red'], 0.1) || Math.abs(deg - 0) < markerThreshold || Math.abs(deg - 360) < markerThreshold) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; } 
-                else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['blue'], 0.1) || Math.abs(deg - 90) < markerThreshold) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; } 
-                else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['green'], 0.1) || Math.abs(deg - 180) < markerThreshold) { sensorDetectedColor = "green"; sensorIntensity = 50; sensorRawDecimalColor = 0x22C55E; } 
-                else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['yellow'], 0.1) || Math.abs(deg - 270) < markerThreshold) { sensorDetectedColor = "yellow"; sensorIntensity = 80; sensorRawDecimalColor = 0xFFFF00; } 
+                if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['red'], 0.1) || Math.abs(deg - 0) < markerThreshold || Math.abs(deg - 360) < markerThreshold) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; } // Changed to use isColorClose
+                else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['blue'], 0.1) || Math.abs(deg - 90) < markerThreshold) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; } // Changed to use isColorClose
+                else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['green'], 0.1) || Math.abs(deg - 180) < markerThreshold) { sensorDetectedColor = "green"; sensorIntensity = 50; sensorRawDecimalColor = 0x22C55E; } // Changed to use isColorClose
+                else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['yellow'], 0.1) || Math.abs(deg - 270) < markerThreshold) { sensorDetectedColor = "yellow"; sensorIntensity = 80; sensorRawDecimalColor = 0xFFFF00; } // Changed to use isColorClose
             }
         } else if (challengeId === 'c10') { 
-            if (typeof cx === 'number' && Number.isFinite(cx) && Math.abs(cx) <= 1.25 && cz <= 0 && cz >= -15) {
+            if (Math.abs(cx) <= 1.25 && cz <= 0 && cz >= -15) {
                 sensorDetectedColor = "#64748b"; sensorIntensity = 40; sensorRawDecimalColor = 0x64748b;
             }
         } else if (challengeId === 'c18') {
-            if (typeof cx === 'number' && Number.isFinite(cx) && Math.abs(cx) <= 2.1 && cz <= -17.25 && cz >= -17.75) {
+            if (Math.abs(cx) <= 2.1 && cz <= -17.25 && cz >= -17.75) {
                 sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000;
             }
         } else if (challengeId === 'c15' || challengeId === 'c14') {
-            if (typeof cx === 'number' && Number.isFinite(cx) && Math.abs(cx) <= 1.5 && cz <= -9.5 && cz >= -12.5) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
-            else if (typeof cx === 'number' && Number.isFinite(cx) && Math.abs(cx) <= 1.5 && cz <= -3.5 && cz >= -6.5) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
+            if (Math.abs(cx) <= 1.5 && cz <= -9.5 && cz >= -12.5) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
+            else if (Math.abs(cx) <= 1.5 && cz <= -3.5 && cz >= -6.5) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
         }
     }
 
 
-    const touchSensorPressed = checkTouchSensorHit(safeX, safeZ, safeRotation, env.walls);
-    const physicalHitForMovement_raw_sin = sin;
-    const physicalHitForMovement_raw_cos = cos;
+    // בדיקת חיישן המגע באמצעות הפונקציה החדשה
+    const touchSensorPressed = checkTouchSensorHit(x, z, rotation, env.walls);
 
-    const physicalHitForMovement = checkPhysicsHit(
-        safeX + physicalHitForMovement_raw_sin * 1.5, 
-        safeZ + physicalHitForMovement_raw_cos * 1.5, 
-        env.walls
-    );
+    // בדיקת התנגשות פיזית לצורך עצירת תנועה (נקודה שונה, פחות קדמית)
+    const physicalHitForMovement = checkPhysicsHit(x + sin * 1.5, z + cos * 1.5, env.walls);
 
-    let distance: number = 255; 
+    let distance = 255; 
+    // בדיקת חיישן מרחק - משתמש באותה נקודה כמו חיישן המגע לצורך עקביות
     for (let d = 0; d < 40.0; d += 0.2) { 
-        // Ensure sin/cos are finite before multiplication
-        const currentSin: number = sin;
-        const currentCos: number = cos;
-
-        if (checkPhysicsHit(safeX + currentSin * (1.7 + d), safeZ + currentCos * (1.7 + d), env.walls)) { 
-            const rawDistance = d * 10;
-            distance = Math.round(typeof rawDistance === 'number' && Number.isFinite(rawDistance) ? rawDistance : 255); 
+        if (checkPhysicsHit(x + sin * (1.7 + d), z + cos * (1.7 + d), env.walls)) { // 1.7 יחידות ממרכז הרובוט
+            distance = Math.round(d * 10); 
             break; 
         } 
     }
     
     return { 
-        gyro: gyro, 
-        tilt: calculatedTilt, 
-        roll: calculatedRoll, 
-        y: calculatedY, 
-        isTouching: touchSensorPressed, 
-        physicalHit: physicalHitForMovement, 
-        distance: distance, 
+        gyro, 
+        tilt, 
+        roll, 
+        y, 
+        isTouching: touchSensorPressed, // חיישן מגע מבוסס על checkTouchSensorHit
+        physicalHit: physicalHitForMovement, // התנגשות פיזית מבוססת על checkPhysicsHit
+        distance, 
         color: sensorDetectedColor, 
         intensity: sensorIntensity, 
         rawDecimalColor: sensorRawDecimalColor, 
@@ -488,7 +378,6 @@ const App: React.FC = () => {
   const [isRulerActive, setIsRulerActive] = useState(false);
   const [isColorPickerActive, setIsColorPickerActive] = useState(false);
   const [customObjects, setCustomObjects] = useState<CustomObject[]>([]);
-  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [cameraMode, setCameraMode] = useState<CameraMode>('HOME');
   const [editorTool, setEditorTool] = useState<EditorTool>('NONE');
   const [pickerHoverColor, setPickerHoverColor] = useState<string | null>(null);
@@ -498,8 +387,8 @@ const App: React.FC = () => {
   const [projectModal, setProjectModal] = useState<{isOpen: boolean, mode: 'save' | 'load'}>({isOpen: false, mode: 'save'});
   const [isPythonModalOpen, setIsPythonModalOpen] = useState(false);
   const [monitoredValues, setMonitoredValues] = useState<Record<string, any>>({});
-  // FIX: Corrected useState declaration for visibleVariables.
-  const [visibleVariables, setVisibleVariables] = useState<Set<string>>(() => new Set<string>());
+  // Fix: Initialize visibleVariables with useState to be a Set<string>
+  const [visibleVariables, setVisibleVariables] = useState<Set<string>>(new Set());
   const blocklyEditorRef = useRef<BlocklyEditorHandle>(null);
   const controlsRef = useRef<any>(null); // Reference to OrbitControls
   const historyRef = useRef<SimulationHistory>({ maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 });
@@ -512,21 +401,18 @@ const App: React.FC = () => {
   const [completedDrawings, setCompletedDrawings] = useState<ContinuousDrawing[]>([]);
   const activeDrawingRef = useRef<ContinuousDrawing | null>(null); // Ref for immediate access in callbacks
 
-  const robotRef = useRef<RobotState>({ 
-    x: 0, y: 0, z: 0, 
-    rotation: 180, tilt: 0, roll: 0, 
-    speed: 100, motorLeftSpeed: 0, motorRightSpeed: 0, 
-    ledLeftColor: 'black', ledRightColor: 'black', 
-    isMoving: false, isTouching: false, 
-    penDown: false, penColor: '#000000', 
-    sensorX: 0, sensorZ: 0 
-  });
+  // REMOVED: This useEffect is removed as activeDrawingRef.current will be updated directly.
+  // useEffect(() => { activeDrawingRef.current = activeDrawing; }, [activeDrawing]);
+  
+  const robotRef = useRef<RobotState>({ x: 0, y: 0, z: 0, rotation: 180, tilt: 0, roll: 0, speed: 100, motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', ledRightColor: 'black', isMoving: false, isTouching: false, penDown: false, penColor: '#000000' });
   const [robotState, setRobotState] = useState<RobotState>(robotRef.current);
   const isPlacingRobot = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const listenersRef = useRef<{ messages: Record<string, (() => Promise<void>)[]>, colors: { color: string, cb: () => Promise<void>, lastMatch: boolean }[], obstacles: { cb: () => Promise<void>, lastMatch: boolean }[], distances: { threshold: number, cb: () => Promise<void>, lastMatch: boolean }[], variables: Record<string, any> }>({ messages: {}, colors: [], obstacles: [], distances: [], variables: {} });
 
-  const blocklyColorFieldRef = useRef<any | null>(null);
+  // New state to hold the Blockly color pick callback
+  // Updated type definition for blocklyColorPickCallback to accept a field argument
+  const [blocklyColorPickCallback, setBlocklyColorPickCallback] = useState<((newColor: string, field: any) => void) | null>(null);
 
   const showToast = useCallback((message: string, type: 'success' | 'info' | 'error' = 'success') => { setToast({ message, type }); setTimeout(() => setToast(null), 4000); }, []);
 
@@ -535,50 +421,26 @@ const App: React.FC = () => {
     executionId.current++; 
     const envObjs = activeChallenge?.environmentObjects || [];
     setCustomObjects(envObjs);
-    setSelectedObjectId(null);
-    
-    // FIX: Ensure startX, startZ, startRot are always finite numbers before passing.
-    const rawStartX = activeChallenge?.startPosition?.x;
-    const rawStartZ = activeChallenge?.startPosition?.z;
-    const rawStartRot = activeChallenge?.startRotation;
-
-    const startX: number = typeof rawStartX === 'number' && Number.isFinite(rawStartX) ? rawStartX : 0; 
-    const startZ: number = typeof rawStartZ === 'number' && Number.isFinite(rawStartZ) ? rawStartZ : 0; 
-    const startRot: number = typeof rawStartRot === 'number' && Number.isFinite(rawStartRot) ? rawStartRot : 180;
+    const startX = activeChallenge?.startPosition?.x ?? 0; 
+    const startZ = activeChallenge?.startPosition?.z ?? 0; 
+    const startRot = activeChallenge?.startRotation ?? 180;
     
     // Initial sensor reading for start position
-    const sd_initial: SensorReadings = calculateSensorReadings(startX, startZ, startRot, activeChallenge?.id, envObjs); 
-    
-    // FIX: Explicitly ensure all numeric RobotState properties are finite.
-    const d: RobotState = { 
-        x: startX, 
-        y: sd_initial.y, 
-        z: startZ, 
-        rotation: startRot, 
-        motorLeftSpeed: 0, 
-        motorRightSpeed: 0, 
-        ledLeftColor: 'black', 
-        ledRightColor: 'black', 
-        tilt: sd_initial.tilt, 
-        roll: sd_initial.roll, 
-        penDown: false, 
-        isTouching: false,
-        isMoving: false, 
-        speed: 100, 
-        penColor: '#000000', 
-        sensorX: sd_initial.sensorX, 
-        sensorZ: sd_initial.sensorZ  
-    };
+    const sd_initial = calculateSensorReadings(startX, startZ, startRot, activeChallenge?.id, envObjs); 
+    // Fix: Changed the duplicate 'ledLeftColor' to 'ledRightColor'
+    const d = { ...robotRef.current, x: startX, y: sd_initial.y, z: startZ, rotation: startRot, motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', ledRightColor: 'black', tilt: sd_initial.tilt, roll: sd_initial.roll, penDown: false, isTouching: false };
     robotRef.current = d; 
     setRobotState(d); 
     setIsRunning(false); setChallengeSuccess(false); setMonitoredValues({}); 
     
+    // Reset drawing states
     setCompletedDrawings([]);
     setActiveDrawing(null);
-    activeDrawingRef.current = null; 
+    activeDrawingRef.current = null; // Update ref immediately
 
     historyRef.current = { maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 }; 
     listenersRef.current = { messages: {}, colors: [], obstacles: [], distances: [], variables: {} };
+    // Reset camera to home view when resetting the simulation
     if (controlsRef.current) { controlsRef.current.reset(); setCameraMode('HOME'); }
   }, [activeChallenge]);
 
@@ -586,64 +448,39 @@ const App: React.FC = () => {
 
   // General 3D environment pointer handlers for editor tools
   const handlePointerDown = useCallback((e: ThreeEvent<MouseEvent>) => {
+    // Only handle if color picker is NOT active
     if (isColorPickerActive) return;
 
-    e.stopPropagation(); 
+    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
     if (editorTool === 'ROBOT_MOVE') {
       isPlacingRobot.current = true;
       const point = e.point;
-      // FIX: Ensure point.x and point.z are finite numbers.
-      const safePointX: number = typeof point.x === 'number' && Number.isFinite(point.x) ? point.x : robotRef.current.x;
-      const safePointZ: number = typeof point.z === 'number' && Number.isFinite(point.z) ? point.z : robotRef.current.z;
-      const safeRobotRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
-
-      const sd: SensorReadings = calculateSensorReadings(safePointX, safePointZ, safeRobotRotation, activeChallenge?.id, customObjects);
-      const next: RobotState = { 
-          ...robotRef.current, 
-          x: safePointX, 
-          z: safePointZ, 
-          y: sd.y, 
-          tilt: sd.tilt, 
-          roll: sd.roll, 
-          sensorX: sd.sensorX, 
-          sensorZ: sd.sensorZ 
-      };
+      const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
+      const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll };
       robotRef.current = next;
       setRobotState(next);
     }
   }, [editorTool, activeChallenge, customObjects, isColorPickerActive]);
 
   const handlePointerMove = useCallback((e: ThreeEvent<MouseEvent>) => {
+    // Only handle if color picker is NOT active
     if (isColorPickerActive) return;
 
-    e.stopPropagation(); 
+    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
     if (isPlacingRobot.current && editorTool === 'ROBOT_MOVE') {
       const point = e.point;
-      // FIX: Ensure point.x and point.z are finite numbers.
-      const safePointX: number = typeof point.x === 'number' && Number.isFinite(point.x) ? point.x : robotRef.current.x;
-      const safePointZ: number = typeof point.z === 'number' && Number.isFinite(point.z) ? point.z : robotRef.current.z;
-      const safeRobotRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
-
-      const sd: SensorReadings = calculateSensorReadings(safePointX, safePointZ, safeRobotRotation, activeChallenge?.id, customObjects);
-      const next: RobotState = { 
-          ...robotRef.current, 
-          x: safePointX, 
-          z: safePointZ, 
-          y: sd.y, 
-          tilt: sd.tilt, 
-          roll: sd.roll, 
-          sensorX: sd.sensorX, 
-          sensorZ: sd.sensorZ 
-      };
+      const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
+      const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll };
       robotRef.current = next;
       setRobotState(next);
     }
   }, [editorTool, activeChallenge, customObjects, isColorPickerActive]);
 
   const handlePointerUp = useCallback((e: ThreeEvent<MouseEvent>) => {
+    // Only handle if color picker is NOT active
     if (isColorPickerActive) return;
 
-    e.stopPropagation(); 
+    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
     isPlacingRobot.current = false;
   }, [isColorPickerActive]);
 
@@ -659,127 +496,98 @@ const App: React.FC = () => {
     const robotApi = {
       move: async (dist: number) => {
         checkAbort();
-        const startX = typeof robotRef.current.x === 'number' && Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
-        const startZ = typeof robotRef.current.z === 'number' && Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
+        const startX = robotRef.current.x; const startZ = robotRef.current.z;
         const targetDist = Math.abs(dist) * 0.1; const direction = dist > 0 ? 1 : -1;
         const power = 100 * direction;
-        robotRef.current = { ...robotRef.current, motorLeftSpeed: typeof power === 'number' && Number.isFinite(power) ? power : 0, motorRightSpeed: typeof power === 'number' && Number.isFinite(power) ? power : 0 };
+        robotRef.current = { ...robotRef.current, motorLeftSpeed: power, motorRightSpeed: power };
         while (true) {
           checkAbort();
           const moved = Math.sqrt(Math.pow(robotRef.current.x - startX, 2) + Math.pow(robotRef.current.z - startZ, 2));
           if (moved >= targetDist) break;
           await new Promise(r => setTimeout(r, TICK_RATE));
-          const sd: SensorReadings = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
+          const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
           if (sd.isTouching) break;
         }
         robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
       },
       turn: async (angle: number) => {
         checkAbort();
-        const initialRotation = normalizeAngle(typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0);
+        const initialRotation = normalizeAngle(robotRef.current.rotation);
         const targetAbsoluteRotation = normalizeAngle(initialRotation + angle);
 
         const direction = angle > 0 ? 1 : -1;
-        const power = 50 * direction; 
+        const power = 50 * direction; // Using 50 power as in working version, this power is scaled by robot.speed in loop
         
-        robotRef.current = { ...robotRef.current, motorLeftSpeed: typeof (-power) === 'number' && Number.isFinite(-power) ? -power : 0, motorRightSpeed: typeof power === 'number' && Number.isFinite(power) ? power : 0 };
+        robotRef.current = { ...robotRef.current, motorLeftSpeed: -power, motorRightSpeed: power };
 
         while (true) {
           checkAbort();
           await new Promise(r => setTimeout(r, TICK_RATE));
 
-          const currentRotation = normalizeAngle(typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0);
+          const currentRotation = normalizeAngle(robotRef.current.rotation);
           const diffToTarget = getAngleDifference(targetAbsoluteRotation, currentRotation);
 
-          if (direction > 0 && diffToTarget <= TURN_TOLERANCE) break; 
-          if (direction < 0 && diffToTarget >= -TURN_TOLERANCE) break; 
+          // If we have passed the target (overshot) or are very close, stop.
+          if (direction > 0 && diffToTarget <= TURN_TOLERANCE) break; // Turning right (positive angle), stop if current is >= target.
+          if (direction < 0 && diffToTarget >= -TURN_TOLERANCE) break; // Turning left (negative angle), stop if current is <= target.
         }
         robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
-        robotRef.current.rotation = typeof targetAbsoluteRotation === 'number' && Number.isFinite(targetAbsoluteRotation) ? targetAbsoluteRotation : robotRef.current.rotation;
-        setRobotState({ ...robotRef.current }); 
+        // Force set the rotation to the exact target to prevent drift.
+        robotRef.current.rotation = targetAbsoluteRotation;
+        setRobotState({ ...robotRef.current }); // Update UI state with the precise rotation
       },
       setHeading: async (targetAngle: number) => { 
         checkAbort(); 
-        const currentRot = normalizeAngle(typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0); 
-        const normalizedTarget = normalizeAngle(targetAngle); 
-        let diff = getAngleDifference(normalizedTarget, currentRot); 
+        const currentRot = normalizeAngle(robotRef.current.rotation); // Normalize current rotation
+        const normalizedTarget = normalizeAngle(targetAngle); // Normalize target angle
+        let diff = getAngleDifference(normalizedTarget, currentRot); // Use the utility for shortest difference
         
-        await robotApi.turn(typeof diff === 'number' && Number.isFinite(diff) ? diff : 0);
+        await robotApi.turn(diff);
         checkAbort();
       },
-      wait: (ms: number) => new Promise((resolve, reject) => { const t = setTimeout(resolve, ms); controller.signal.addEventListener('abort', () => { clearTimeout(t); reject(new Error("Simulation aborted")); }, { once: true }); }),
-      setMotorPower: async (left: number, right: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: typeof left === 'number' && Number.isFinite(left) ? left : 0, motorRightSpeed: typeof right === 'number' && Number.isFinite(right) ? right : 0 }; },
-      setSpeed: async (s: number) => { checkAbort(); robotRef.current.speed = typeof s === 'number' && Number.isFinite(s) ? s : 100; },
-      stop: async () => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 }; },
+      wait: (ms: number) => new Promise((resolve, reject) => { const t = setTimeout(resolve, ms); controller.signal.addEventListener('abort', () => { clearTimeout(t); reject(new Error("Simulation aborted")); }, { once: true }); });
+      setMotorPower: async (left: number, right: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: left, motorRightSpeed: right }; },
+      setSpeed: async (s: number) => { checkAbort(); robotRef.current.speed = s; },
+      stop: async () => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 }; };
       setPen: async (down: boolean) => { 
         checkAbort(); 
         robotRef.current.penDown = down; 
         setRobotState(prev => ({ ...prev, penDown: down }));
         
+        // If pen is lifted, finalize the active drawing
         if (!down) { 
             if (activeDrawingRef.current) {
                 setCompletedDrawings(prev => [...prev, activeDrawingRef.current!]);
-                setActiveDrawing(null); 
-                activeDrawingRef.current = null; 
+                setActiveDrawing(null); // Clear active drawing
+                activeDrawingRef.current = null; // Update ref immediately
             }
         }
       },
       setPenColor: async (color: string) => { checkAbort(); robotRef.current.penColor = color; setRobotState(prev => ({ ...prev, penColor: color })); },
       clearPen: async () => { 
         checkAbort(); 
-        setCompletedDrawings([]); 
-        setActiveDrawing(null); 
-        activeDrawingRef.current = null; 
+        setCompletedDrawings([]); // Clear all completed drawings
+        setActiveDrawing(null); // Clear any active drawing
+        activeDrawingRef.current = null; // Update ref immediately
       },
-      getDistance: async () => { 
-        checkAbort(); 
-        const safeX: number = typeof robotRef.current.x === 'number' && Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
-        const safeZ: number = typeof robotRef.current.z === 'number' && Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
-        const safeRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
-        const sd: SensorReadings = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects);
-        return sd.distance; 
-      },
-      getTouch: async () => { 
-        checkAbort(); 
-        const safeX: number = typeof robotRef.current.x === 'number' && Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
-        const safeZ: number = typeof robotRef.current.z === 'number' && Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
-        const safeRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
-        const sd: SensorReadings = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects);
-        return sd.isTouching; 
-      },
-      getGyro: async (mode: 'ANGLE' | 'TILT') => { 
-        checkAbort(); 
-        const safeX: number = typeof robotRef.current.x === 'number' && Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
-        const safeZ: number = typeof robotRef.current.z === 'number' && Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
-        const safeRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
-        const sd: SensorReadings = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects); 
-        return mode === 'TILT' ? sd.tilt : sd.gyro; 
-      },
-      getColor: async () => { 
-        checkAbort(); 
-        const safeX: number = typeof robotRef.current.x === 'number' && Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
-        const safeZ: number = typeof robotRef.current.z === 'number' && Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
-        const safeRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
-        const sd: SensorReadings = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects); 
-        return sd.color; 
-      },
+      getDistance: async () => { checkAbort(); return calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects).distance; },
+      getTouch: async () => { checkAbort(); return calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects).isTouching; },
+      getGyro: async (mode: 'ANGLE' | 'TILT') => { checkAbort(); const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects); return mode === 'TILT' ? sd.tilt : sd.gyro; },
+      getColor: async () => { checkAbort(); return calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects).color; },
       isTouchingColor: async (hex: string) => { 
         checkAbort(); 
-        const safeX: number = typeof robotRef.current.x === 'number' && Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
-        const safeZ: number = typeof robotRef.current.z === 'number' && Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
-        const safeRotation: number = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0;
-        const sd: SensorReadings = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects); 
+        const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects); 
         let detectedColorToCompare = sd.color;
         return isColorClose(detectedColorToCompare, hex); 
       },
       getCircumference: async () => 3.77,
       setLed: (side: 'left' | 'right' | 'both', color: string) => { checkAbort(); if (side === 'left' || side === 'both') robotRef.current.ledLeftColor = color; if (side === 'right' || side === 'both') robotRef.current.ledRightColor = color; setRobotState({ ...robotRef.current }); },
       onMessage: (msg: string, cb: () => Promise<void>) => { if (!listenersRef.current.messages[msg]) listenersRef.current.messages[msg] = []; listenersRef.current.messages[msg].push(cb); },
-      sendMessage: async (msg: string) => { checkAbort(); if (listenersRef.current.messages[msg]) await Promise.all(listenersRef.current.messages[msg].map(cb => cb())); },
-      onColor: (color: string, cb: () => Promise<void>) => { listenersRef.current.colors.push({ color, cb, lastMatch: false }); },
-      onObstacle: (cb: () => Promise<void>) => { listenersRef.current.obstacles.push({ cb, lastMatch: false }); },
-      onDistance: (threshold: number, cb: () => Promise<void>) => { listenersRef.current.distances.push({ threshold: typeof threshold === 'number' && Number.isFinite(threshold) ? threshold : 0, cb, lastMatch: false }); },
-      updateVariable: (name: string, val: any) => { setMonitoredValues(prev => ({ ...prev, [name]: val })); },
+      sendMessage: async (msg: string) => { checkAbort(); if (listenersRef.current.messages[msg]) await Promise.all(listenersRef.current.messages[msg].map(cb => cb())); };
+      onColor: (color: string, cb: () => Promise<void>) => { listenersRef.current.colors.push({ color, cb, lastMatch: false }); };
+      onObstacle: (cb: () => Promise<void>) => { listenersRef.current.obstacles.push({ cb, lastMatch: false }); };
+      onDistance: (threshold: number, cb: () => Promise<void>) => { listenersRef.current.distances.push({ threshold, cb, lastMatch: false }); };
+      updateVariable: (name: string, val: any) => { setMonitoredValues(prev => ({ ...prev, [name]: val })); };
       stopProgram: async () => { controller.abort(); setIsRunning(false); }
     };
     try { 
@@ -796,78 +604,62 @@ const App: React.FC = () => {
       interval = setInterval(() => { 
         const current = robotRef.current; 
 
-        // --- Aggressive NaN and Finite Number Check at the start of each tick ---
-        const safeX: number = typeof current.x === 'number' && Number.isFinite(current.x) ? current.x : 0;
-        const safeY: number = typeof current.y === 'number' && Number.isFinite(current.y) ? current.y : 0;
-        const safeZ: number = typeof current.z === 'number' && Number.isFinite(current.z) ? current.z : 0;
-        const safeRotation: number = typeof current.rotation === 'number' && Number.isFinite(current.rotation) ? current.rotation : 0;
-        const safeTilt: number = typeof current.tilt === 'number' && Number.isFinite(current.tilt) ? current.tilt : 0;
-        const safeRoll: number = typeof current.roll === 'number' && Number.isFinite(current.roll) ? current.roll : 0;
-        const safeSpeed: number = typeof current.speed === 'number' && Number.isFinite(current.speed) ? current.speed : 100;
-        const safeMotorLeftSpeed: number = typeof current.motorLeftSpeed === 'number' && Number.isFinite(current.motorLeftSpeed) ? current.motorLeftSpeed : 0;
-        const safeMotorRightSpeed: number = typeof current.motorRightSpeed === 'number' && Number.isFinite(current.motorRightSpeed) ? current.motorRightSpeed : 0;
-        // --- End Aggressive NaN and Finite Number Check ---
-
         // Simplified calculation of fV and rV from direct motor speeds (from working version)
-        const f: number = safeSpeed / 100.0; 
-        const pL: number = safeMotorLeftSpeed / 100.0; 
-        const pR: number = safeMotorRightSpeed / 100.0;
+        const f = current.speed / 100.0; 
+        const pL = current.motorLeftSpeed / 100.0; 
+        const pR = current.motorRightSpeed / 100.0;
         
-        let fV_raw = ((pL + pR) / 2.0) * BASE_VELOCITY * f; 
-        let fV_adjusted: number = typeof fV_raw === 'number' && Number.isFinite(fV_raw) ? fV_raw : 0; // Sanitize fV_raw immediately
-        const rV_raw = (pR - pL) * BASE_TURN_SPEED * f; 
-        const rV: number = typeof rV_raw === 'number' && Number.isFinite(rV_raw) ? rV_raw : 0; // Sanitize rV_raw immediately
+        let fV_raw = ((pL + pR) / 2.0) * BASE_VELOCITY * f; // Initial forward velocity
+        const rV = (pR - pL) * BASE_TURN_SPEED * f; // Rotational velocity (simplified from working version)
         
-        // --- Dynamic Velocity Reduction (retained as an. improvement) ---
-        const sd_current_for_tilt: SensorReadings = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects);
-        const currentTilt: number = sd_current_for_tilt.tilt; // Already guaranteed number by SensorReadings interface
+        // --- Dynamic Velocity Reduction (retained as an improvement) ---
+        let fV_adjusted = fV_raw;
+        const sd_current_for_tilt = calculateSensorReadings(current.x, current.z, current.rotation, activeChallenge?.id, customObjects);
+        const currentTilt = sd_current_for_tilt.tilt;
 
-        if (Math.abs(currentTilt) > 3) { 
-            let tiltFactor_raw = Math.abs(currentTilt) / 25; 
-            let tiltFactor: number = typeof tiltFactor_raw === 'number' && Number.isFinite(tiltFactor_raw) ? Math.min(tiltFactor_raw, 1) : 0; // Sanitize tiltFactor
+        if (Math.abs(currentTilt) > 3) { // Only apply reduction for significant tilt
+            let tiltFactor = Math.abs(currentTilt) / 25; // Normalize tilt to a 0-1 range based on a max expected tilt of 25 degrees
+            tiltFactor = Math.min(tiltFactor, 1); // Cap at 1
             
             let reductionMultiplier = 1;
 
-            if (fV_adjusted > 0 && currentTilt > 0) { 
-                reductionMultiplier = Math.max(0.2, 1 - tiltFactor * 0.8); 
-            } else if (fV_adjusted < 0 && currentTilt < 0) { 
-                reductionMultiplier = Math.max(0.2, 1 - tiltFactor * 0.8); 
+            if (fV_raw > 0 && currentTilt > 0) { // Moving forward, tilting upwards (climbing)
+                reductionMultiplier = Math.max(0.2, 1 - tiltFactor * 0.8); // Reduce speed by up to 80% (min 20% original speed)
+            } else if (fV_raw < 0 && currentTilt < 0) { // Moving backward, tilting downwards (climbing backwards)
+                reductionMultiplier = Math.max(0.2, 1 - tiltFactor * 0.8); // Reduce speed by up to 80%
             }
-            fV_adjusted = fV_adjusted * (typeof reductionMultiplier === 'number' && Number.isFinite(reductionMultiplier) ? reductionMultiplier : 1); // Sanitize result
+            fV_adjusted = fV_raw * reductionMultiplier;
         }
         // --- End Dynamic Velocity Reduction ---
 
-        const nr_potential_raw = safeRotation + rV; 
-        const nr_potential: number = typeof nr_potential_raw === 'number' && Number.isFinite(nr_potential_raw) ? nr_potential_raw : safeRotation; // Sanitize nr_potential
-
-        const nx_potential_raw = safeX + (typeof Math.sin(nr_potential * Math.PI / 180) === 'number' && Number.isFinite(Math.sin(nr_potential * Math.PI / 180)) ? Math.sin(nr_potential * Math.PI / 180) : 0) * fV_adjusted; 
-        const nx_potential: number = typeof nx_potential_raw === 'number' && Number.isFinite(nx_potential_raw) ? nx_potential_raw : safeX; // Sanitize nx_potential
-        
-        const nz_potential_raw = safeZ + (typeof Math.cos(nr_potential * Math.PI / 180) === 'number' && Number.isFinite(Math.cos(nr_potential * Math.PI / 180)) ? Math.cos(nr_potential * Math.PI / 180) : 0) * fV_adjusted; 
-        const nz_potential: number = typeof nz_potential_raw === 'number' && Number.isFinite(nz_potential_raw) ? nz_potential_raw : safeZ; // Sanitize nz_potential
+        const nr_potential = current.rotation + rV; 
+        const nx_potential = current.x + Math.sin(nr_potential * Math.PI / 180) * fV_adjusted; 
+        const nz_potential = current.z + Math.cos(nr_potential * Math.PI / 180) * fV_adjusted; 
         
         // Calculate sensor readings for the *potential* next position
-        const sd_predicted: SensorReadings = calculateSensorReadings(nx_potential, nz_potential, nr_potential, activeChallenge?.id, customObjects);
+        const sd_predicted = calculateSensorReadings(nx_potential, nz_potential, nr_potential, activeChallenge?.id, customObjects);
         
-        const finalX: number = sd_predicted.isTouching ? safeX : nx_potential; 
-        const finalZ: number = sd_predicted.isTouching ? safeZ : nz_potential;
+        // Use sd.isTouching for physical hit detection as in working version
+        const finalX = sd_predicted.isTouching ? current.x : nx_potential; 
+        const finalZ = sd_predicted.isTouching ? current.z : nz_potential;
         
-        const next: RobotState = { 
+        // Reverted: Use smoothed Y, Tilt, Roll for the next state (from working version)
+        const next = { 
           ...current, 
-          x: typeof finalX === 'number' && Number.isFinite(finalX) ? finalX : safeX, 
-          z: typeof finalZ === 'number' && Number.isFinite(finalZ) ? finalZ : safeZ, 
-          y: typeof sd_predicted.y === 'number' && Number.isFinite(sd_predicted.y) ? (safeY + (sd_predicted.y - safeY) * 0.3) : safeY, 
-          tilt: typeof sd_predicted.tilt === 'number' && Number.isFinite(sd_predicted.tilt) ? (safeTilt + (sd_predicted.tilt - safeTilt) * 0.3) : safeTilt, 
-          roll: typeof sd_predicted.roll === 'number' && Number.isFinite(sd_predicted.roll) ? (safeRoll + (sd_predicted.roll - safeRoll) * 0.3) : safeRoll, 
-          rotation: typeof nr_potential === 'number' && Number.isFinite(nr_potential) ? nr_potential : safeRotation, 
-          isTouching: sd_predicted.isTouching, 
-          isMoving: (typeof fV_adjusted === 'number' && Number.isFinite(fV_adjusted) && typeof rV === 'number' && Number.isFinite(rV)) && (Math.abs(fV_adjusted) > 0.001 || Math.abs(rV) > 0.001), 
-          sensorX: typeof sd_predicted.sensorX === 'number' && Number.isFinite(sd_predicted.sensorX) ? sd_predicted.sensorX : 0, 
-          sensorZ: typeof sd_predicted.sensorZ === 'number' && Number.isFinite(sd_predicted.sensorZ) ? sd_predicted.sensorZ : 0, 
+          x: finalX, 
+          z: finalZ, 
+          y: current.y + (sd_predicted.y - current.y) * 0.3, // Apply smoothing
+          tilt: current.tilt + (sd_predicted.tilt - current.tilt) * 0.3, // Apply smoothing
+          roll: current.roll + (sd_predicted.roll - current.roll) * 0.3, // Apply smoothing
+          rotation: nr_potential, // Update rotation continuously
+          isTouching: sd_predicted.isTouching, // Using sd_predicted for consistency
+          isMoving: Math.abs(fV_adjusted) > 0.001 || Math.abs(rV) > 0.001, 
+          sensorX: sd_predicted.sensorX, 
+          sensorZ: sd_predicted.sensorZ,
         }; 
         robotRef.current = next; setRobotState(next); 
 
-        const curDetectedColor = sd_predicted.color; 
+        const curDetectedColor = sd_predicted.color; // Use predicted color as well for consistency
         listenersRef.current.colors.forEach(l => { 
             const isMatch = isColorClose(curDetectedColor, l.color); 
             if (isMatch && !l.lastMatch) l.cb(); 
@@ -885,54 +677,54 @@ const App: React.FC = () => {
         });
         if (sd_predicted.isTouching) historyRef.current.touchedWall = true; 
         
-        // Ensure startX and startZ from activeChallenge are finite
-        const histStartX: number = typeof activeChallenge?.startPosition?.x === 'number' && Number.isFinite(activeChallenge.startPosition.x) ? activeChallenge.startPosition.x : 0; 
-        const histStartZ: number = typeof activeChallenge?.startPosition?.z === 'number' && Number.isFinite(activeChallenge.startPosition.z) ? activeChallenge.startPosition.z : 0;
-        const distMoved_raw = Math.sqrt(Math.pow(next.x - histStartX, 2) + Math.pow(next.z - histStartZ, 2));
-        historyRef.current.maxDistanceMoved = Math.max(historyRef.current.maxDistanceMoved, (typeof distMoved_raw === 'number' && Number.isFinite(distMoved_raw) ? distMoved_raw : 0) * 10); 
+        // Update history tracking for challenge checks
+        const startX = activeChallenge?.startPosition?.x || 0; 
+        const startZ = activeChallenge?.startPosition?.z || 0;
+        const distMoved = Math.sqrt(Math.pow(next.x - startX, 2) + Math.pow(next.z - startZ, 2));
+        historyRef.current.maxDistanceMoved = Math.max(historyRef.current.maxDistanceMoved, distMoved * 10); // *10 to convert meters to cm for history
         if (!historyRef.current.detectedColors.includes(curDetectedColor)) historyRef.current.detectedColors.push(curDetectedColor);
-        
-        // FIX: Ensure activeChallenge?.startRotation is explicitly a number
-        const startRotationForHistory: number = typeof activeChallenge?.startRotation === 'number' && Number.isFinite(activeChallenge.startRotation) ? activeChallenge.startRotation : 180;
-        historyRef.current.totalRotation = typeof robotRef.current.rotation === 'number' && Number.isFinite(robotRef.current.rotation) ? (robotRef.current.rotation - startRotationForHistory) : 0;
+        historyRef.current.totalRotation = robotRef.current.rotation - (activeChallenge?.startRotation ?? 180);
 
         // --- NEW DRAWING LOGIC ---
         if (next.penDown) { 
-          const currPos: [number, number, number] = [
-            typeof next.x === 'number' && Number.isFinite(next.x) ? next.x : 0, 
-            typeof next.y === 'number' && Number.isFinite(next.y) ? (next.y + 0.02) : 0.02, 
-            typeof next.z === 'number' && Number.isFinite(next.z) ? next.z : 0
-          ]; 
+          const currPos: [number, number, number] = [next.x, next.y + 0.02, next.z]; 
           
           setActiveDrawing(prevActiveDrawing => {
               let drawingToModify = prevActiveDrawing;
 
+              // If no drawing is active, or the color changed, finalize previous and start new one
               if (!drawingToModify || drawingToModify.color !== next.penColor) {
-                  if (drawingToModify) { 
+                  if (drawingToModify) { // If there was a previous active drawing, add it to completed
                       setCompletedDrawings(oldCompleted => [...oldCompleted, drawingToModify!]);
                   }
+                  // Start a new drawing
                   const newDrawing = { id: `path-${Date.now()}`, points: [currPos], color: next.penColor };
-                  activeDrawingRef.current = newDrawing; 
+                  activeDrawingRef.current = newDrawing; // Update ref immediately
                   return newDrawing;
               } else {
+                  // Continue existing path if pen is down and color hasn't changed
+                  // Check if robot has moved enough to add a new point
                   const hasMovedSignificantly = drawingToModify.points.length > 0 &&
                       (Math.pow(currPos[0] - drawingToModify.points[drawingToModify.points.length - 1][0], 2) + 
                        Math.pow(currPos[2] - drawingToModify.points[drawingToModify.points.length - 1][2], 2) > 0.001);
 
                   if (drawingToModify.points.length === 0 || hasMovedSignificantly) {
                       const updatedDrawing = { ...drawingToModify, points: [...drawingToModify.points, currPos] };
-                      activeDrawingRef.current = updatedDrawing; 
+                      activeDrawingRef.current = updatedDrawing; // Update ref immediately
                       return updatedDrawing;
                   }
+                  // No significant move, return current state (drawingToModify)
+                  // It's crucial to update the ref even if state object itself didn't change,
+                  // to ensure activeDrawingRef.current always reflects drawingToModify.
                   activeDrawingRef.current = drawingToModify; 
                   return drawingToModify;
               }
           });
-        } else { 
+        } else { // Pen is up
             if (activeDrawingRef.current) { 
                 setCompletedDrawings(prevCompleted => [...prevCompleted, activeDrawingRef.current!]);
                 setActiveDrawing(null);
-                activeDrawingRef.current = null; 
+                activeDrawingRef.current = null; // Update ref immediately
             }
         }
         // --- END NEW DRAWING LOGIC ---
@@ -942,17 +734,20 @@ const App: React.FC = () => {
     } 
     return () => {
       clearInterval(interval);
+      // Ensure any active drawing is finalized when simulation stops or component unmounts
       if (activeDrawingRef.current) {
           setCompletedDrawings(prevCompleted => [...prevCompleted, activeDrawingRef.current!]);
           setActiveDrawing(null);
-          activeDrawingRef.current = null; 
+          activeDrawingRef.current = null; // Update ref immediately
       }
     };
-  }, [isRunning, customObjects, activeChallenge, challengeSuccess, showToast]); 
+  }, [isRunning, customObjects, activeChallenge, challengeSuccess, showToast]); // REMOVED activeDrawing from dependencies.
 
-  const sensorReadings: SensorReadings = useMemo(() => calculateSensorReadings(robotState.x, robotState.z, robotState.rotation, activeChallenge?.id, customObjects), [robotState.x, robotState.z, robotState.rotation, activeChallenge, customObjects]);
+  // Pass activeChallenge?.id to calculateSensorReadings
+  const sensorReadings = useMemo(() => calculateSensorReadings(robotState.x, robotState.z, robotState.rotation, activeChallenge?.id, customObjects), [robotState.x, robotState.z, robotState.rotation, activeChallenge, customObjects]);
 
   const orbitControlsProps = useMemo(() => {
+    // Default properties for OrbitControls
     let props: any = {
       enablePan: true,
       enableRotate: true,
@@ -967,6 +762,7 @@ const App: React.FC = () => {
       maxDistance: 60,
     };
 
+    // Apply editor tool overrides
     if (editorTool === 'PAN') {
       props.enablePan = true;
       props.enableRotate = false;
@@ -980,27 +776,29 @@ const App: React.FC = () => {
       props.enableRotate = false;
     }
 
+    // If color picker is active, disable all OrbitControls interactions
     if (isColorPickerActive) {
         props.enablePan = false;
         props.enableRotate = false;
         props.enableZoom = false;
     }
 
+    // Apply camera mode overrides (these take precedence for rotation and polar angle)
     if (cameraMode === 'TOP') {
       props.enableRotate = false; 
       props.minPolarAngle = 0;    
       props.maxPolarAngle = 0;    
-      props.mouseButtons = { 
+      props.mouseButtons = { // Allow pan with left click for top view
         LEFT: THREE.MOUSE.PAN,
         MIDDLE: THREE.MOUSE.DOLLY,
         RIGHT: THREE.MOUSE.DOLLY 
       };
-    } else if (cameraMode === 'FOLLOW') { 
+    } else if (cameraMode === 'FOLLOW') { // New follow camera mode overrides
       props.enableRotate = false; 
       props.enablePan = false;    
       props.minPolarAngle = Math.PI / 6; 
       props.maxPolarAngle = Math.PI / 2 - 0.1; 
-      props.mouseButtons = { 
+      props.mouseButtons = { // Only allow dolly (zoom)
         LEFT: THREE.MOUSE.DOLLY,
         MIDDLE: THREE.MOUSE.DOLLY,
         RIGHT: THREE.MOUSE.DOLLY 
@@ -1010,22 +808,23 @@ const App: React.FC = () => {
     return props;
   }, [editorTool, cameraMode, isColorPickerActive]);
 
+  // Effect to handle programmatic camera position and target changes (initial setup for modes)
   useEffect(() => {
     if (controlsRef.current) {
       if (cameraMode === 'HOME') {
-        controlsRef.current.reset(); 
-        controlsRef.current.minDistance = 1.2; 
+        controlsRef.current.reset(); // Resets to initial position set in Canvas
+        controlsRef.current.minDistance = 1.2; // Restore default zoom limits
         controlsRef.current.maxDistance = 60;
       } else if (cameraMode === 'TOP') {
-        controlsRef.current.object.position.set(0, 20, 0); 
-        controlsRef.current.target.set(0, 0, 0); 
-        controlsRef.current.minDistance = 0.1; 
-        controlsRef.current.maxDistance = 100; 
+        controlsRef.current.object.position.set(0, 20, 0); // Position high up
+        controlsRef.current.target.set(0, 0, 0); // Look at the origin
+        controlsRef.current.minDistance = 0.1; // Allow closer zoom for top view
+        controlsRef.current.maxDistance = 100; // Allow further zoom out
       } else if (cameraMode === 'FOLLOW') {
         controlsRef.current.minDistance = 1; 
         controlsRef.current.maxDistance = 20;
       }
-      controlsRef.current.update(); 
+      controlsRef.current.update(); // Apply changes
     }
   }, [cameraMode, controlsRef]);
 
@@ -1040,25 +839,28 @@ const App: React.FC = () => {
     setNumpadConfig({ isOpen: true, value: parseFloat(String(initialValue)), onConfirm });
   }, []);
 
+  // Handler for when ColorPickerTool detects a hover color
   const handlePickerHover = useCallback((hexColor: string) => {
     setPickerHoverColor(hexColor);
   }, []);
 
-  const handlePickerSelect = useCallback((hexColor: string, field: any) => {
-    if (field) {
-      field.setValue(hexColor); 
-    } else {
-      console.error("ColorPickerTool: Blockly field instance is null. Cannot set color.");
-      showToast("Failed to set color in Blockly. Please try again.", "error");
+  // Handler for when ColorPickerTool selects a color
+  // Ensure this function ONLY takes hexColor as an argument, as expected by ColorPickerTool
+  const handlePickerSelect = useCallback((hexColor: string) => {
+    if (blocklyColorPickCallback) {
+      // Call the stored Blockly callback, passing `null` for the field as it's not relevant here
+      blocklyColorPickCallback(hexColor, null); 
     }
     setIsColorPickerActive(false);
     setPickerHoverColor(null);
-    blocklyColorFieldRef.current = null; 
-  }, [showToast]); 
+    setBlocklyColorPickCallback(null);
+  }, [blocklyColorPickCallback]);
 
-  const showBlocklyColorPicker = useCallback((field: any) => {
-    setIsColorPickerActive(true); 
-    blocklyColorFieldRef.current = field; 
+
+  // Updated function signature to accept a field argument for the onPick callback
+  const showBlocklyColorPicker = useCallback((onPick: (newColor: string, field: any) => void) => {
+    setIsColorPickerActive(true); // Activate the color picker tool visually
+    setBlocklyColorPickCallback(() => onPick); // Store the callback from Blockly
   }, []);
 
 
@@ -1079,7 +881,9 @@ const App: React.FC = () => {
           <h1 className="text-lg font-bold hidden sm:block tracking-tight text-slate-100">Virtual Robotics Lab</h1>
         </div>
         
+        {/* Main Control Bar - Designed based on provided image */}
         <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-sm">
+          {/* Run Button (Flag) */}
           <button 
             onClick={handleRun} 
             disabled={isRunning || startBlockCount === 0} 
@@ -1089,6 +893,7 @@ const App: React.FC = () => {
             <Flag size={20} fill={(isRunning || startBlockCount === 0) ? "none" : "currentColor"} />
           </button>
           
+          {/* Reset Button (Rotate) - Highlighted in Red */}
           <button 
             onClick={handleReset} 
             className="flex items-center justify-center w-11 h-11 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-all transform active:scale-95 shadow-md active:shadow-none"
@@ -1099,6 +904,7 @@ const App: React.FC = () => {
           
           <div className="w-px h-6 bg-slate-700 mx-1"></div>
           
+          {/* Ruler Toggle */}
           <button 
             onClick={() => setIsRulerActive(!isRulerActive)} 
             className={`flex items-center justify-center w-11 h-11 rounded-xl font-bold transition-all transform active:scale-95 ${isRulerActive ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}
@@ -1109,6 +915,7 @@ const App: React.FC = () => {
           
           <div className="w-px h-6 bg-slate-700 mx-1"></div>
           
+          {/* Save Button */}
           <button 
             onClick={() => setProjectModal({ isOpen: true, mode: 'save' })}
             className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95"
@@ -1117,6 +924,7 @@ const App: React.FC = () => {
             <Save size={20} />
           </button>
 
+          {/* Load Button */}
           <button 
             onClick={() => setProjectModal({ isOpen: true, mode: 'load' })}
             className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95"
@@ -1127,6 +935,7 @@ const App: React.FC = () => {
           
           <div className="w-px h-6 bg-slate-700 mx-1"></div>
 
+          {/* Python View Button */}
           <button 
             onClick={openPythonView}
             className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95"
@@ -1146,6 +955,7 @@ const App: React.FC = () => {
       </header>
       
       <main className="flex flex-1 overflow-hidden relative">
+        {/* Left Side: Blockly Editor */}
         <div className="w-1/2 relative flex flex-col bg-white text-left text-sm border-r border-slate-200">
           <div className="bg-slate-50 border-b p-2 flex justify-between items-center shrink-0">
             <div className="flex items-center gap-2">
@@ -1159,13 +969,15 @@ const App: React.FC = () => {
               onCodeChange={useCallback((code, count) => { setGeneratedCode(code); setStartBlockCount(count); }, [])} 
               visibleVariables={visibleVariables} 
               onToggleVariable={useCallback((n) => setVisibleVariables(v => { const next = new Set(v); if (next.has(n)) next.delete(n); else next.add(n); return next; }), [])} 
-              onShowNumpad={showBlocklyNumpad} 
-              onShowColorPicker={showBlocklyColorPicker} 
+              onShowNumpad={showBlocklyNumpad} // Pass the numpad function
+              onShowColorPicker={showBlocklyColorPicker} // Pass the color picker function
             />
           </div>
         </div>
         
+        {/* Right Side: 3D Simulation */}
         <div className="w-1/2 relative bg-slate-900 overflow-hidden" style={{ cursor: isColorPickerActive ? DROPPER_CURSOR_URL : 'auto' }}>
+          {/* Tool Menu Overlay */}
           <div className="absolute top-4 right-4 z-50 flex flex-col gap-3">
             <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 p-1 flex flex-col overflow-hidden">
               <button 
@@ -1186,6 +998,7 @@ const App: React.FC = () => {
                 <Eye size={22} />
               </button>
 
+              {/* New Follow Camera Button */}
               <button 
                 onClick={() => setCameraMode(prev => prev === 'FOLLOW' ? 'HOME' : 'FOLLOW')} 
                 className={`p-3 transition-all rounded-xl active:scale-95 ${cameraMode === 'FOLLOW' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} 
@@ -1196,10 +1009,11 @@ const App: React.FC = () => {
               
               <div className="h-px bg-slate-100 mx-2 my-0.5" />
 
+              {/* Zoom In Button */}
               <button
                 onClick={() => {
-                  controlsRef.current?.dollyIn(0.9); 
-                  controlsRef.current?.update(); 
+                  controlsRef.current?.dollyIn(0.9); // Zoom in
+                  controlsRef.current?.update(); // Explicitly update
                 }}
                 className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95"
                 title="התקרבות (זום אין)"
@@ -1207,10 +1021,11 @@ const App: React.FC = () => {
                 <ZoomIn size={22} />
               </button>
 
+              {/* Zoom Out Button */}
               <button
                 onClick={() => {
-                  controlsRef.current?.dollyOut(0.9); 
-                  controlsRef.current?.update(); 
+                  controlsRef.current?.dollyOut(0.9); // Changed to 0.9 to zoom OUT
+                  controlsRef.current?.update(); // Explicitly update
                 }}
                 className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95"
                 title="התרחקות (זום אאוט)"
@@ -1261,21 +1076,20 @@ const App: React.FC = () => {
             shadows 
             camera={{ position: [10, 10, 10], fov: 45 }}
           >
-            <CameraLayerManager /> 
             <SimulationEnvironment 
               challengeId={activeChallenge?.id} 
               customObjects={customObjects} 
               robotState={robotState} 
-              selectedObjectId={selectedObjectId} 
-              onObjectSelect={setSelectedObjectId} 
-              onPointerDown={isColorPickerActive ? undefined : handlePointerDown}
-              onPointerMove={isColorPickerActive ? undefined : handlePointerMove}
-              onPointerUp={isColorPickerActive ? undefined : handlePointerUp}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
             />
+            {/* Render completed drawings */}
             {completedDrawings.map((path) => (
                 <Line key={path.id} points={path.points} color={path.color} lineWidth={4} />
             ))}
-            {activeDrawing && activeDrawing.points.length > 1 && ( 
+            {/* Render active drawing */}
+            {activeDrawing && activeDrawing.points.length > 1 && ( // Only render if at least two points to form a line
                 <Line key={activeDrawing.id} points={activeDrawing.points} color={activeDrawing.color} lineWidth={4} />
             )}
             <Robot3D state={robotState} isPlacementMode={editorTool === 'ROBOT_MOVE'} />
@@ -1284,19 +1098,20 @@ const App: React.FC = () => {
               makeDefault 
               {...orbitControlsProps}
             />
+            {/* CameraManager component for handling follow camera logic */}
             <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />
             {isRulerActive && <RulerTool />}
             {isColorPickerActive && (
               <ColorPickerTool 
                 onColorHover={handlePickerHover} 
                 onColorSelect={handlePickerSelect} 
-                blocklyFieldRef={blocklyColorFieldRef} 
               />
             )}
           </Canvas>
         </div>
       </main>
       
+      {/* Python Code View Modal */}
       {isPythonModalOpen && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col border border-slate-700">
@@ -1332,6 +1147,7 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Project Management Modal */}
       {projectModal.isOpen && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-slate-200">
@@ -1400,6 +1216,7 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Modals & Overlays */}
       <Numpad 
         isOpen={numpadConfig.isOpen} 
         initialValue={numpadConfig.value} 
@@ -1423,6 +1240,7 @@ const App: React.FC = () => {
             </div>
             <div className="flex-1 overflow-y-auto p-6 bg-slate-100">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Free Drive Option */}
                 <button 
                   onClick={() => { setActiveChallenge(null); setShowChallenges(false); }} 
                   className={`p-5 rounded-3xl border-4 text-left transition-all hover:scale-[1.02] flex flex-col gap-3 group relative overflow-hidden ${activeChallenge === null ? 'border-blue-500 bg-white shadow-xl' : 'border-white bg-white hover:border-blue-300 shadow-md'}`}
