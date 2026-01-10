@@ -78,7 +78,6 @@ const LegoLight = ({ position, color }: { position: [number, number, number], co
 const RobotPen = ({ position, isDown, color }: { position: [number, number, number], isDown?: boolean, color?: string }) => {
     const groupRef = useRef<Group>(null);
     useFrame(() => { 
-      // תיקון: בדיקה ש-groupRef.current קיים לפני גישה ל-position
       if (groupRef.current) { 
         const targetY = isDown ? -0.4 : 0.2; 
         groupRef.current.position.y += (targetY - groupRef.current.position.y) * 0.1; 
@@ -103,94 +102,4 @@ const TouchSensor = ({ position, pressed }: { position: [number, number, number]
             <mesh position={[0, 0.2, -0.2]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.4, 0.1, 0.4]} /><meshStandardMaterial color={THEME.magenta} /></mesh>
             <group position={[0, -0.1, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
                 <mesh castShadow layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.45, 0.4, 0.4]} /><meshStandardMaterial color={THEME.white} roughness={0.2} /></mesh>
-                <mesh position={[0, 0.15, -0.15]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.45, 0.2, 0.2]} /><meshStandardMaterial color={THEME.darkGrey} /></mesh>
-            </group>
-            <group position={[0, -0.1, plungerPos]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-                <mesh rotation={[Math.PI/2, 0, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><cylinderGeometry args={[0.15, 0.15, 0.4, 32]} /><meshStandardMaterial color="#CC0000" /></mesh>
-                <group position={[0, 0, 0.2]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-                    <mesh layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.3, 0.08, 0.05]} /><meshStandardMaterial color="#111" /></mesh>
-                    <mesh layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.08, 0.3, 0.05]} /><meshStandardMaterial color="#111" /></mesh>
-                </group>
-            </group>
-        </group>
-    );
-};
-
-const ColorSensor = ({ position }: { position: [number, number, number] }) => {
-    return (
-        <group position={position} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-            <mesh position={[0, 0.2, -0.2]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.4, 0.1, 0.4]} /><meshStandardMaterial color={THEME.magenta} /></mesh>
-            <group position={[0, -0.1, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-                <mesh castShadow layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.45, 0.4, 0.5]} /><meshStandardMaterial color={THEME.white} roughness={0.2} /></mesh>
-                <mesh position={[0, 0.15, -0.15]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.45, 0.2, 0.2]} /><meshStandardMaterial color={THEME.darkGrey} /></mesh>
-                <group position={[0, -0.201, 0.1]} rotation={[Math.PI/2, 0, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-                    <mesh layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><ringGeometry args={[0.08, 0.14, 32]} /><meshStandardMaterial color="#111" /></mesh>
-                    <mesh position={[0, 0, -0.01]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><circleGeometry args={[0.08, 32]} /><meshStandardMaterial color="#000" metalness={0.9} roughness={0.1} /></mesh>
-                </group>
-                <group position={[0, -0.3, 0.1]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-                    <mesh rotation={[Math.PI, 0, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><cylinderGeometry args={[0.05, 0.2, 0.4, 16]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.3} /></mesh>
-                    <pointLight intensity={0.5} distance={1} color="#ffffff" />
-                </group>
-            </group>
-        </group>
-    );
-};
-
-const UltrasonicSensor = ({ position }: { position: [number, number, number] }) => {
-    return (
-        <group position={position} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-             <mesh castShadow position={[0, 0, -0.1]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[1.4, 0.6, 0.4]} /><meshStandardMaterial color={THEME.white} roughness={0.2} /></mesh>
-             <group position={[0, 0, 0.15]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-                 {[-1, 1].map((side) => (
-                     <group key={side} position={[side * 0.35, 0, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-                        <mesh rotation={[Math.PI/2, 0, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><cylinderGeometry args={[0.28, 0.28, 0.2, 32]} /><meshStandardMaterial color="#111" roughness={0.2} /></mesh>
-                        <mesh rotation={[0, 0, 0]} position={[0, 0, 0.101]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><torusGeometry args={[0.18, 0.035, 16, 32]} /><meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={2} transparent opacity={0.9} /></mesh>
-                        <mesh rotation={[0, 0, 0]} position={[0, 0, 0.08]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><circleGeometry args={[0.15, 32]} /><meshStandardMaterial color="#444" metalness={0.8} roughness={0.6} /></mesh>
-                     </group>
-                 ))}
-                 <mesh position={[0, 0, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.3, 0.25, 0.1]} /><meshStandardMaterial color="#111" /></mesh>
-             </group>
-             <group position={[0, -0.35, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-                 <mesh layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.3, 0.2, 0.3]} /><meshStandardMaterial color={THEME.lightGrey} /></mesh>
-                 <mesh rotation={[0, 0, Math.PI/2]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><cylinderGeometry args={[0.08, 0.08, 0.31, 16]} /><meshStandardMaterial color="#111" /></mesh>
-             </group>
-        </group>
-    );
-};
-
-const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
-  const groupRef = useRef<Group>(null);
-  
-  useFrame(() => {
-    // תיקון קריטי: הוספת בדיקה שה-groupRef.current אינו undefined
-    // ושה-state קיים כדי למנוע קריסה בזמן הרינדור הראשוני
-    if (groupRef.current && state) {
-      const x = state.x ?? 0;
-      const y = state.y ?? 0;
-      const z = state.z ?? 0;
-      const rotation = (state.rotation ?? 0) * (Math.PI / 180);
-      const tilt = (state.tilt ?? 0) * (Math.PI / 180);
-      const roll = (state.roll ?? 0) * (Math.PI / 180);
-
-      groupRef.current.position.set(x, y + 0.02, z);
-      groupRef.current.rotation.set(tilt, rotation, roll);
-    }
-  });
-
-  // אם ה-state לא קיים, לא נרנדר כלום (מונע שגיאות position על אובייקט ריק)
-  if (!state) return null;
-
-  return (
-    <group ref={groupRef} dispose={null} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-      <group position={[0, 0.6, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-          {isPlacementMode && (
-              <group position={[0, -0.6, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-                  <mesh rotation={[-Math.PI/2, 0, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><ringGeometry args={[1.5, 1.7, 32]} /><meshBasicMaterial color="#00e5ff" transparent opacity={0.6} /></mesh>
-                  <pointLight intensity={1} color="#00e5ff" distance={3} />
-              </group>
-          )}
-
-          <group position={[0, 0.5, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-              <mesh position={[0, -0.4, 0]} castShadow layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[1.5, 0.2, 2.2]} /><meshStandardMaterial color={THEME.white} /></mesh>
-              <mesh position={[0, 0, 0]} castShadow layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[1.45, 0.6, 2.15]} /><meshStandardMaterial color={THEME.yellow} /></mesh>
-              <mesh position={[0, 0.4, 0]} castShadow layers={ROBOT_LAYER}
+                <mesh position={[0, 0.15, -0.15]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry
