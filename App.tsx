@@ -1,4 +1,4 @@
- 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -23,7 +23,7 @@ const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much f
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
 // Updated to a more appropriate dropper cursor SVG
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtcGlwZXR0ZSI%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTTkuNSAxNC41IDE2IDhsMyAzLTYuNSA2LjUtMy0zEiIvPjxwYXRoIGQ9Imm3LjUgMTEuNSAzLTVsLz48cGF0aCBkPSJmMTggMyAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAx.NC0x.NCeiIvPjxwYXRoIGQ9Im0xOCAzIDMtMyIvPjxwYXRoIGQ9Ik0yMC45IDcuMWEyIDIgMCAxIDAtMi44LTIuOGwtMS40IDEuNCAyLjggMi44IDEuNC0xLjR6Ii8%2BPC9zdmc%2B) 0 24, crosshair`;
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NzVlNzUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtcGlwZXR0ZSI%2BPHBhdGggZD0ibTIgMjIgNS01Ii8%2BPHBhdGggZD0iTTkuNSAxNC41IDE2IDhsM3AzLTYuNSA2LjUtMy0zEiIvPjxwYXRoIGQ9Imm3LjUgMTEuNSAzLTVsLz48cGF0aCBkPSJmMTggMyAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAgMSAwLTIuOC0yLjhsLTEuNCAxLjQgMi44IDIuOCAx.NC0x.NCeiIvPjxwYXRoIGQ9Im11OCAzIDMtMyIvPjxwYXRoIGQ9Ik0yMC45IDcuMWEyIDIgMCAxIDAtMi44LTIuOGwtMS40IDEuNCAyLjggMi44IDEuNC0xLjR6Ii8%2BPC9zdmc%2B) 0 24, crosshair`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -185,15 +185,20 @@ const checkPhysicsHit = (px: number, pz: number, walls: {minX: number, maxX: num
 
 // Modified to include challengeId parameter and use getEnvironmentConfig
 const calculateSensorReadings = (x: number, z: number, rotation: number, challengeId?: string, customObjects: CustomObject[] = []) => {
-    const rad = (rotation * Math.PI) / 180; 
+    // Sanitize inputs before calculations
+    const safeX = Number.isFinite(x) ? x : 0;
+    const safeZ = Number.isFinite(z) ? z : 0;
+    const safeRotation = Number.isFinite(rotation) ? rotation : 0;
+
+    const rad = (safeRotation * Math.PI) / 180; 
     const sin = Math.sin(rad); 
     const cos = Math.cos(rad);
     const env = getEnvironmentConfig(challengeId, customObjects); // Use getEnvironmentConfig here
-    const gyro = Math.round(normalizeAngle(rotation)); // Use normalizeAngle here
+    const gyro = Math.round(normalizeAngle(safeRotation)); // Use normalizeAngle here
     
     const getPointWorldPos = (lx: number, lz: number) => ({
-        wx: x + (lx * Math.cos(rad) + lz * Math.sin(rad)),
-        wz: z + (-lx * Math.sin(rad) + lz * Math.cos(rad))
+        wx: safeX + (lx * Math.cos(rad) + lz * Math.sin(rad)),
+        wz: safeZ + (-lx * Math.sin(rad) + lz * Math.cos(rad))
     });
 
     // Positions for robot's contact points (wheels/casters)
@@ -222,8 +227,8 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     const calculatedRoll = Math.atan2(hLeft - hRight, wheelOffsetX * 2) * (180 / Math.PI); // Distance between left/right wheels
 
     // Sensor color reading position (remains the same)
-    const cx = x + sin * 0.9; 
-    const cz = z + cos * 0.9;
+    const cx = safeX + sin * 0.9; 
+    const cz = safeZ + cos * 0.9;
     let sensorDetectedColor = "white"; // Renamed for clarity
     let sensorIntensity = 100; // Add intensity as it's in the old working version, though not used widely
     let sensorRawDecimalColor = 0xFFFFFF;
@@ -338,15 +343,15 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
 
 
     // בדיקת חיישן המגע באמצעות הפונקציה החדשה
-    const touchSensorPressed = checkTouchSensorHit(x, z, rotation, env.walls);
+    const touchSensorPressed = checkTouchSensorHit(safeX, safeZ, safeRotation, env.walls);
 
     // בדיקת התנגשות פיזית לצורך עצירת תנועה (נקודה שונה, פחות קדמית)
-    const physicalHitForMovement = checkPhysicsHit(x + sin * 1.5, z + cos * 1.5, env.walls);
+    const physicalHitForMovement = checkPhysicsHit(safeX + sin * 1.5, safeZ + cos * 1.5, env.walls);
 
     let distance = 255; 
     // בדיקת חיישן מרחק - משתמש באותה נקודה כמו חיישן המגע לצורך עקביות
     for (let d = 0; d < 40.0; d += 0.2) { 
-        if (checkPhysicsHit(x + sin * (1.7 + d), z + cos * (1.7 + d), env.walls)) { // 1.7 יחידות ממרכז הרובוט
+        if (checkPhysicsHit(safeX + sin * (1.7 + d), safeZ + cos * (1.7 + d), env.walls)) { // 1.7 יחידות ממרכז הרובוט
             distance = Math.round(d * 10); 
             break; 
         } 
@@ -460,23 +465,23 @@ const App: React.FC = () => {
     const sd_initial = calculateSensorReadings(startX, startZ, startRot, activeChallenge?.id, envObjs); 
     // Ensure all numeric properties are explicitly set and not NaN
     const d: RobotState = { 
-        x: isNaN(startX) ? 0 : startX, 
-        y: isNaN(sd_initial.y) ? 0 : sd_initial.y, 
-        z: isNaN(startZ) ? 0 : startZ, 
-        rotation: isNaN(startRot) ? 180 : startRot, 
+        x: Number.isFinite(startX) ? startX : 0, 
+        y: Number.isFinite(sd_initial.y) ? sd_initial.y : 0, 
+        z: Number.isFinite(startZ) ? startZ : 0, 
+        rotation: Number.isFinite(startRot) ? startRot : 180, 
         motorLeftSpeed: 0, 
         motorRightSpeed: 0, 
         ledLeftColor: 'black', 
         ledRightColor: 'black', 
-        tilt: isNaN(sd_initial.tilt) ? 0 : sd_initial.tilt, 
-        roll: isNaN(sd_initial.roll) ? 0 : sd_initial.roll, 
+        tilt: Number.isFinite(sd_initial.tilt) ? sd_initial.tilt : 0, 
+        roll: Number.isFinite(sd_initial.roll) ? sd_initial.roll : 0, 
         penDown: false, 
         isTouching: false,
         isMoving: false, // Ensure isMoving is reset
         speed: 100, // Ensure speed is reset
         penColor: '#000000', // Ensure penColor is reset
-        sensorX: isNaN(sd_initial.sensorX) ? 0 : sd_initial.sensorX, 
-        sensorZ: isNaN(sd_initial.sensorZ) ? 0 : sd_initial.sensorZ  
+        sensorX: Number.isFinite(sd_initial.sensorX) ? sd_initial.sensorX : 0, 
+        sensorZ: Number.isFinite(sd_initial.sensorZ) ? sd_initial.sensorZ : 0  
     };
     robotRef.current = d; 
     setRobotState(d); 
@@ -507,13 +512,13 @@ const App: React.FC = () => {
       const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
       const next = { 
           ...robotRef.current, 
-          x: isNaN(point.x) ? robotRef.current.x : point.x, 
-          z: isNaN(point.z) ? robotRef.current.z : point.z, 
-          y: isNaN(sd.y) ? robotRef.current.y : sd.y, 
-          tilt: isNaN(sd.tilt) ? robotRef.current.tilt : sd.tilt, 
-          roll: isNaN(sd.roll) ? robotRef.current.roll : sd.roll, 
-          sensorX: isNaN(sd.sensorX) ? robotRef.current.sensorX : sd.sensorX, 
-          sensorZ: isNaN(sd.sensorZ) ? robotRef.current.sensorZ : sd.sensorZ 
+          x: Number.isFinite(point.x) ? point.x : robotRef.current.x, 
+          z: Number.isFinite(point.z) ? point.z : robotRef.current.z, 
+          y: Number.isFinite(sd.y) ? sd.y : robotRef.current.y, 
+          tilt: Number.isFinite(sd.tilt) ? sd.tilt : robotRef.current.tilt, 
+          roll: Number.isFinite(sd.roll) ? sd.roll : robotRef.current.roll, 
+          sensorX: Number.isFinite(sd.sensorX) ? sd.sensorX : robotRef.current.sensorX, 
+          sensorZ: Number.isFinite(sd.sensorZ) ? sd.sensorZ : robotRef.current.sensorZ 
       };
       robotRef.current = next;
       setRobotState(next);
@@ -530,13 +535,13 @@ const App: React.FC = () => {
       const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
       const next = { 
           ...robotRef.current, 
-          x: isNaN(point.x) ? robotRef.current.x : point.x, 
-          z: isNaN(point.z) ? robotRef.current.z : point.z, 
-          y: isNaN(sd.y) ? robotRef.current.y : sd.y, 
-          tilt: isNaN(sd.tilt) ? robotRef.current.tilt : sd.tilt, 
-          roll: isNaN(sd.roll) ? robotRef.current.roll : sd.roll, 
-          sensorX: isNaN(sd.sensorX) ? robotRef.current.sensorX : sd.sensorX, 
-          sensorZ: isNaN(sd.sensorZ) ? robotRef.current.sensorZ : sd.sensorZ 
+          x: Number.isFinite(point.x) ? point.x : robotRef.current.x, 
+          z: Number.isFinite(point.z) ? point.z : robotRef.current.z, 
+          y: Number.isFinite(sd.y) ? sd.y : robotRef.current.y, 
+          tilt: Number.isFinite(sd.tilt) ? sd.tilt : robotRef.current.tilt, 
+          roll: Number.isFinite(sd.roll) ? sd.roll : robotRef.current.roll, 
+          sensorX: Number.isFinite(sd.sensorX) ? sd.sensorX : robotRef.current.sensorX, 
+          sensorZ: Number.isFinite(sd.sensorZ) ? sd.sensorZ : robotRef.current.sensorZ 
       };
       robotRef.current = next;
       setRobotState(next);
@@ -563,10 +568,11 @@ const App: React.FC = () => {
     const robotApi = {
       move: async (dist: number) => {
         checkAbort();
-        const startX = robotRef.current.x; const startZ = robotRef.current.z;
+        const startX = Number.isFinite(robotRef.current.x) ? robotRef.current.x : 0;
+        const startZ = Number.isFinite(robotRef.current.z) ? robotRef.current.z : 0;
         const targetDist = Math.abs(dist) * 0.1; const direction = dist > 0 ? 1 : -1;
         const power = 100 * direction;
-        robotRef.current = { ...robotRef.current, motorLeftSpeed: power, motorRightSpeed: power };
+        robotRef.current = { ...robotRef.current, motorLeftSpeed: Number.isFinite(power) ? power : 0, motorRightSpeed: Number.isFinite(power) ? power : 0 };
         while (true) {
           checkAbort();
           const moved = Math.sqrt(Math.pow(robotRef.current.x - startX, 2) + Math.pow(robotRef.current.z - startZ, 2));
@@ -579,19 +585,19 @@ const App: React.FC = () => {
       },
       turn: async (angle: number) => {
         checkAbort();
-        const initialRotation = normalizeAngle(robotRef.current.rotation);
+        const initialRotation = normalizeAngle(Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0);
         const targetAbsoluteRotation = normalizeAngle(initialRotation + angle);
 
         const direction = angle > 0 ? 1 : -1;
         const power = 50 * direction; // Using 50 power as in working version, this power is scaled by robot.speed in loop
         
-        robotRef.current = { ...robotRef.current, motorLeftSpeed: -power, motorRightSpeed: power };
+        robotRef.current = { ...robotRef.current, motorLeftSpeed: Number.isFinite(-power) ? -power : 0, motorRightSpeed: Number.isFinite(power) ? power : 0 };
 
         while (true) {
           checkAbort();
           await new Promise(r => setTimeout(r, TICK_RATE));
 
-          const currentRotation = normalizeAngle(robotRef.current.rotation);
+          const currentRotation = normalizeAngle(Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0);
           const diffToTarget = getAngleDifference(targetAbsoluteRotation, currentRotation);
 
           // If we have passed the target (overshot) or are very close, stop.
@@ -600,21 +606,21 @@ const App: React.FC = () => {
         }
         robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
         // Force set the rotation to the exact target to prevent drift.
-        robotRef.current.rotation = isNaN(targetAbsoluteRotation) ? robotRef.current.rotation : targetAbsoluteRotation;
+        robotRef.current.rotation = Number.isFinite(targetAbsoluteRotation) ? targetAbsoluteRotation : robotRef.current.rotation;
         setRobotState({ ...robotRef.current }); // Update UI state with the precise rotation
       },
       setHeading: async (targetAngle: number) => { 
         checkAbort(); 
-        const currentRot = normalizeAngle(robotRef.current.rotation); // Normalize current rotation
+        const currentRot = normalizeAngle(Number.isFinite(robotRef.current.rotation) ? robotRef.current.rotation : 0); // Normalize current rotation
         const normalizedTarget = normalizeAngle(targetAngle); // Normalize target angle
         let diff = getAngleDifference(normalizedTarget, currentRot); // Use the utility for shortest difference
         
-        await robotApi.turn(isNaN(diff) ? 0 : diff);
+        await robotApi.turn(Number.isFinite(diff) ? diff : 0);
         checkAbort();
       },
       wait: (ms: number) => new Promise((resolve, reject) => { const t = setTimeout(resolve, ms); controller.signal.addEventListener('abort', () => { clearTimeout(t); reject(new Error("Simulation aborted")); }, { once: true }); }),
-      setMotorPower: async (left: number, right: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: isNaN(left) ? 0 : left, motorRightSpeed: isNaN(right) ? 0 : right }; },
-      setSpeed: async (s: number) => { checkAbort(); robotRef.current.speed = isNaN(s) ? 100 : s; },
+      setMotorPower: async (left: number, right: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: Number.isFinite(left) ? left : 0, motorRightSpeed: Number.isFinite(right) ? right : 0 }; },
+      setSpeed: async (s: number) => { checkAbort(); robotRef.current.speed = Number.isFinite(s) ? s : 100; },
       stop: async () => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 }; },
       setPen: async (down: boolean) => { 
         checkAbort(); 
@@ -653,7 +659,7 @@ const App: React.FC = () => {
       sendMessage: async (msg: string) => { checkAbort(); if (listenersRef.current.messages[msg]) await Promise.all(listenersRef.current.messages[msg].map(cb => cb())); },
       onColor: (color: string, cb: () => Promise<void>) => { listenersRef.current.colors.push({ color, cb, lastMatch: false }); },
       onObstacle: (cb: () => Promise<void>) => { listenersRef.current.obstacles.push({ cb, lastMatch: false }); },
-      onDistance: (threshold: number, cb: () => Promise<void>) => { listenersRef.current.distances.push({ threshold: isNaN(threshold) ? 0 : threshold, cb, lastMatch: false }); },
+      onDistance: (threshold: number, cb: () => Promise<void>) => { listenersRef.current.distances.push({ threshold: Number.isFinite(threshold) ? threshold : 0, cb, lastMatch: false }); },
       updateVariable: (name: string, val: any) => { setMonitoredValues(prev => ({ ...prev, [name]: val })); },
       stopProgram: async () => { controller.abort(); setIsRunning(false); }
     };
@@ -671,17 +677,30 @@ const App: React.FC = () => {
       interval = setInterval(() => { 
         const current = robotRef.current; 
 
+        // --- Aggressive NaN and Finite Number Check at the start of each tick ---
+        const safeX = Number.isFinite(current.x) ? current.x : 0;
+        const safeY = Number.isFinite(current.y) ? current.y : 0;
+        const safeZ = Number.isFinite(current.z) ? current.z : 0;
+        const safeRotation = Number.isFinite(current.rotation) ? current.rotation : 0;
+        const safeTilt = Number.isFinite(current.tilt) ? current.tilt : 0;
+        const safeRoll = Number.isFinite(current.roll) ? current.roll : 0;
+        const safeSpeed = Number.isFinite(current.speed) ? current.speed : 100;
+        const safeMotorLeftSpeed = Number.isFinite(current.motorLeftSpeed) ? current.motorLeftSpeed : 0;
+        const safeMotorRightSpeed = Number.isFinite(current.motorRightSpeed) ? current.motorRightSpeed : 0;
+        // --- End Aggressive NaN and Finite Number Check ---
+
         // Simplified calculation of fV and rV from direct motor speeds (from working version)
-        const f = current.speed / 100.0; 
-        const pL = current.motorLeftSpeed / 100.0; 
-        const pR = current.motorRightSpeed / 100.0;
+        const f = safeSpeed / 100.0; 
+        const pL = safeMotorLeftSpeed / 100.0; 
+        const pR = safeMotorRightSpeed / 100.0;
         
         let fV_raw = ((pL + pR) / 2.0) * BASE_VELOCITY * f; // Initial forward velocity
         const rV = (pR - pL) * BASE_TURN_SPEED * f; // Rotational velocity (simplified from working version)
         
         // --- Dynamic Velocity Reduction (retained as an. improvement) ---
         let fV_adjusted = fV_raw;
-        const sd_current_for_tilt = calculateSensorReadings(current.x, current.z, current.rotation, activeChallenge?.id, customObjects);
+        // Pass sanitized current.x, current.z, current.rotation to calculateSensorReadings
+        const sd_current_for_tilt = calculateSensorReadings(safeX, safeZ, safeRotation, activeChallenge?.id, customObjects);
         const currentTilt = sd_current_for_tilt.tilt;
 
         if (Math.abs(currentTilt) > 3) { // Only apply reduction for significant tilt
@@ -699,30 +718,30 @@ const App: React.FC = () => {
         }
         // --- End Dynamic Velocity Reduction ---
 
-        const nr_potential = current.rotation + rV; 
-        const nx_potential = current.x + Math.sin(nr_potential * Math.PI / 180) * fV_adjusted; 
-        const nz_potential = current.z + Math.cos(nr_potential * Math.PI / 180) * fV_adjusted; 
+        const nr_potential = safeRotation + rV; 
+        const nx_potential = safeX + Math.sin(nr_potential * Math.PI / 180) * fV_adjusted; 
+        const nz_potential = safeZ + Math.cos(nr_potential * Math.PI / 180) * fV_adjusted; 
         
         // Calculate sensor readings for the *potential* next position
         const sd_predicted = calculateSensorReadings(nx_potential, nz_potential, nr_potential, activeChallenge?.id, customObjects);
         
         // Use sd.isTouching for physical hit detection as in working version
-        const finalX = sd_predicted.isTouching ? current.x : nx_potential; 
-        const finalZ = sd_predicted.isTouching ? current.z : nz_potential;
+        const finalX = sd_predicted.isTouching ? safeX : nx_potential; 
+        const finalZ = sd_predicted.isTouching ? safeZ : nz_potential;
         
         // Reverted: Use smoothed Y, Tilt, Roll for the next state (from working version)
         const next: RobotState = { 
-          ...current, 
-          x: isNaN(finalX) ? current.x : finalX, 
-          z: isNaN(finalZ) ? current.z : finalZ, 
-          y: isNaN(sd_predicted.y) ? current.y : current.y + (sd_predicted.y - current.y) * 0.3, // Apply smoothing
-          tilt: isNaN(sd_predicted.tilt) ? current.tilt : current.tilt + (sd_predicted.tilt - current.tilt) * 0.3, // Apply smoothing
-          roll: isNaN(sd_predicted.roll) ? current.roll : current.roll + (sd_predicted.roll - current.roll) * 0.3, // Apply smoothing
-          rotation: isNaN(nr_potential) ? current.rotation : nr_potential, // Update rotation continuously
+          ...current, // Keep other non-numeric properties as is
+          x: Number.isFinite(finalX) ? finalX : safeX, 
+          z: Number.isFinite(finalZ) ? finalZ : safeZ, 
+          y: Number.isFinite(sd_predicted.y) ? (safeY + (sd_predicted.y - safeY) * 0.3) : safeY, // Apply smoothing
+          tilt: Number.isFinite(sd_predicted.tilt) ? (safeTilt + (sd_predicted.tilt - safeTilt) * 0.3) : safeTilt, // Apply smoothing
+          roll: Number.isFinite(sd_predicted.roll) ? (safeRoll + (sd_predicted.roll - safeRoll) * 0.3) : safeRoll, // Apply smoothing
+          rotation: Number.isFinite(nr_potential) ? nr_potential : safeRotation, // Update rotation continuously
           isTouching: sd_predicted.isTouching, // Using sd_predicted for consistency
-          isMoving: Math.abs(fV_adjusted) > 0.001 || Math.abs(rV) > 0.001, 
-          sensorX: isNaN(sd_predicted.sensorX) ? 0 : sd_predicted.sensorX, // Ensure sensorX is updated from predicted readings
-          sensorZ: isNaN(sd_predicted.sensorZ) ? 0 : sd_predicted.sensorZ, // Ensure sensorZ is updated from predicted readings
+          isMoving: Number.isFinite(fV_adjusted) && Number.isFinite(rV) && (Math.abs(fV_adjusted) > 0.001 || Math.abs(rV) > 0.001), 
+          sensorX: Number.isFinite(sd_predicted.sensorX) ? sd_predicted.sensorX : 0, // Ensure sensorX is updated from predicted readings
+          sensorZ: Number.isFinite(sd_predicted.sensorZ) ? sd_predicted.sensorZ : 0, // Ensure sensorZ is updated from predicted readings
         }; 
         robotRef.current = next; setRobotState(next); 
 
@@ -750,10 +769,11 @@ const App: React.FC = () => {
         const distMoved = Math.sqrt(Math.pow(next.x - startX, 2) + Math.pow(next.z - startZ, 2));
         historyRef.current.maxDistanceMoved = Math.max(historyRef.current.maxDistanceMoved, distMoved * 10); // *10 to convert meters to cm for history
         if (!historyRef.current.detectedColors.includes(curDetectedColor)) historyRef.current.detectedColors.push(curDetectedColor);
-        historyRef.current.totalRotation = robotRef.current.rotation - (activeChallenge?.startRotation ?? 180);
+        historyRef.current.totalRotation = Number.isFinite(robotRef.current.rotation) ? (robotRef.current.rotation - (activeChallenge?.startRotation ?? 180)) : 0;
 
         // --- NEW DRAWING LOGIC ---
         if (next.penDown) { 
+          // Use safeX, safeY (from sd_predicted.y/next.y), safeZ for drawing points
           const currPos: [number, number, number] = [next.x, next.y + 0.02, next.z]; 
           
           setActiveDrawing(prevActiveDrawing => {
