@@ -78,6 +78,7 @@ const LegoLight = ({ position, color }: { position: [number, number, number], co
 const RobotPen = ({ position, isDown, color }: { position: [number, number, number], isDown?: boolean, color?: string }) => {
     const groupRef = useRef<Group>(null);
     useFrame(() => { 
+      // תיקון: בדיקה ש-groupRef.current קיים לפני גישה ל-position
       if (groupRef.current) { 
         const targetY = isDown ? -0.4 : 0.2; 
         groupRef.current.position.y += (targetY - groupRef.current.position.y) * 0.1; 
@@ -161,9 +162,9 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
   const groupRef = useRef<Group>(null);
   
   useFrame(() => {
-    // הוספת בדיקה שגם groupRef וגם state קיימים
+    // תיקון קריטי: הוספת בדיקה שה-groupRef.current אינו undefined
+    // ושה-state קיים כדי למנוע קריסה בזמן הרינדור הראשוני
     if (groupRef.current && state) {
-      // שימוש בערכי ברירת מחדל כדי למנוע NaN אם ערך חסר ב-state
       const x = state.x ?? 0;
       const y = state.y ?? 0;
       const z = state.z ?? 0;
@@ -176,7 +177,7 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
     }
   });
 
-  // אם ה-state עדיין לא הגיע, אל תרנדר את הרובוט כדי למנוע שגיאות
+  // אם ה-state לא קיים, לא נרנדר כלום (מונע שגיאות position על אובייקט ריק)
   if (!state) return null;
 
   return (
@@ -192,32 +193,4 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
           <group position={[0, 0.5, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
               <mesh position={[0, -0.4, 0]} castShadow layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[1.5, 0.2, 2.2]} /><meshStandardMaterial color={THEME.white} /></mesh>
               <mesh position={[0, 0, 0]} castShadow layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[1.45, 0.6, 2.15]} /><meshStandardMaterial color={THEME.yellow} /></mesh>
-              <mesh position={[0, 0.4, 0]} castShadow layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[1.5, 0.2, 2.2]} /><meshStandardMaterial color={THEME.white} /></mesh>
-              <mesh position={[0, 0.51, 0.2]} rotation={[-Math.PI/2, 0, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><planeGeometry args={[0.8, 0.6]} /><meshStandardMaterial color="#111" /></mesh>
-              <mesh position={[0, 0.51, -0.5]} rotation={[-Math.PI/2, 0, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><circleGeometry args={[0.15, 32]} /><meshStandardMaterial color={THEME.cyan} /></mesh>
-          </group>
-          
-          <mesh position={[-0.8, 0.2, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.1, 0.2, 2.2]} /><meshStandardMaterial color={THEME.magenta} /></mesh>
-          <mesh position={[0.8, 0.2, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.1, 0.2, 2.2]} /><meshStandardMaterial color={THEME.magenta} /></mesh>
-          
-          <LegoWheel position={[-0.95, 0, 0]} />
-          <LegoWheel position={[0.95, 0, 0]} />
-          <CasterWheel position={[0, -0.4, -0.8]} />
-          <CasterWheel position={[0, -0.4, 0.8]} />
-          
-          <LegoLight position={[-0.6, 1.0, 0.9]} color={state.ledLeftColor} />
-          <LegoLight position={[0.6, 1.0, 0.9]} color={state.ledRightColor} />
-          <ColorSensor position={[0, -0.1, 0.9]} />
-          <UltrasonicSensor position={[0, 0.5, 1.1]} />
-          <TouchSensor position={[0, -0.2, 1.7]} pressed={state.isTouching} /> 
-          <RobotPen position={[0, 0.1, -0.6]} isDown={state.penDown} color={state.penColor} />
-          <group position={[0.6, 1.1, -0.5]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}>
-              <mesh layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><boxGeometry args={[0.4, 0.2, 0.4]} /><meshStandardMaterial color={THEME.white} /></mesh>
-              <mesh position={[0, 0.11, 0]} rotation={[-Math.PI/2, 0, 0]} layers={ROBOT_LAYER} userData={{ isRobotPart: true }}><circleGeometry args={[0.15, 32]} /><meshBasicMaterial color={THEME.cyan} /></mesh>
-          </group>
-      </group>
-    </group>
-  );
-};
-
-export default Robot3D;
+              <mesh position={[0, 0.4, 0]} castShadow layers={ROBOT_LAYER}
