@@ -1,7 +1,7 @@
-
+ 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Html } from '@react-three/drei';
-import { Vector3, Mesh, Color, Layers, Group } from 'three'; // Import Layers and Group
+import { Vector3, Mesh, Color, Layers, Group, MeshBasicMaterial, MeshStandardMaterial } from 'three'; // Import Layers and Group
 import { useThree, useFrame } from '@react-three/fiber';
 import { ROBOT_LAYER } from '../types'; // Import ROBOT_LAYER
 
@@ -11,6 +11,24 @@ interface ColorPickerToolProps {
     onColorSelect: (hexColor: string, field: any) => void; 
     blocklyFieldRef: React.MutableRefObject<any | null>; // Ref to the Blockly FieldColour instance
 }
+
+// Helper function to safely extract a hex color from a material
+const getHexFromMaterial = (material: any): string | null => {
+    if (!material) return null;
+
+    const materials = Array.isArray(material) ? material : [material];
+
+    for (const mat of materials) {
+        if (mat && mat.color instanceof Color && mat.opacity > 0) {
+            return "#" + mat.color.getHexString().toUpperCase();
+        }
+        // Handle MeshBasicMaterial or MeshStandardMaterial having 'color' property
+        if (mat && (mat as MeshBasicMaterial | MeshStandardMaterial).color instanceof Color && mat.opacity > 0) {
+            return "#" + (mat as MeshBasicMaterial | MeshStandardMaterial).color.getHexString().toUpperCase();
+        }
+    }
+    return null;
+};
 
 const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColorSelect, blocklyFieldRef }) => {
     // cursorPos now always a Vector3, its visibility controlled via groupRef
@@ -35,17 +53,19 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
     const sampleColorUnderMouse = useCallback(() => {
         if (!raycaster || !camera || !mouse) {
             console.warn("ColorPickerTool: Raycaster or camera/mouse not ready for picking.");
-            return { color: null, point: null };
+            // Fallback for when core Three.js elements are not ready
+            return { color: "#FFFFFF", point: new Vector3(0, 0, 0) }; 
         }
         
-        let intersects;
         let pickedColor: string | null = null;
         let pickedPoint: Vector3 | null = null;
+        let groundPlaneColor: string | null = null;
+        let groundPlanePoint: Vector3 | null = null;
 
         // --- Phase 1: Try to hit ROBOT_LAYER first (higher priority) ---
         raycaster.setFromCamera(mouse, camera);
         raycaster.layers = robotLayers; // Only check ROBOT_LAYER
-        intersects = raycaster.intersectObjects(scene.children, true);
+        let intersects = raycaster.intersectObjects(scene.children, true);
 
         for (const hit of intersects) {
             if (!hit || !hit.object || !hit.point) continue;
@@ -56,14 +76,12 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
                 continue;
             }
 
-            if (object instanceof Mesh && object.material) {
-                const materials = Array.isArray(object.material) ? object.material : [object.material];
-                for (const mat of materials) {
-                    if (mat && mat.color instanceof Color && mat.opacity > 0) {
-                        pickedColor = "#" + mat.color.getHexString().toUpperCase();
-                        pickedPoint = hit.point;
-                        return { color: pickedColor, point: pickedPoint }; // Immediately return if robot part is found
-                    }
+            if (object instanceof Mesh) {
+                const hex = getHexFromMaterial(object.material);
+                if (hex) {
+                    pickedColor = hex;
+                    pickedPoint = hit.point;
+                    return { color: pickedColor, point: pickedPoint }; // Immediately return if robot part is found
                 }
             }
         }
@@ -71,8 +89,6 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
         // --- Phase 2: If no robot parts, try to hit other objects (e.g., ground, custom objects) ---
         raycaster.layers = environmentLayers; // Check environment layers (default layer 0)
         intersects = raycaster.intersectObjects(scene.children, true);
-
-        let groundPlaneHit: { color: string, point: Vector3 } | null = null;
 
         for (const hit of intersects) {
             if (!hit || !hit.object || !hit.point) continue;
@@ -83,36 +99,32 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
             }
             
             if (object.name === 'ground-plane') {
-                if (object instanceof Mesh && object.material) {
-                    const materials = Array.isArray(object.material) ? object.material : [object.material];
-                    for (const mat of materials) {
-                        if (mat && mat.color instanceof Color) { 
-                            groundPlaneHit = { color: "#" + mat.color.getHexString().toUpperCase(), point: hit.point };
-                            break; 
-                        }
+                if (object instanceof Mesh) {
+                    const hex = getHexFromMaterial(object.material);
+                    if (hex) {
+                        groundPlaneColor = hex;
+                        groundPlanePoint = hit.point;
                     }
                 }
-                continue; 
+                continue; // Continue searching for other objects on top of the ground
             }
 
-            if (object instanceof Mesh && object.material) {
-                const materials = Array.isArray(object.material) ? object.material : [object.material];
-                for (const mat of materials) {
-                    if (mat && mat.color instanceof Color && mat.opacity > 0) { 
-                        pickedColor = "#" + mat.color.getHexString().toUpperCase();
-                        pickedPoint = hit.point;
-                        return { color: pickedColor, point: pickedPoint }; // Immediately return if custom object is found
-                    }
+            if (object instanceof Mesh) {
+                const hex = getHexFromMaterial(object.material);
+                if (hex) { 
+                    pickedColor = hex;
+                    pickedPoint = hit.point;
+                    return { color: pickedColor, point: pickedPoint }; // Immediately return if custom object is found
                 }
             }
         }
 
-        // If no distinct object found, fall back to ground plane color
-        if (groundPlaneHit) {
-            return { color: groundPlaneHit.color, point: groundPlaneHit.point };
+        // Fallback: If no distinct object found, use ground plane color or default white
+        if (groundPlaneColor && groundPlanePoint) {
+            return { color: groundPlaneColor, point: groundPlanePoint };
         }
         
-        // Default to white with a safe fallback point if nothing is hit
+        // Final default if nothing is hit (should be rare with a ground plane)
         return { color: "#FFFFFF", point: new Vector3(0, 0, 0) }; 
     }, [raycaster, scene, camera, mouse, robotLayers, environmentLayers]);
 
@@ -121,16 +133,16 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
         e.stopPropagation();
         const { color: hex, point } = sampleColorUnderMouse();
         
-        if (hex !== null && point !== null) {
+        if (point) { // Always update cursor position if a point is returned
             setCursorPos(point);
+        }
+
+        if (hex !== null) {
             onColorHover(hex);
-            setIsHoveringObject(true); // Raycaster hit something
+            setIsHoveringObject(true); 
         } else {
-            // No object hit, perhaps show a default color or nothing
-            // Use the fallback point from sampleColorUnderMouse if no valid point is returned
-            setCursorPos(sampleColorUnderMouse().point as Vector3); 
-            onColorHover("#FFFFFF"); // Default hover color
-            setIsHoveringObject(false);
+            onColorHover("#FFFFFF"); // Default hover color if no valid color found
+            setIsHoveringObject(false); // No valid color/object hit
         }
     }, [onColorHover, sampleColorUnderMouse]);
 
