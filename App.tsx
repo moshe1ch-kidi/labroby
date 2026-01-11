@@ -446,11 +446,11 @@ const App: React.FC = () => {
   useEffect(() => { handleReset(); }, [activeChallenge, handleReset]);
 
   // General 3D environment pointer handlers for editor tools
-  const handlePointerDown = useCallback((e: ThreeEvent<MouseEvent>) => {
+  const handleCanvasPointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
     // Only handle if color picker is NOT active
     if (isColorPickerActive) return;
 
-    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
+    // e.stopPropagation(); // Stop event from bubbling up to Canvas if handled - REMOVED, let R3F decide event flow for non-tool clicks.
     if (editorTool === 'ROBOT_MOVE') {
       isPlacingRobot.current = true;
       const point = e.point;
@@ -458,28 +458,33 @@ const App: React.FC = () => {
       const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll };
       robotRef.current = next;
       setRobotState(next);
+      e.stopPropagation(); // Stop propagation if robot is being moved by tool.
     }
+    // Removed the problematic e.object.onClick(e) block.
+    // The onClick handler defined on the ground-plane mesh within SimulationEnvironment will handle its own clicks.
+    // This Canvas-level handler should primarily handle global tool interactions.
   }, [editorTool, activeChallenge, customObjects, isColorPickerActive]);
 
-  const handlePointerMove = useCallback((e: ThreeEvent<MouseEvent>) => {
+  const handleCanvasPointerMove = useCallback((e: ThreeEvent<PointerEvent>) => {
     // Only handle if color picker is NOT active
     if (isColorPickerActive) return;
 
-    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
+    // e.stopPropagation(); // Stop event from bubbling up to Canvas if handled - REMOVED
     if (isPlacingRobot.current && editorTool === 'ROBOT_MOVE') {
       const point = e.point;
       const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
       const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll };
       robotRef.current = next;
       setRobotState(next);
+      e.stopPropagation(); // Stop propagation if robot is being moved by tool.
     }
   }, [editorTool, activeChallenge, customObjects, isColorPickerActive]);
 
-  const handlePointerUp = useCallback((e: ThreeEvent<MouseEvent>) => {
+  const handleCanvasPointerUp = useCallback((e: ThreeEvent<PointerEvent>) => {
     // Only handle if color picker is NOT active
     if (isColorPickerActive) return;
 
-    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
+    // e.stopPropagation(); // Stop event from bubbling up to Canvas if handled - REMOVED
     isPlacingRobot.current = false;
   }, [isColorPickerActive]);
 
@@ -1071,14 +1076,14 @@ const App: React.FC = () => {
           <Canvas 
             shadows 
             camera={{ position: [10, 10, 10], fov: 45 }}
+            onPointerDown={handleCanvasPointerDown} // Passed the correct handler type
+            onPointerMove={handleCanvasPointerMove} // Passed the correct handler type
+            onPointerUp={handleCanvasPointerUp}     // Passed the correct handler type
           >
             <SimulationEnvironment 
               challengeId={activeChallenge?.id} 
               customObjects={customObjects} 
               robotState={robotState} 
-              onPointerDown={isColorPickerActive ? undefined : handlePointerDown} // Only pass when picker is inactive
-              onPointerMove={isColorPickerActive ? undefined : handlePointerMove} // Only pass when picker is inactive
-              onPointerUp={isColorPickerActive ? undefined : handlePointerUp} // Only pass when picker is inactive
             />
             {/* Render completed drawings */}
             {completedDrawings.map((path) => (
