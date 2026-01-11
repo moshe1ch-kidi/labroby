@@ -1,30 +1,58 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Delete, Check, X } from 'lucide-react';
+import { NumpadPosition } from '../types';
 
 interface NumpadProps {
   isOpen: boolean;
   initialValue: string | number;
+  position?: NumpadPosition;
   onClose: () => void;
   onConfirm: (value: number) => void;
 }
 
-const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfirm }) => {
+const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, position, onClose, onConfirm }) => {
   const [display, setDisplay] = useState('0');
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setDisplay(String(initialValue));
-      setHasStartedTyping(false); // Reset typing state when opened
+      setHasStartedTyping(false);
     }
   }, [isOpen, initialValue]);
+
+  // Calculate dynamic position to keep it near the field but within window bounds
+  const floatingStyle = useMemo(() => {
+    if (!position) return {};
+    
+    const width = 180; // Compact width
+    const height = 240; // Compact height
+    
+    let top = position.y + position.height + 8;
+    let left = position.x;
+
+    // Check bottom boundary
+    if (top + height > window.innerHeight) {
+        top = position.y - height - 8;
+    }
+    
+    // Check right boundary
+    if (left + width > window.innerWidth) {
+        left = window.innerWidth - width - 16;
+    }
+
+    return {
+        top: Math.max(8, top),
+        left: Math.max(8, left),
+        width: `${width}px`
+    };
+  }, [position]);
 
   if (!isOpen) return null;
 
   const handleNumber = (num: string) => {
     if (!hasStartedTyping) {
-      // First key press clears the previous value
       if (num === '.') {
         setDisplay('0.');
       } else {
@@ -35,7 +63,6 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfir
       if (display === '0' && num !== '.') {
         setDisplay(num);
       } else {
-        // Prevent multiple decimals
         if (num === '.' && display.includes('.')) return;
         setDisplay(display + num);
       }
@@ -44,7 +71,7 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfir
 
   const handleBackspace = () => {
     setHasStartedTyping(true);
-    if (display.length === 1 || (display.length === 2 && display.startsWith('-'))) {
+    if (display.length <= 1 || (display.length === 2 && display.startsWith('-'))) {
       setDisplay('0');
     } else {
       setDisplay(display.slice(0, -1));
@@ -59,7 +86,7 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfir
       if (display !== '0' && display !== '') {
         setDisplay('-' + display);
       } else if (display === '0') {
-        setDisplay('-'); // Allow starting with a minus
+        setDisplay('-');
       }
     }
   };
@@ -74,42 +101,48 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfir
     onClose();
   };
 
-  // Scratch 3.0 inspired colors
   const scratchColors = {
-    blue: '#4C97FF',   // Motion
-    green: '#59C059',  // Operators
-    orange: '#FFAB19', // Control
-    red: '#FF6680',    // Events
-    text: '#575E75',   // Standard Scratch Text
-    bg: '#F9F9F9',
-    buttonBg: '#F0F3F8'
+    blue: '#4C97FF',
+    green: '#59C059',
+    orange: '#FFAB19',
+    red: '#FF6680',
+    text: '#575E75',
+    bg: '#FFFFFF'
   };
 
   return (
-    <div className="fixed inset-0 z-[300000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div 
+        className="fixed inset-0 z-[300000] pointer-events-none"
+        onPointerDown={(e) => {
+            if (e.target === e.currentTarget) onClose();
+        }}
+    >
       <div 
-        className="bg-white p-6 rounded-[24px] shadow-2xl w-80 border-4 animate-in zoom-in duration-150" 
-        style={{ borderColor: scratchColors.blue }}
+        className="absolute pointer-events-auto bg-white p-3 rounded-2xl shadow-2xl border-4 animate-in zoom-in duration-100 ease-out flex flex-col gap-2" 
+        style={{ 
+            ...floatingStyle,
+            borderColor: scratchColors.blue,
+            zIndex: 300001
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
       >
-        
-        {/* Display Screen */}
-        <div className="bg-slate-100 p-5 rounded-[16px] mb-5 text-right border-2 border-slate-200 shadow-inner">
+        {/* Compact Display */}
+        <div className="bg-slate-50 p-2 rounded-xl text-right border-2 border-slate-100 shadow-inner">
           <span 
-            className="text-4xl font-bold tracking-wider block h-10 overflow-hidden" 
+            className="text-xl font-bold tracking-tight block h-7 overflow-hidden text-ellipsis" 
             style={{ color: scratchColors.text, fontFamily: '"Rubik", sans-serif' }}
           >
             {display}
           </span>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* Small Grid */}
+        <div className="grid grid-cols-3 gap-1.5">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
             <button
               key={num}
               onClick={() => handleNumber(String(num))}
-              className="text-2xl font-bold py-4 rounded-[14px] shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[4px] transition-all hover:bg-slate-200"
-              style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}
+              className="text-lg font-bold py-2 rounded-lg bg-slate-100 text-slate-600 shadow-sm active:shadow-none active:translate-y-[1px] transition-all hover:bg-slate-200"
             >
               {num}
             </button>
@@ -117,52 +150,49 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfir
           
           <button
             onClick={() => handleNumber('.')}
-            className="text-2xl font-bold py-4 rounded-[14px] shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[4px] transition-all hover:bg-slate-200"
-            style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}
+            className="text-lg font-bold py-2 rounded-lg bg-slate-100 text-slate-600 shadow-sm transition-all hover:bg-slate-200"
           >
             .
           </button>
           
           <button
             onClick={() => handleNumber('0')}
-            className="text-2xl font-bold py-4 rounded-[14px] shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[4px] transition-all hover:bg-slate-200"
-            style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}
+            className="text-lg font-bold py-2 rounded-lg bg-slate-100 text-slate-600 shadow-sm transition-all hover:bg-slate-200"
           >
             0
           </button>
 
           <button
             onClick={handleBackspace}
-            className="flex items-center justify-center py-4 rounded-[14px] shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[4px] transition-all text-white hover:opacity-90"
+            className="flex items-center justify-center py-2 rounded-lg text-white shadow-sm active:shadow-none active:translate-y-[1px] transition-all hover:opacity-90"
             style={{ backgroundColor: scratchColors.orange }}
           >
-            <Delete size={28} />
+            <Delete size={18} />
           </button>
         </div>
 
-        {/* Action Row */}
-        <div className="grid grid-cols-3 gap-3 mt-4">
+        {/* Small Action Row */}
+        <div className="grid grid-cols-3 gap-1.5 mt-1">
             <button
                 onClick={handleToggleSign}
-                className="text-3xl font-bold py-3 rounded-[14px] flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[4px] transition-all text-white hover:opacity-90"
+                className="text-xl font-bold py-2 rounded-lg flex items-center justify-center text-white shadow-sm active:shadow-none active:translate-y-[1px] transition-all hover:opacity-90"
                 style={{ backgroundColor: scratchColors.blue }}
-                title="Toggle Negative"
             >
                 -
             </button>
             <button
                 onClick={onClose}
-                className="py-3 rounded-[14px] flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[4px] transition-all text-white hover:opacity-90"
+                className="py-2 rounded-lg flex items-center justify-center text-white shadow-sm active:shadow-none active:translate-y-[1px] transition-all hover:opacity-90"
                 style={{ backgroundColor: scratchColors.red }}
             >
-                <X size={28} />
+                <X size={18} />
             </button>
             <button
                 onClick={handleConfirm}
-                className="py-3 rounded-[14px] flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[4px] transition-all text-white hover:opacity-90"
+                className="py-2 rounded-lg flex items-center justify-center text-white shadow-sm active:shadow-none active:translate-y-[1px] transition-all hover:opacity-90"
                 style={{ backgroundColor: scratchColors.green }}
             >
-                <Check size={32} strokeWidth={3} />
+                <Check size={22} strokeWidth={3} />
             </button>
         </div>
       </div>
