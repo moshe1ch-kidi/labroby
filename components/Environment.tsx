@@ -1,7 +1,7 @@
- 
+
 
 import React, { useMemo } from 'react';
-import { Grid, Environment as DreiEnvironment, ContactShadows, Text } from '@react-three/drei';
+import { Grid, Environment as DreiEnvironment, ContactShadows, Text, Line as DreiLine } from '@react-three/drei';
 import * as THREE from 'three';
 import { CustomObject, RobotState } from '../types';
 import { ThreeEvent } from '@react-three/fiber'; // Import ThreeEvent here
@@ -11,13 +11,7 @@ interface EnvironmentProps {
     customObjects?: CustomObject[];
     selectedObjectId?: string | null;
     onObjectSelect?: (id: string) => void;
-    // Removed onPointerDown?: (e: ThreeEvent<MouseEvent>) => void;
-    // Removed onPointerMove?: (e: ThreeEvent<MouseEvent>) => void;
-    // Removed onPointerUp?: (e: ThreeEvent<MouseEvent>) => void;
     robotState?: RobotState;
-
-    // Removed isColorPickerActive prop as it's no longer needed here
-    // isColorPickerActive?: boolean;
 }
 
 const EllipseMarker = ({ centerX, centerZ, radiusX, radiusZ, angle, width, color }: any) => {
@@ -70,9 +64,6 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
     customObjects = [], 
     selectedObjectId,
     onObjectSelect,
-    // Removed onPointerDown, 
-    // Removed onPointerMove, 
-    // Removed onPointerUp,
     robotState,
 }) => {
   const config = useMemo(() => {
@@ -94,14 +85,12 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
       <ambientLight intensity={0.7} />
       <directionalLight position={[10, 10, 5]} intensity={1} castShadow shadow-mapSize={[1024, 1024]} />
       
+      {/* Ground Plane - Now also handles selection */}
       <mesh 
         name="ground-plane"
         rotation={[-Math.PI / 2, 0, 0]} 
         position={[0, -0.01, 0]} 
         receiveShadow 
-        // Removed onPointerDown={onPointerDown}
-        // Removed onPointerMove={onPointerMove}
-        // Removed onPointerUp={onPointerUp}
         onClick={(e) => { e.stopPropagation(); if (onObjectSelect) onObjectSelect("GROUND"); }} 
       >
         <planeGeometry args={[200, 200]} />
@@ -117,7 +106,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
       </mesh>
 
       {robotState && robotState.sensorX !== undefined && (
-          <group position={[robotState.sensorX, 0.03, robotState.sensorZ]}>
+          <group position={[robotState.sensorX, 0.03, robotState.sensorZ]} userData={{ isRobotPart: true }}>
               <mesh rotation={[-Math.PI/2, 0, 0]}>
                   <ringGeometry args={[0, 0.1, 16]} />
                   <meshBasicMaterial color="#ec4899" transparent opacity={0.6} toneMapped={false} />
@@ -137,16 +126,22 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
           };
 
           return (
-            <group key={obj.id} position={[obj.x, 0, obj.z]} rotation={[0, obj.rotation || 0, 0]}>
+            <group 
+                key={obj.id} 
+                name={obj.id} // Set name for raycasting identification
+                position={[obj.x, 0, obj.z]} 
+                rotation={[0, obj.rotation || 0, 0]}
+                onClick={handleSelect} // Handle selection on the group
+                userData={{ isCustomObject: true, type: obj.type }} // Add userData for easier identification
+            >
                 {obj.type === 'WALL' && (
-                    <mesh name="custom-wall" position={[0, 0.5, 0]} castShadow receiveShadow onClick={handleSelect}>
+                    <mesh name={`custom-wall-mesh-${obj.id}`} position={[0, 0.5, 0]} castShadow receiveShadow>
                         <boxGeometry args={[obj.width, 1, obj.length]} />
                         <meshStandardMaterial color={obj.color || "#ef4444"} roughness={0.2} transparent opacity={obj.opacity ?? 1} />
-                        {isSelected && ( <mesh name="custom-wall-wireframe" scale={[1.02, 1.02, 1.02]}><boxGeometry args={[obj.width, 1, obj.length]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.5} /></mesh> )}
                     </mesh>
                 )}
                 {obj.type === 'RAMP' && (
-                    <group name="custom-ramp" onClick={handleSelect}>
+                    <group name={`custom-ramp-group-${obj.id}`}>
                         {(() => {
                             const section = obj.length / 3;
                             const h = obj.height || 1.0;
@@ -157,22 +152,22 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                             return (
                                 <>
                                     {/* משטח עלייה */}
-                                    <mesh rotation={[-slopeAngle, 0, 0]} position={[0, h/2, -section]}>
+                                    <mesh name={`ramp-incline-${obj.id}`} rotation={[-slopeAngle, 0, 0]} position={[0, h/2, -section]}>
                                         <boxGeometry args={[obj.width, t, slopeL]} />
                                         <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
                                     {/* משטח עליון ישר */}
-                                    <mesh position={[0, h, 0]}>
+                                    <mesh name={`ramp-flat-${obj.id}`} position={[0, h, 0]}>
                                         <boxGeometry args={[obj.width, t, section]} />
                                         <meshStandardMaterial color={obj.color || "#475569"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
                                     {/* משטח ירידה */}
-                                    <mesh rotation={[slopeAngle, 0, 0]} position={[0, h/2, section]}>
+                                    <mesh name={`ramp-decline-${obj.id}`} rotation={[slopeAngle, 0, 0]} position={[0, h/2, section]}>
                                         <boxGeometry args={[obj.width, t, slopeL]} />
                                         <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
                                     {/* גוף מילוי מתחת למשטח הישר */}
-                                    <mesh position={[0, h/2, 0]}>
+                                    <mesh name={`ramp-base-${obj.id}`} position={[0, h/2, 0]}>
                                         <boxGeometry args={[obj.width, h, section]} />
                                         <meshStandardMaterial color={obj.color || "#1e293b"} transparent opacity={(obj.opacity ?? 1) * 0.4} />
                                     </mesh>
@@ -182,34 +177,51 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                     </group>
                 )}
                 {obj.type === 'COLOR_LINE' && (
-                    <mesh name="custom-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} onClick={handleSelect}>
+                    <mesh name={`custom-marker-mesh-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} >
                         <planeGeometry args={[obj.width, obj.length]} />
                         <meshBasicMaterial color={obj.color || '#FF0000'} transparent opacity={obj.opacity ?? 1} />
                     </mesh>
                 )}
                 {obj.type === 'PATH' && (
-                    <group name="custom-path" onClick={handleSelect}>
+                    <group name={`custom-path-group-${obj.id}`}>
                         {(!obj.shape || obj.shape === 'STRAIGHT') && (
                             <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width, obj.length]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}><planeGeometry args={[0.2, obj.length]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh name={`path-straight-bg-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width, obj.length]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh name={`path-straight-line-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}><planeGeometry args={[0.2, obj.length]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
                         {obj.shape === 'CORNER' && (
                             <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width, obj.width]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[obj.width/4 - 0.05, 0.025, 0]}><planeGeometry args={[obj.width/2 + 0.1, 0.2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -obj.width/4 + 0.05]}><planeGeometry args={[0.2, obj.width/2 + 0.1]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh name={`path-corner-bg-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width, obj.width]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh name={`path-corner-h-line-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[obj.width/4 - 0.05, 0.025, 0]}><planeGeometry args={[obj.width/2 + 0.1, 0.2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh name={`path-corner-v-line-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -obj.width/4 + 0.05]}><planeGeometry args={[0.2, obj.width/2 + 0.1]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
                         {obj.shape === 'CURVED' && (
                             <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.02, 0]}><ringGeometry args={[obj.length/2 - obj.width/2, obj.length/2 + obj.width/2, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.025, 0]}><ringGeometry args={[obj.length/2 - 0.1, obj.length/2 + 0.1, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh name={`path-curved-bg-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.02, 0]}><ringGeometry args={[obj.length/2 - obj.width/2, obj.length/2 + obj.width/2, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh name={`path-curved-line-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.025, 0]}><ringGeometry args={[obj.length/2 - 0.1, obj.length/2 + 0.1, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
-                        {isSelected && ( <mesh name="custom-path-wireframe" rotation={[-Math.PI/2, 0, 0]} position={[0, 0.03, 0]}><planeGeometry args={[obj.width + 0.2, (obj.shape === 'CORNER' ? obj.width : obj.length) + 0.2]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.3} /></mesh> )}
                     </group>
+                )}
+                {isSelected && (
+                    // Wireframe for selection feedback
+                    <DreiLine
+                        points={[
+                            new THREE.Vector3(-obj.width/2, 0.01, obj.length/2),
+                            new THREE.Vector3(obj.width/2, 0.01, obj.length/2),
+                            new THREE.Vector3(obj.width/2, 0.01, -obj.length/2),
+                            new THREE.Vector3(-obj.width/2, 0.01, -obj.length/2),
+                            new THREE.Vector3(-obj.width/2, 0.01, obj.length/2)
+                        ]}
+                        color="#00e5ff" // Cyan color for selection
+                        lineWidth={3}
+                        renderOrder={1000} // Render on top of other objects
+                        rotation={[0, obj.rotation || 0, 0]}
+                        position={[0, 0.01, 0]}
+                        scale={[1, (obj.type === 'RAMP' ? 1 + (obj.height || 0) : 1), 1]} // Scale Y to encompass ramp height if needed
+                    />
                 )}
             </group>
           );
