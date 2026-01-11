@@ -1,4 +1,4 @@
-
+ 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -37,17 +37,25 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
     const lastPickedPointRef = useRef(new THREE.Vector3(0,0,0)); // Store the last valid point
 
     // Ref for the visual indicator mesh
-    const indicatorMeshRef = useRef<THREE.Mesh | null>(null);
+    const indicatorMeshRef = useRef<THREE.Mesh>(null!); // non-null assertion as R3F will set it
 
     // --- Core Raycasting Logic (now defensive and safe) ---
     const sampleColor = useCallback((clientX: number, clientY: number) => {
+        // Critical check: Ensure gl.domElement is available before calling getBoundingClientRect
+        if (!gl.domElement) {
+            console.warn("ColorPickerTool: gl.domElement is not available for raycasting.");
+            return { color: "#FFFFFF", point: new THREE.Vector3(0, 0, 0) };
+        }
+        
         const rect = gl.domElement.getBoundingClientRect();
         mouse.current.x = ((clientX - rect.left) / rect.width) * 2 - 1;
         mouse.current.y = -(((clientY - rect.top) / rect.height) * 2 - 1);
 
         raycaster.current.setFromCamera(mouse.current, camera);
         
-        const intersects = raycaster.current.intersectObjects(scene.children, true);
+        // Only intersect visible objects for performance and correctness
+        const intersects = raycaster.current.intersectObjects(scene.children, true)
+            .filter(hit => hit.object.visible); // Filter for visible objects
 
         let groundPlaneHit: { color: string, point: THREE.Vector3 } | null = null;
         let pickedHex: string | null = null;
@@ -56,8 +64,9 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
         for (const hit of intersects) {
             const object = hit.object;
             
-            // Critical check: ensure object is not null/undefined
-            if (!object) {
+            // Critical checks: ensure object is a valid, renderable Mesh before proceeding
+            // Also ensure it's not null/undefined
+            if (!object || !(object instanceof THREE.Mesh)) {
                 continue;
             }
 
@@ -66,21 +75,24 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
                 object.name === 'picker-visual-indicator-ring' || // Self-exclusion
                 object.name.includes('helper') || // Generic helper objects like GridHelper
                 object.name === 'start-marker' || 
-                object.userData?.isRobotPart || // Robot components (identified via userData)
+                (object.userData && object.userData.isRobotPart) || // Robot components (identified via userData)
                 object.name === 'custom-wall-wireframe' || // Ruler tool's wireframe
                 object.name === 'ruler-tool-plane' // The transparent plane of RulerTool
             ) {
                 continue;
             }
 
+            // Ensure point is defined before cloning
+            const currentHitPoint = hit.point ? hit.point.clone() : new THREE.Vector3();
+
             // If it's the ground plane, store it as a potential fallback
             if (object.name === 'ground-plane') {
-                if (object instanceof THREE.Mesh && object.material) {
+                if (object.material) { // Ensure material exists
                     const materials = Array.isArray(object.material) ? object.material : [object.material];
                     for (const mat of materials) {
                         if (mat && (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial)) {
                             if (mat.color instanceof THREE.Color) {
-                                groundPlaneHit = { color: "#" + mat.color.getHexString().toUpperCase(), point: hit.point.clone() }; // Clone point to be safe
+                                groundPlaneHit = { color: "#" + mat.color.getHexString().toUpperCase(), point: currentHitPoint };
                                 break; 
                             }
                         }
@@ -90,7 +102,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
             }
 
             // For all other relevant meshes, try to get their color
-            if (object instanceof THREE.Mesh && object.material) {
+            if (object.material) { // Ensure material exists
                 const materials = Array.isArray(object.material) ? object.material : [object.material];
                 
                 for (const mat of materials) {
@@ -111,7 +123,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
                         const opacity = mat.opacity !== undefined ? mat.opacity : 1;
                         if (hex !== '#FFFFFF' && opacity > 0.1) {
                             pickedHex = hex;
-                            pickedPoint = hit.point.clone(); // Clone point to be safe
+                            pickedPoint = currentHitPoint;
                             break; 
                         }
                     }
@@ -127,13 +139,14 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
         }
         
         // Fallback: If no object is hit, return white at the origin (or robot's base for context)
+        // Ensure to return a new Vector3 in case hit.point was undefined for all intersects
         return { color: "#FFFFFF", point: new THREE.Vector3(0, 0, 0) }; 
     }, [gl, camera, scene]);
 
     // --- useFrame for Raycasting and Indicator Updates ---
     useFrame(() => {
-        if (!isActive || !mouseScreenCoordsRef.current) {
-            // No need to raycast if not active or no mouse movement since last frame
+        // Only run if active, mouse coords are available, and the indicator mesh is mounted by R3F
+        if (!isActive || !mouseScreenCoordsRef.current || !indicatorMeshRef.current) {
             return;
         }
 
@@ -141,17 +154,15 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
         const { color, point } = sampleColor(clientX, clientY);
 
         // Update indicator's position and color.
-        if (indicatorMeshRef.current) {
-            indicatorMeshRef.current.position.set(point.x, point.y + 0.05, point.z);
-            // Optionally, update the indicator's color to reflect the picked color
-            if (Array.isArray(indicatorMeshRef.current.material)) {
-                indicatorMeshRef.current.material.forEach(mat => {
-                    if (mat instanceof THREE.MeshBasicMaterial) {
-                        mat.color.set(color);
-                    }
-                });
-            } else if (indicatorMeshRef.current.material instanceof THREE.MeshBasicMaterial) {
-                indicatorMeshRef.current.material.color.set(color);
+        indicatorMeshRef.current.position.set(point.x, point.y + 0.05, point.z);
+        
+        // Update the indicator's color to reflect the picked color
+        const materials = Array.isArray(indicatorMeshRef.current.material) 
+                          ? indicatorMeshRef.current.material 
+                          : [indicatorMeshRef.current.material];
+        for (const mat of materials) {
+            if (mat instanceof THREE.MeshBasicMaterial) {
+                mat.color.set(color);
             }
         }
         
@@ -164,7 +175,6 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
         if (isPointerDownRef.current) {
             onColorSelect(color);
             isPointerDownRef.current = false; // Reset the flag
-            // Do not clear mouseScreenCoordsRef.current here; it would stop subsequent hover updates until next move.
         }
     });
 
@@ -182,7 +192,8 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
             event.stopPropagation();
             event.preventDefault();
             isPointerDownRef.current = true;
-            mouseScreenCoordsRef.current = { clientX: event.clientX, clientY: event.clientY }; // Capture position for immediate click
+            // Capture position immediately for click
+            mouseScreenCoordsRef.current = { clientX: event.clientX, clientY: event.clientY }; 
         }
     }, [isActive]);
 
@@ -209,6 +220,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
             // Reset refs when deactivating
             mouseScreenCoordsRef.current = null;
             isPointerDownRef.current = false;
+            indicatorMeshRef.current = null!; // Explicitly clear the ref
         }
 
         return () => { // Cleanup on unmount or isActive change
@@ -216,6 +228,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
             window.removeEventListener('pointermove', handleWindowPointerMove, { capture: true });
             window.removeEventListener('pointerdown', handleWindowPointerDown, { capture: true });
             window.removeEventListener('pointerup', handleWindowPointerUp, { capture: true });
+            indicatorMeshRef.current = null!; // Ensure ref is cleared on final unmount
         };
     }, [isActive, handleWindowPointerMove, handleWindowPointerDown, handleWindowPointerUp]);
 
