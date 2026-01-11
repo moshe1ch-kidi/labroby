@@ -148,10 +148,11 @@ const App: React.FC = () => {
   const [visibleVariables, setVisibleVariables] = useState<Set<string>>(new Set());
   const blocklyEditorRef = useRef<BlocklyEditorHandle>(null);
   const controlsRef = useRef<any>(null);
-  const envGroupRef = useRef<THREE.Group>(null); // Ref לסביבה
+  const pickableGroupRef = useRef<THREE.Group>(null); 
   const historyRef = useRef<SimulationHistory>({ maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 });
   const executionId = useRef(0);
   const pathCounter = useRef(0);
+  const lastDrawingPos = useRef<[number, number, number] | null>(null);
   const [numpadConfig, setNumpadConfig] = useState({ isOpen: false, value: 0, onConfirm: (val: number) => {} });
   const [toast, setToast] = useState<{message: string, type: 'success' | 'info' | 'error'} | null>(null);
   const [activeDrawing, setActiveDrawing] = useState<ContinuousDrawing | null>(null);
@@ -174,6 +175,7 @@ const App: React.FC = () => {
     const sd = calculateSensorReadings(startX, startZ, startRot, activeChallenge?.id, envObjs); 
     const d = { ...robotRef.current, x: startX, y: sd.y, z: startZ, rotation: startRot, motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', ledRightColor: 'black', tilt: sd.tilt, roll: sd.roll, penDown: false, isTouching: false };
     robotRef.current = d; setRobotState(d); setIsRunning(false); setChallengeSuccess(false); setCompletedDrawings([]); setActiveDrawing(null); activeDrawingRef.current = null;
+    lastDrawingPos.current = null;
     historyRef.current = { maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 }; 
     listenersRef.current = { messages: {}, colors: [], obstacles: [], distances: [], variables: {} };
     if (controlsRef.current) { controlsRef.current.reset(); setCameraMode('HOME'); }
@@ -217,10 +219,11 @@ const App: React.FC = () => {
         if (!down && activeDrawingRef.current) {
             if (activeDrawingRef.current.points.length > 1) setCompletedDrawings(prev => [...prev, activeDrawingRef.current!]);
             setActiveDrawing(null); activeDrawingRef.current = null;
+            lastDrawingPos.current = null;
         }
       },
       setPenColor: async (c: string) => { robotRef.current.penColor = c; setRobotState(prev => ({ ...prev, penColor: c })); },
-      clearPen: async () => { setCompletedDrawings([]); setActiveDrawing(null); activeDrawingRef.current = null; },
+      clearPen: async () => { setCompletedDrawings([]); setActiveDrawing(null); activeDrawingRef.current = null; lastDrawingPos.current = null; },
       getDistance: async () => calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects).distance,
       getTouch: async () => calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects).isTouching,
       getGyro: async (m: 'ANGLE'|'TILT') => { const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects); return m === 'TILT' ? sd.tilt : sd.gyro; },
@@ -262,23 +265,29 @@ const App: React.FC = () => {
         
         if (next.penDown && !isNaN(next.x) && !isNaN(next.y) && !isNaN(next.z)) { 
           const currPos: [number, number, number] = [next.x, next.y + 0.02, next.z]; 
-          setActiveDrawing(prev => {
-              if (!prev || prev.color !== next.penColor) {
-                  if (prev && prev.points.length > 1) setCompletedDrawings(old => [...old, prev]);
-                  const d = { id: `path-${pathCounter.current++}`, points: [currPos], color: next.penColor };
-                  activeDrawingRef.current = d; return d;
-              } else {
-                  const last = prev.points[prev.points.length - 1];
-                  if (Math.pow(currPos[0]-last[0],2)+Math.pow(currPos[2]-last[2],2) > 0.001) {
+          
+          // Optimization: only update the drawing if the robot has moved enough (0.05 units)
+          const hasMovedEnough = !lastDrawingPos.current || 
+              Math.pow(currPos[0]-lastDrawingPos.current[0], 2) + 
+              Math.pow(currPos[2]-lastDrawingPos.current[2], 2) > 0.0025; // 0.05 squared
+
+          if (hasMovedEnough) {
+              lastDrawingPos.current = currPos;
+              setActiveDrawing(prev => {
+                  if (!prev || prev.color !== next.penColor) {
+                      if (prev && prev.points.length > 1) setCompletedDrawings(old => [...old, prev]);
+                      const d = { id: `path-${pathCounter.current++}`, points: [currPos], color: next.penColor };
+                      activeDrawingRef.current = d; return d;
+                  } else {
                       const d = { ...prev, points: [...prev.points, currPos] };
                       activeDrawingRef.current = d; return d;
                   }
-                  activeDrawingRef.current = prev; return prev;
-              }
-          });
+              });
+          }
         } else if (activeDrawingRef.current) {
             if (activeDrawingRef.current.points.length > 1) setCompletedDrawings(old => [...old, activeDrawingRef.current!]);
             setActiveDrawing(null); activeDrawingRef.current = null;
+            lastDrawingPos.current = null;
         }
         if (activeChallenge && activeChallenge.check(robotRef.current, robotRef.current, historyRef.current) && !challengeSuccess) { setChallengeSuccess(true); showToast("Mission Accomplished!", "success"); } 
       }, TICK_RATE); 
@@ -345,7 +354,7 @@ const App: React.FC = () => {
           </div>
           <SensorDashboard distance={sensorReadings.distance} isTouching={sensorReadings.isTouching} gyroAngle={sensorReadings.gyro} tiltAngle={sensorReadings.tilt} detectedColor={sensorReadings.color} overrideColor={isColorPickerActive ? pickerHoverColor : null} onColorClick={() => setIsColorPickerActive(!isColorPickerActive)} />
           <Canvas shadows camera={{ position: [10, 10, 10], fov: 45 }}>
-            <SimulationEnvironment ref={envGroupRef} challengeId={activeChallenge?.id} customObjects={customObjects} robotState={robotState} onPointerDown={(e) => { if (!isColorPickerActive && editorTool === 'ROBOT_MOVE') { const p = e.point; const sd = calculateSensorReadings(p.x, p.z, robotRef.current.rotation, activeChallenge?.id, customObjects); robotRef.current = { ...robotRef.current, x: p.x, z: p.z, y: sd.y, tilt: sd.tilt, roll: sd.roll }; setRobotState(robotRef.current); } }} />
+            <SimulationEnvironment pickableRef={pickableGroupRef} challengeId={activeChallenge?.id} customObjects={customObjects} robotState={robotState} onPointerDown={(e) => { if (!isColorPickerActive && editorTool === 'ROBOT_MOVE') { const p = e.point; const sd = calculateSensorReadings(p.x, p.z, robotRef.current.rotation, activeChallenge?.id, customObjects); robotRef.current = { ...robotRef.current, x: p.x, z: p.z, y: sd.y, tilt: sd.tilt, roll: sd.roll }; setRobotState(robotRef.current); } }} />
             {completedDrawings.map((p) => (
                 <Line key={p.id} points={p.points} color={p.color} lineWidth={4} raycast={() => null} layers={0} />
             ))}
@@ -356,7 +365,7 @@ const App: React.FC = () => {
             <OrbitControls ref={controlsRef} makeDefault {...orbitProps} />
             <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />
             {isRulerActive && <RulerTool />}
-            {isColorPickerActive && <ColorPickerTool envGroupRef={envGroupRef} onColorHover={setPickerHoverColor} onColorSelect={(h) => { if (blocklyColorPickCallback) blocklyColorPickCallback(h); setIsColorPickerActive(false); setPickerHoverColor(null); setBlocklyColorPickCallback(null); }} />}
+            {isColorPickerActive && <ColorPickerTool envGroupRef={pickableGroupRef} onColorHover={setPickerHoverColor} onColorSelect={(h) => { if (blocklyColorPickCallback) blocklyColorPickCallback(h); setIsColorPickerActive(false); setPickerHoverColor(null); setBlocklyColorPickCallback(null); }} />}
           </Canvas>
         </div>
       </main>
