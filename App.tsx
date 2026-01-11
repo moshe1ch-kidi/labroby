@@ -1,4 +1,4 @@
-
+  
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -360,7 +360,7 @@ const App: React.FC = () => {
         environmentColors.push('#0000FF', '#FF0000'); // Blue/Red markers
     }
 
-    // Update the service
+    // Update the service palette
     updateBlocklyPalette(environmentColors);
   }, [activeChallenge, customObjects]);
 
