@@ -11,7 +11,7 @@ import { RobotState, CustomObject, ContinuousDrawing, SimulationHistory, CameraM
 import Numpad from './components/Numpad';
 import SensorDashboard from './components/SensorDashboard';
 import RulerTool from './components/RulerTool';
-import ColorPickerTool from './components/ColorPickerTool'; // Import the new ColorPickerTool
+import ColorPickerTool from './components/ColorPickerTool';
 import CameraManager from './components/CameraManager'; // ייבוא CameraManager
 import { CHALLENGES, Challenge } from './data/challenges';
 import { ThreeEvent } from '@react-three/fiber'; // Import ThreeEvent here
@@ -21,8 +21,7 @@ const BASE_VELOCITY = 0.165; // Retained at 3x original for normal forward movem
 const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much faster turning
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
-// Corrected and URL-encoded SVG data URI for the eyedropper cursor
-const DROPPER_CURSOR_URL = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ec4899' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2 22 5-5'/%3E%3Cpath d='M9.5 14.5 16 8l3 3-6.5 6.5-3-3z'/%3E%3Cpath d='m18 6 3-3'/%3E%3Cpath d='M20.9 7.1a2 2 0 1 0-2.8-2.8l-1.4 1.4 2.8 2.8 1.4-1.4z'/%3E%3C/svg%3E") 0 24, crosshair`;
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwNC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmbGlsPSJub25lIiBzZmlsbC1vcGFjaXR5PSIxIiBzdHJva2U9IiNlYzQ4OTkiIHN0cm9rZS13aWR0aD0iMiIgc3RyYtBLLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtdW5lam9pbj0icm91bmQiPjxwYXRoIGQ9MTAuNTQgOC40NmE1IDUgMCAxIDAtNy4wNyA3LjA3bDEuNDEgMS40MWEyIDIgMCAwIDAgMi44MyAwbDIuODMtMi44M2EyIDIgMCAwIDAgMC0yLjgzbC0xLjQxLTEuNDF6Ii8+PHBhdGggZD0ibTkgMTkgNW0tNy05IDUtNSIvPjxwYXRoIGQ9Ik05LjUgMTQuNSA0IDkiLz48cGF0aCBkPSJtMTggNiAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAg1IDAtMi44LTy44bC0xLjQgMS40IDIuOCAy.4IDEuNC0x.4eiIvPjwvc3ZnPgo=') 0 24, crosshair`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -376,7 +375,7 @@ const App: React.FC = () => {
   const [startBlockCount, setStartBlockCount] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isRulerActive, setIsRulerActive] = useState(false);
-  const [isColorPickerActive, setIsColorPickerActive] = useState(false); // Retain this state
+  const [isColorPickerActive, setIsColorPickerActive] = useState(false);
   const [customObjects, setCustomObjects] = useState<CustomObject[]>([]);
   const [cameraMode, setCameraMode] = useState<CameraMode>('HOME');
   const [editorTool, setEditorTool] = useState<EditorTool>('NONE');
@@ -387,7 +386,6 @@ const App: React.FC = () => {
   const [projectModal, setProjectModal] = useState<{isOpen: boolean, mode: 'save' | 'load'}>({isOpen: false, mode: 'save'});
   const [isPythonModalOpen, setIsPythonModalOpen] = useState(false);
   const [monitoredValues, setMonitoredValues] = useState<Record<string, any>>({});
-  // FIX: Corrected visibleVariables initialization
   const [visibleVariables, setVisibleVariables] = useState<Set<string>>(new Set());
   const blocklyEditorRef = useRef<BlocklyEditorHandle>(null);
   const controlsRef = useRef<any>(null); // Reference to OrbitControls
@@ -395,7 +393,6 @@ const App: React.FC = () => {
   const executionId = useRef(0);
   const [numpadConfig, setNumpadConfig] = useState({ isOpen: false, value: 0, onConfirm: (val: number) => {} });
   const [toast, setToast] = useState<{message: string, type: 'success' | 'info' | 'error'} | null>(null);
-  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null); // New state for selected object ID
   
   // Refactored drawing state
   const [activeDrawing, setActiveDrawing] = useState<ContinuousDrawing | null>(null);
@@ -447,13 +444,11 @@ const App: React.FC = () => {
   useEffect(() => { handleReset(); }, [activeChallenge, handleReset]);
 
   // General 3D environment pointer handlers for editor tools
-  // FIX: Updated event handler parameter types to match React.PointerEvent<HTMLCanvasElement>
-  // and asserted to ThreeEvent<PointerEvent> internally to resolve type errors.
-  // Changed parameter type from React.PointerEvent<HTMLCanvasElement> to ThreeEvent<PointerEvent>
-  const handleCanvasPointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
-    // If color picker is active, *do not* let Canvas handle pointer events.
+  const handlePointerDown = useCallback((e: ThreeEvent<MouseEvent>) => {
+    // Only handle if color picker is NOT active
     if (isColorPickerActive) return;
 
+    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
     if (editorTool === 'ROBOT_MOVE') {
       isPlacingRobot.current = true;
       const point = e.point;
@@ -461,50 +456,29 @@ const App: React.FC = () => {
       const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll };
       robotRef.current = next;
       setRobotState(next);
-      // e.stopPropagation(); // Removed this, let R3F decide event flow unless there's a specific reason.
     }
-
-    // Handle object selection for custom objects
-    const intersectedObject = e.intersections[0]?.object;
-    if (intersectedObject) {
-        if (intersectedObject.name === 'ground-plane') {
-            setSelectedObjectId('GROUND'); // Select the ground if nothing else hit
-        } else if (intersectedObject.parent?.userData?.isCustomObject) {
-            // Check if a custom object was clicked
-            setSelectedObjectId(intersectedObject.parent.name); // Assuming custom object group has a unique name/id
-        } else {
-            setSelectedObjectId(null); // Deselect if something else was clicked
-        }
-    } else {
-        setSelectedObjectId(null); // Deselect if no object was clicked
-    }
-
   }, [editorTool, activeChallenge, customObjects, isColorPickerActive]);
 
-  // FIX: Updated event handler parameter types.
-  // Changed parameter type from React.PointerEvent<HTMLCanvasElement> to ThreeEvent<PointerEvent>
-  const handleCanvasPointerMove = useCallback((e: ThreeEvent<PointerEvent>) => {
-    // If color picker is active, *do not* let Canvas handle pointer events.
+  const handlePointerMove = useCallback((e: ThreeEvent<MouseEvent>) => {
+    // Only handle if color picker is NOT active
     if (isColorPickerActive) return;
 
+    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
     if (isPlacingRobot.current && editorTool === 'ROBOT_MOVE') {
       const point = e.point;
       const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
       const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll };
       robotRef.current = next;
       setRobotState(next);
-      // e.stopPropagation(); // Removed this
     }
   }, [editorTool, activeChallenge, customObjects, isColorPickerActive]);
 
-  // FIX: Updated event handler parameter types.
-  // Changed parameter type from React.PointerEvent<HTMLCanvasElement> to ThreeEvent<PointerEvent>
-  const handleCanvasPointerUp = useCallback((e: ThreeEvent<PointerEvent>) => {
-    // If color picker is active, *do not* let Canvas handle pointer events.
+  const handlePointerUp = useCallback((e: ThreeEvent<MouseEvent>) => {
+    // Only handle if color picker is NOT active
     if (isColorPickerActive) return;
 
+    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
     isPlacingRobot.current = false;
-    // e.stopPropagation(); // Removed this
   }, [isColorPickerActive]);
 
   const handleRun = useCallback(async () => {
@@ -872,7 +846,7 @@ const App: React.FC = () => {
     if (blocklyColorPickCallback) {
       blocklyColorPickCallback(hexColor);
     }
-    // setIsColorPickerActive(false); // REMOVED: ColorPickerTool now handles its own deactivation
+    setIsColorPickerActive(false);
     setPickerHoverColor(null);
     setBlocklyColorPickCallback(null);
   }, [blocklyColorPickCallback]);
@@ -883,11 +857,6 @@ const App: React.FC = () => {
     setBlocklyColorPickCallback(() => onPick); // Store the callback from Blockly
   }, []);
 
-  const handleObjectSelect = useCallback((id: string) => {
-    setSelectedObjectId(id);
-    // You might want to switch to a different tool automatically here, e.g., 'NONE' or 'TRANSLATE'
-    // For now, let's just select it.
-  }, []);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-50" dir="ltr">
@@ -1094,23 +1063,20 @@ const App: React.FC = () => {
             detectedColor={sensorReadings.color} 
             lightIntensity={sensorReadings.intensity} 
             overrideColor={isColorPickerActive ? pickerHoverColor : null} 
-            onColorClick={() => setIsColorPickerActive(!isColorPickerActive)} // Now directly toggles isColorPickerActive
+            onColorClick={() => setIsColorPickerActive(!isColorPickerActive)} 
           />
           
           <Canvas 
             shadows 
             camera={{ position: [10, 10, 10], fov: 45 }}
-            // Conditionally disable R3F pointer events when color picker is active
-            onPointerDown={isColorPickerActive ? undefined : handleCanvasPointerDown}
-            onPointerMove={isColorPickerActive ? undefined : handleCanvasPointerMove}
-            onPointerUp={isColorPickerActive ? undefined : handleCanvasPointerUp}
           >
             <SimulationEnvironment 
               challengeId={activeChallenge?.id} 
               customObjects={customObjects} 
               robotState={robotState} 
-              selectedObjectId={selectedObjectId} // Pass selected object ID
-              onObjectSelect={handleObjectSelect} // Pass selection handler
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
             />
             {/* Render completed drawings */}
             {completedDrawings.map((path) => (
@@ -1129,14 +1095,12 @@ const App: React.FC = () => {
             {/* CameraManager component for handling follow camera logic */}
             <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />
             {isRulerActive && <RulerTool />}
-            {/* The new ColorPickerTool component */}
-            <ColorPickerTool 
-                isActive={isColorPickerActive} // Pass the state to activate/deactivate it
-                onColorHover={handlePickerHover} // Pass hover handler for SensorDashboard preview
-                onColorSelect={handlePickerSelect} // Pass select handler for Blockly
-                // Pass a setter function to allow the tool to deactivate itself
-                onDeactivate={() => setIsColorPickerActive(false)} 
-            />
+            {isColorPickerActive && (
+              <ColorPickerTool 
+                onColorHover={handlePickerHover} 
+                onColorSelect={handlePickerSelect} 
+              />
+            )}
           </Canvas>
         </div>
       </main>
