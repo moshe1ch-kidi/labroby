@@ -1,4 +1,4 @@
-
+ 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -21,7 +21,7 @@ const BASE_VELOCITY = 0.165; // Retained at 3x original for normal forward movem
 const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much faster turning
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwNC9svgcEw9IjI0IiB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSINCiAgZmlsbC1vcGFjaXR5PSIxIiBzdHJva2U9IiNlYzQ4OTkiIHN0cm9rZS13aWR0aD0iMiIgc3RyYtBLLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtdW5lam9pbj0icm91bmQiPjxwYXRoIGQ9MTAuNTQgOC40NmE1IDUgMCAxIDAtNy4wNyA3LjA3bDEuNDEgMS40MWEyIDIgMCAwIDAgMi44MyAwbDIuODMtMi44M2EyIDIgMCAwIDAgMC0yLjgzbC0xLjQxLTEuNDF6Ii8+PHBhdGggZD0ibTkgMTkgNW0tNy05IDUtNSIvPjxwYXRoIGQ9Ik05LjUgMTQuNSAzIDkiLz48cGF0aCBkPSJtMTggNiAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAg1IDAtMi44LTy44bC0xLjQgMS40IDIuOCAy.4IDEuNC0x.4eiIvPjwvc3ZnPgo=') 0 24, crosshair`;
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwNC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmbGlsPSJub25lIiBzZmlsbC1vcGFjaXR5PSIxIiBzdHJva2U9IiNlYzQ4OTkiIHN0cm9rZS13aWR0aD0iMiIgc3RyYtBLLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtdW5lam9pbj0icm91bmQiPjxwYXRoIGQ9MTAuNTQgOC40NmE1IDUgMCAxIDAtNy4wNyA3LjA3bDEuNDEgMS40MWEyIDIgMCAwIDAgMi44MyAwbDIuODMtMi44M2EyIDIgMCAwIDAgMC0yLjgzbC0xLjQxLTEuNDF6Ii8+PHBhdGggZD0ibTkgMTkgNW0tNy05IDUtNSIvPjxwYXRoIGQ9Ik05LjUgMTQuNSA0IDkiLz48cGF0aCBkPSJtMTggNiAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAg1IDAtMi44LTy44bC0xLjQgMS40IDIuOCAy.4IDEuNC0x.4eiIvPjwvc3ZnPgo=') 0 24, crosshair`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -34,7 +34,7 @@ const CANONICAL_COLOR_MAP: Record<string, string> = {
     'cyan': '#06B6D4',    // From Blockly's cyan cloud
     'magenta': '#EC4899', // From Blockly's pink diamond (using magenta as the name in code)
     'black': '#000000',
-    'white': '#FFFFFF'
+    'white': '#FFFFFF',
 };
 
 // Helper function to normalize angles to 0-360 degrees
@@ -386,7 +386,6 @@ const App: React.FC = () => {
   const [projectModal, setProjectModal] = useState<{isOpen: boolean, mode: 'save' | 'load'}>({isOpen: false, mode: 'save'});
   const [isPythonModalOpen, setIsPythonModalOpen] = useState(false);
   const [monitoredValues, setMonitoredValues] = useState<Record<string, any>>({});
-  // Fix: Removed 'new' keyword before useState
   const [visibleVariables, setVisibleVariables] = useState<Set<string>>(new Set());
   const blocklyEditorRef = useRef<BlocklyEditorHandle>(null);
   const controlsRef = useRef<any>(null); // Reference to OrbitControls
@@ -446,12 +445,10 @@ const App: React.FC = () => {
 
   // General 3D environment pointer handlers for editor tools
   const handlePointerDown = useCallback((e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
-    e.nativeEvent.stopImmediatePropagation(); // Ensure no other handlers on the same element receive the event
-
     // Only handle if color picker is NOT active
     if (isColorPickerActive) return;
 
+    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
     if (editorTool === 'ROBOT_MOVE') {
       isPlacingRobot.current = true;
       const point = e.point;
@@ -463,12 +460,10 @@ const App: React.FC = () => {
   }, [editorTool, activeChallenge, customObjects, isColorPickerActive]);
 
   const handlePointerMove = useCallback((e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
-    e.nativeEvent.stopImmediatePropagation(); // Ensure no other handlers on the same element receive the event
-
     // Only handle if color picker is NOT active
     if (isColorPickerActive) return;
 
+    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
     if (isPlacingRobot.current && editorTool === 'ROBOT_MOVE') {
       const point = e.point;
       const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
@@ -479,12 +474,10 @@ const App: React.FC = () => {
   }, [editorTool, activeChallenge, customObjects, isColorPickerActive]);
 
   const handlePointerUp = useCallback((e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
-    e.nativeEvent.stopImmediatePropagation(); // Ensure no other handlers on the same element receive the event
-
     // Only handle if color picker is NOT active
     if (isColorPickerActive) return;
 
+    e.stopPropagation(); // Stop event from bubbling up to Canvas if handled
     isPlacingRobot.current = false;
   }, [isColorPickerActive]);
 
@@ -561,7 +554,6 @@ const App: React.FC = () => {
         // If pen is lifted, finalize the active drawing
         if (!down) { 
             if (activeDrawingRef.current) {
-                // Fix: Corrected the spread syntax for `setCompletedDrawings`
                 setCompletedDrawings(prev => [...prev, activeDrawingRef.current!]);
                 setActiveDrawing(null); // Clear active drawing
                 activeDrawingRef.current = null; // Update ref immediately
@@ -1077,7 +1069,6 @@ const App: React.FC = () => {
           <Canvas 
             shadows 
             camera={{ position: [10, 10, 10], fov: 45 }}
-            style={{ pointerEvents: 'auto' }} {/* Added pointer-events: auto */}
           >
             <SimulationEnvironment 
               challengeId={activeChallenge?.id} 
