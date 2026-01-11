@@ -1,97 +1,62 @@
- import React, { useCallback, useEffect, useRef } from 'react';
+ import React, { useEffect, useCallback } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 interface ColorPickerToolProps {
-    onColorHover: (hexColor: string) => void;
-    onColorSelect: (hexColor: string) => void;
+  onColorSelect: (color: string) => void;
+  isActive: boolean;
 }
 
-const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColorSelect }) => {
-    const { raycaster, scene, camera, mouse, gl } = useThree();
+const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorSelect, isActive }) => {
+  const { gl, scene, camera, raycaster, mouse } = useThree();
+
+  const handleAction = useCallback(() => {
+    if (!isActive) return;
+
+    // עדכון ה-Raycaster
+    raycaster.setFromCamera(mouse, camera);
     
-    // רפרנסים פנימיים - לא מנוהלים ע"י React State כדי למנוע קריסות
-    const indicatorRef = useRef<THREE.Group | null>(null);
+    // בדיקה מול כל האובייקטים בסצנה
+    const intersects = raycaster.intersectObjects(scene.children, true);
+    
+    // סינון אובייקטים טכניים
+    const validHit = intersects.find(hit => 
+      hit.object.type === 'Mesh' && 
+      !hit.object.name.includes('helper') &&
+      !hit.object.name.includes('picker')
+    );
 
-    useEffect(() => {
-        // יצירת האינדיקטור ידנית בתוך ה-Scene
-        const group = new THREE.Group();
-        const ringGeo = new THREE.RingGeometry(0.15, 0.22, 32);
-        const ringMat = new THREE.MeshBasicMaterial({ 
-            color: 0xec4899, 
-            transparent: true, 
-            opacity: 0.8,
-            depthTest: false 
-        });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.rotation.x = -Math.PI / 2;
-        group.add(ring);
-        
-        group.visible = false;
-        scene.add(group);
-        indicatorRef.current = group;
+    if (validHit) {
+      const mesh = validHit.object as THREE.Mesh;
+      const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+      
+      if (material && 'color' in material) {
+        const color = (material as any).color as THREE.Color;
+        const hex = `#${color.getHexString().toUpperCase()}`;
+        console.log("Color Picked:", hex);
+        onColorSelect(hex);
+      }
+    }
+  }, [isActive, camera, mouse, raycaster, scene, onColorSelect]);
 
-        return () => {
-            scene.remove(group);
-            ringGeo.dispose();
-            ringMat.dispose();
-        };
-    }, [scene]);
+  useEffect(() => {
+    if (!isActive) return;
 
-    const performRaycast = useCallback(() => {
-        if (!camera || !mouse) return null;
+    const canvas = gl.domElement;
+    
+    // הוספת מאזין אירועים ישירות ל-Canvas של Three.js
+    canvas.addEventListener('mousedown', handleAction);
+    
+    // שינוי סמן העכבר
+    canvas.style.cursor = 'crosshair';
 
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(scene.children, true);
+    return () => {
+      canvas.removeEventListener('mousedown', handleAction);
+      canvas.style.cursor = 'default';
+    };
+  }, [isActive, gl, handleAction]);
 
-        for (const hit of intersects) {
-            const obj = hit.object;
-            // התעלמות מעצמי עזר
-            if (obj.name.includes('picker') || obj.name.includes('helper') || obj.userData?.isRobotPart) continue;
-
-            if (obj instanceof THREE.Mesh && obj.material) {
-                const mat = Array.isArray(obj.material) ? obj.material[0] : obj.material;
-                if (mat && 'color' in mat) {
-                    return {
-                        hex: "#" + (mat.color as THREE.Color).getHexString().toUpperCase(),
-                        point: hit.point
-                    };
-                }
-            }
-        }
-        return null;
-    }, [camera, mouse, raycaster, scene.children]);
-
-    // ניהול אירועים ישירות על ה-Canvas
-    useEffect(() => {
-        const handleMove = () => {
-            const result = performRaycast();
-            if (result && indicatorRef.current) {
-                indicatorRef.current.position.copy(result.point);
-                indicatorRef.current.position.y += 0.05;
-                indicatorRef.current.visible = true;
-                onColorHover(result.hex);
-            } else if (indicatorRef.current) {
-                indicatorRef.current.visible = false;
-            }
-        };
-
-        const handleClick = () => {
-            const result = performRaycast();
-            if (result) onColorSelect(result.hex);
-        };
-
-        gl.domElement.addEventListener('pointermove', handleMove);
-        gl.domElement.addEventListener('click', handleClick);
-
-        return () => {
-            gl.domElement.removeEventListener('pointermove', handleMove);
-            gl.domElement.removeEventListener('click', handleClick);
-            if (indicatorRef.current) indicatorRef.current.visible = false;
-        };
-    }, [gl.domElement, performRaycast, onColorHover, onColorSelect]);
-
-    return null; // הקומפוננטה לא מרנדרת שום JSX של React Three Fiber
+  return null; // לא מרנדר JSX כדי למנוע שגיאות React Reconciler
 };
 
 export default ColorPickerTool;
