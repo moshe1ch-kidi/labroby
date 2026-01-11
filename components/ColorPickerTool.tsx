@@ -1,4 +1,4 @@
- 
+
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -76,8 +76,8 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
                 object.name.includes('helper') || // Generic helper objects like GridHelper
                 object.name === 'start-marker' || 
                 (object.userData && object.userData.isRobotPart) || // Robot components (identified via userData)
-                object.name === 'custom-wall-wireframe' || // Ruler tool's wireframe
-                object.name === 'ruler-tool-plane' // The transparent plane of RulerTool
+                object.name.includes('custom-wall-wireframe') || // Ruler tool's wireframe
+                object.name === 'ruler-tool-plane' 
             ) {
                 continue;
             }
@@ -121,7 +121,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
                     if (potentialColor) {
                         const hex = "#" + potentialColor.getHexString().toUpperCase();
                         const opacity = mat.opacity !== undefined ? mat.opacity : 1;
-                        if (hex !== '#FFFFFF' && opacity > 0.1) {
+                        if (hex !== '#FFFFFF' && opacity > 0.1) { // Prioritize opaque, non-white colors
                             pickedHex = hex;
                             pickedPoint = currentHitPoint;
                             break; 
@@ -175,22 +175,23 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
         if (isPointerDownRef.current) {
             onColorSelect(color);
             isPointerDownRef.current = false; // Reset the flag
+            // Do NOT clear mouseScreenCoordsRef.current here; it would stop subsequent hover updates until next move.
         }
     });
 
     // --- Global Pointer Event Handlers ---
     const handleWindowPointerMove = useCallback((event: PointerEvent) => {
         if (isActive) {
-            event.stopPropagation();
-            event.preventDefault();
+            event.preventDefault(); // Prevent default browser actions (like text selection)
+            event.stopPropagation(); // Stop event from bubbling up to other elements
             mouseScreenCoordsRef.current = { clientX: event.clientX, clientY: event.clientY };
         }
     }, [isActive]);
 
     const handleWindowPointerDown = useCallback((event: PointerEvent) => {
         if (isActive) {
-            event.stopPropagation();
-            event.preventDefault();
+            event.preventDefault(); // Prevent default browser actions (like text selection)
+            event.stopPropagation(); // Stop event from bubbling up
             isPointerDownRef.current = true;
             // Capture position immediately for click
             mouseScreenCoordsRef.current = { clientX: event.clientX, clientY: event.clientY }; 
@@ -200,6 +201,8 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
     const handleWindowPointerUp = useCallback(() => {
         if (isActive) {
             isPointerDownRef.current = false; // Release click state
+            // No need for stopPropagation/preventDefault on pointerup unless specific browser default
+            // behavior needs to be suppressed here.
         }
     }, [isActive]);
 
@@ -211,6 +214,11 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
             window.addEventListener('pointermove', handleWindowPointerMove, { capture: true });
             window.addEventListener('pointerdown', handleWindowPointerDown, { capture: true });
             window.addEventListener('pointerup', handleWindowPointerUp, { capture: true }); // Listen for pointerup
+            // Set initial picked color and point
+            const { color, point } = sampleColor(mouseScreenCoordsRef.current?.clientX || 0, mouseScreenCoordsRef.current?.clientY || 0);
+            setLastPickedColor(color);
+            lastPickedPointRef.current.copy(point);
+
         } else {
             document.body.style.cursor = 'default';
             window.removeEventListener('pointermove', handleWindowPointerMove, { capture: true });
@@ -230,7 +238,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
             window.removeEventListener('pointerup', handleWindowPointerUp, { capture: true });
             indicatorMeshRef.current = null!; // Ensure ref is cleared on final unmount
         };
-    }, [isActive, handleWindowPointerMove, handleWindowPointerDown, handleWindowPointerUp]);
+    }, [isActive, handleWindowPointerMove, handleWindowPointerDown, handleWindowPointerUp, sampleColor]); // Added sampleColor to dependencies for initial call
 
     // Render the visual indicator as an R3F component, only when active
     return isActive ? (
@@ -242,7 +250,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
         >
             <ringGeometry args={[0.15, 0.22, 32]} />
             <meshBasicMaterial 
-                color={new THREE.Color(lastPickedColor)} // Initial color from state
+                color={new THREE.Color("#ec4899")} // Default color for the indicator, will be updated in useFrame
                 transparent 
                 opacity={0.9} 
                 depthWrite={false} 
