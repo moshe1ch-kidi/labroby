@@ -739,7 +739,6 @@ const App: React.FC = () => {
     return props;
   }, [editorTool, cameraMode, isColorPickerActive]);
 
-  // ✅ תיקון #1: Null Checks + Error Handling עבור Camera
   useEffect(() => {
     if (!controlsRef.current) return;
     
@@ -933,7 +932,6 @@ const App: React.FC = () => {
               
               <div className="h-px bg-slate-100 mx-2 my-0.5" />
 
-              {/* ✅ תיקון #2: Zoom Buttons עם Null Checks */}
               <button
                 onClick={() => {
                   if (controlsRef.current) {
@@ -1035,8 +1033,7 @@ const App: React.FC = () => {
               makeDefault 
               {...orbitControlsProps}
             />
-            {/* ✅ תיקון #3: Conditional Render של CameraManager */}
-            {controlsRef.current && <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />}
+            {/* ✅ CameraManager הוסר מפה - יתפקד כ-Logic בלבד */}
             {isRulerActive && <RulerTool />}
             {isColorPickerActive && (
               <ColorPickerTool 
@@ -1045,6 +1042,9 @@ const App: React.FC = () => {
               />
             )}
           </Canvas>
+          
+          {/* ✅ CameraManager הועבר לכאן - מחוץ לCanvas */}
+          <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />
         </div>
       </main>
       
