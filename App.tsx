@@ -449,25 +449,23 @@ const App: React.FC = () => {
   // General 3D environment pointer handlers for editor tools
   // FIX: Updated event handler parameter types to match React.PointerEvent<HTMLCanvasElement>
   // and asserted to ThreeEvent<PointerEvent> internally to resolve type errors.
-  const handleCanvasPointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    // Assert e as ThreeEvent<PointerEvent> to access R3F-specific properties like .point
-    const threeEvent = e as ThreeEvent<PointerEvent>;
-
+  // Changed parameter type from React.PointerEvent<HTMLCanvasElement> to ThreeEvent<PointerEvent>
+  const handleCanvasPointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
     // If color picker is active, *do not* let Canvas handle pointer events.
     if (isColorPickerActive) return;
 
     if (editorTool === 'ROBOT_MOVE') {
       isPlacingRobot.current = true;
-      const point = threeEvent.point;
+      const point = e.point;
       const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
       const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll };
       robotRef.current = next;
       setRobotState(next);
-      // threeEvent.stopPropagation(); // Removed this, let R3F decide event flow unless there's a specific reason.
+      // e.stopPropagation(); // Removed this, let R3F decide event flow unless there's a specific reason.
     }
 
     // Handle object selection for custom objects
-    const intersectedObject = threeEvent.intersections[0]?.object;
+    const intersectedObject = e.intersections[0]?.object;
     if (intersectedObject) {
         if (intersectedObject.name === 'ground-plane') {
             setSelectedObjectId('GROUND'); // Select the ground if nothing else hit
@@ -484,36 +482,29 @@ const App: React.FC = () => {
   }, [editorTool, activeChallenge, customObjects, isColorPickerActive]);
 
   // FIX: Updated event handler parameter types.
-  const handleCanvasPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    // Assert e as ThreeEvent<PointerEvent> to access R3F-specific properties like .point
-    const threeEvent = e as ThreeEvent<PointerEvent>;
-
+  // Changed parameter type from React.PointerEvent<HTMLCanvasElement> to ThreeEvent<PointerEvent>
+  const handleCanvasPointerMove = useCallback((e: ThreeEvent<PointerEvent>) => {
     // If color picker is active, *do not* let Canvas handle pointer events.
     if (isColorPickerActive) return;
 
     if (isPlacingRobot.current && editorTool === 'ROBOT_MOVE') {
-      const point = threeEvent.point;
+      const point = e.point;
       const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
       const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll };
       robotRef.current = next;
       setRobotState(next);
-      // threeEvent.stopPropagation(); // Removed this
+      // e.stopPropagation(); // Removed this
     }
   }, [editorTool, activeChallenge, customObjects, isColorPickerActive]);
 
   // FIX: Updated event handler parameter types.
-  const handleCanvasPointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    // Assert e as ThreeEvent<PointerEvent> if ThreeEvent specific properties are needed.
-    // In this specific handler, `e.point` and `e.intersections` are not used,
-    // so a direct cast might not be strictly necessary for its current logic,
-    // but it's kept for consistency with other canvas handlers.
-    const threeEvent = e as ThreeEvent<PointerEvent>;
-
+  // Changed parameter type from React.PointerEvent<HTMLCanvasElement> to ThreeEvent<PointerEvent>
+  const handleCanvasPointerUp = useCallback((e: ThreeEvent<PointerEvent>) => {
     // If color picker is active, *do not* let Canvas handle pointer events.
     if (isColorPickerActive) return;
 
     isPlacingRobot.current = false;
-    // threeEvent.stopPropagation(); // Removed this
+    // e.stopPropagation(); // Removed this
   }, [isColorPickerActive]);
 
   const handleRun = useCallback(async () => {
@@ -881,7 +872,7 @@ const App: React.FC = () => {
     if (blocklyColorPickCallback) {
       blocklyColorPickCallback(hexColor);
     }
-    setIsColorPickerActive(false); // Deactivate after selection
+    // setIsColorPickerActive(false); // REMOVED: ColorPickerTool now handles its own deactivation
     setPickerHoverColor(null);
     setBlocklyColorPickCallback(null);
   }, [blocklyColorPickCallback]);
@@ -1143,6 +1134,8 @@ const App: React.FC = () => {
                 isActive={isColorPickerActive} // Pass the state to activate/deactivate it
                 onColorHover={handlePickerHover} // Pass hover handler for SensorDashboard preview
                 onColorSelect={handlePickerSelect} // Pass select handler for Blockly
+                // Pass a setter function to allow the tool to deactivate itself
+                onDeactivate={() => setIsColorPickerActive(false)} 
             />
           </Canvas>
         </div>
