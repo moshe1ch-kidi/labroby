@@ -59,11 +59,19 @@ export interface SimulationHistory {
     totalRotation: number;
 }
 
+export interface NumpadPosition {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
 declare global {
   interface Window {
     showBlocklyNumpad: (
       initialValue: string | number, 
-      onConfirm: (newValue: number) => void
+      onConfirm: (newValue: number) => void,
+      position?: NumpadPosition
     ) => void;
 
     showBlocklyColorPicker: (
@@ -71,8 +79,3 @@ declare global {
     ) => void;
   }
 }
-
-// Extend the existing interface or define a new one if this is for internal use
-// to include the 'type' for complex zones.
-// This is not directly used in the CustomObject interface, but rather in getEnvironmentConfig's internal structure.
-// No direct change to CustomObject itself is needed for this.
