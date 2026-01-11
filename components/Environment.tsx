@@ -1,5 +1,5 @@
-
-import React, { useMemo } from 'react';
+  
+import React, { useMemo, forwardRef } from 'react';
 import { Grid, Environment as DreiEnvironment, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { CustomObject, RobotState } from '../types';
@@ -16,7 +16,6 @@ interface EnvironmentProps {
     robotState?: RobotState;
 }
 
-// תגית לזיהוי אובייקטים שניתן לדגום מהם צבע
 const envData = { isEnvironment: true };
 
 const EllipseMarker = ({ centerX, centerZ, radiusX, radiusZ, angle, width, color }: any) => {
@@ -69,7 +68,7 @@ const UniformEllipse = ({ x = 0, y = 0, z = 0, radiusX = 12, radiusZ = 6, width 
     );
 };
 
-const SimulationEnvironment: React.FC<EnvironmentProps> = ({ 
+const SimulationEnvironment = forwardRef<THREE.Group, EnvironmentProps>(({ 
     challengeId, 
     customObjects = [], 
     selectedObjectId,
@@ -78,7 +77,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
     onPointerMove, 
     onPointerUp,
     robotState
-}) => {
+}, ref) => {
   const config = useMemo(() => {
       const isRoomNav = challengeId === 'c1';
       const isLineTrack = ['c11', 'c10_lines'].includes(challengeId || '');
@@ -93,7 +92,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
   }, [challengeId]);
 
   return (
-    <>
+    <group ref={ref}>
       <DreiEnvironment preset="city" />
       <ambientLight intensity={0.7} />
       <directionalLight position={[10, 10, 5]} intensity={1} castShadow shadow-mapSize={[1024, 1024]} />
@@ -204,7 +203,6 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                         {obj.shape === 'CURVED' && (
                             <>
                                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.02, 0]} userData={envData}><ringGeometry args={[obj.length/2 - obj.width/2, obj.length/2 + obj.width/2, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.025, 0]} userData={envData}><ringGeometry args={[0.1, 0.1, 64]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.025, 0]} userData={envData}><ringGeometry args={[obj.length/2 - 0.1, obj.length/2 + 0.1, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
@@ -268,8 +266,8 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
             <EllipseMarker centerX={0} centerZ={-8} radiusX={9} radiusZ={6} angle={3 * Math.PI / 2} width={0.08} color="#FFFF00" />
          </group>
       )}
-    </>
+    </group>
   );
-};
+});
 
 export default SimulationEnvironment;
