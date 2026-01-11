@@ -1,55 +1,53 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { Vector3, Mesh, Color, Raycaster, Object3D } from 'three';
+import { Vector3, Mesh, Color, Raycaster, Object3D, Group } from 'three';
 import { useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 
 interface ColorPickerToolProps {
     onColorHover: (hexColor: string) => void;
     onColorSelect: (hexColor: string) => void;
+    envGroupRef: React.RefObject<Group>;
 }
 
-const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColorSelect }) => {
+const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColorSelect, envGroupRef }) => {
     const [cursorPos, setCursorPos] = useState<Vector3 | null>(null);
-    const { scene, camera, mouse } = useThree();
+    const { camera, mouse } = useThree();
     
     const pickerRaycaster = useMemo(() => new Raycaster(), []);
 
     const sampleColorUnderMouse = useCallback(() => {
-        if (!mouse || !camera || !scene) return null;
+        if (!mouse || !camera || !envGroupRef.current) return null;
         
-        // מעדכנים את הקרן לפי מיקום העכבר
         pickerRaycaster.setFromCamera(mouse, camera);
         
-        // אוספים את כל האובייקטים בסצנה שהם חלק מהסביבה וניתנים לדגימה
-        const pickableObjects: Object3D[] = [];
-        scene.traverse((obj) => {
-            if (obj instanceof Mesh && obj.userData.isEnvironment === true) {
-                pickableObjects.push(obj);
-            }
-        });
-
-        // מבצעים בדיקת פגיעה רק מול האובייקטים שסיננו
-        const intersects = pickerRaycaster.intersectObjects(pickableObjects, false);
-        
-        if (intersects.length > 0) {
-            const hit = intersects[0];
-            const object = hit.object as Mesh;
-            const mat = Array.isArray(object.material) ? object.material[0] : object.material;
+        // מבצעים בדיקת פגיעה אך ורק בתוך קבוצת הסביבה שנשלחה ב-Ref
+        // זה מונע מהקרן "לראות" את הרובוט או את קווי הציור שגורמים לקריסה
+        try {
+            const intersects = pickerRaycaster.intersectObjects(envGroupRef.current.children, true);
             
-            if (mat && 'color' in mat) {
-                const hex = "#" + (mat.color as Color).getHexString().toUpperCase();
-                setCursorPos(hit.point.clone());
-                return hex;
+            // מחפשים את הפגיעה הראשונה שהיא באמת Mesh ויש לה צבע
+            for (const hit of intersects) {
+                const object = hit.object;
+                if (object instanceof Mesh) {
+                    const mat = Array.isArray(object.material) ? object.material[0] : object.material;
+                    if (mat && 'color' in mat) {
+                        const hex = "#" + (mat.color as Color).getHexString().toUpperCase();
+                        setCursorPos(hit.point.clone());
+                        return hex;
+                    }
+                }
             }
+        } catch (err) {
+            console.warn("Picker intersection error:", err);
         }
 
         return null;
-    }, [pickerRaycaster, scene, camera, mouse]);
+    }, [pickerRaycaster, camera, mouse, envGroupRef]);
 
     return (
         <group>
-            {/* משטח שקוף ענק שתופס את תנועות העכבר בלבד */}
+            {/* משטח שקוף ענק שתופס את תנועות העכבר ומפעיל את הדגימה */}
             <mesh 
                 name="picker-capture-plane"
                 rotation={[-Math.PI / 2, 0, 0]} 
@@ -66,14 +64,13 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColor
                     if (h) onColorSelect(h); 
                 }}
             >
-                <planeGeometry args={[500, 500]} />
+                <planeGeometry args={[1000, 1000]} />
                 <meshBasicMaterial transparent opacity={0} depthWrite={false} />
             </mesh>
 
             {cursorPos && (
                 <group position={cursorPos}>
-                    {/* סימון ויזואלי של נקודת הדגימה */}
-                    <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.02, 0]}>
+                    <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.05, 0]}>
                         <ringGeometry args={[0.15, 0.22, 32]} />
                         <meshBasicMaterial color="#ec4899" transparent opacity={0.9} toneMapped={false} />
                     </mesh>
