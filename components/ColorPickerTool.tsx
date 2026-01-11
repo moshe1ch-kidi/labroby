@@ -10,32 +10,39 @@ interface ColorPickerToolProps {
 const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorSelect, isActive }) => {
   const { gl, scene, camera, raycaster, mouse } = useThree();
 
-  const handleAction = useCallback(() => {
+  const handleAction = useCallback((event: MouseEvent) => {
     if (!isActive) return;
 
-    // עדכון ה-Raycaster
+    // עדכון ה-Raycaster לפי מיקום העכבר
     raycaster.setFromCamera(mouse, camera);
     
-    // בדיקה מול כל האובייקטים בסצנה
+    // דגימה של כל האובייקטים בסצנה
     const intersects = raycaster.intersectObjects(scene.children, true);
     
-    // סינון אובייקטים טכניים
-    const validHit = intersects.find(hit => 
-      hit.object.type === 'Mesh' && 
-      !hit.object.name.includes('helper') &&
-      !hit.object.name.includes('picker')
-    );
+    console.log(`Picker: Total objects hit: ${intersects.length}`);
 
-    if (validHit) {
-      const mesh = validHit.object as THREE.Mesh;
-      const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-      
-      if (material && 'color' in material) {
-        const color = (material as any).color as THREE.Color;
-        const hex = `#${color.getHexString().toUpperCase()}`;
-        console.log("Color Picked:", hex);
-        onColorSelect(hex);
+    if (intersects.length > 0) {
+      // נעבור על כל מה שפגענו בו עד שנמצא משהו עם צבע
+      for (let i = 0; i < intersects.length; i++) {
+        const object = intersects[i].object;
+        
+        // בדיקה אם זה Mesh ויש לו Material
+        if (object instanceof THREE.Mesh && object.material) {
+          const mat = Array.isArray(object.material) ? object.material[0] : object.material;
+          
+          // בדיקה אם יש לצבע ערך
+          if (mat && (mat.color || mat.emissive)) {
+            const color = mat.color || mat.emissive;
+            const hex = `#${color.getHexString().toUpperCase()}`;
+            
+            console.log(`SUCCESS! Hit object: ${object.name || 'Unnamed'}, Color: ${hex}`);
+            onColorSelect(hex);
+            return; // מצאנו צבע, אפשר לעצור
+          }
+        }
       }
+    } else {
+      console.log("Picker: Clicked into empty space");
     }
   }, [isActive, camera, mouse, raycaster, scene, onColorSelect]);
 
@@ -43,11 +50,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorSelect, isActi
     if (!isActive) return;
 
     const canvas = gl.domElement;
-    
-    // הוספת מאזין אירועים ישירות ל-Canvas של Three.js
     canvas.addEventListener('mousedown', handleAction);
-    
-    // שינוי סמן העכבר
     canvas.style.cursor = 'crosshair';
 
     return () => {
@@ -56,7 +59,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorSelect, isActi
     };
   }, [isActive, gl, handleAction]);
 
-  return null; // לא מרנדר JSX כדי למנוע שגיאות React Reconciler
+  return null;
 };
 
 export default ColorPickerTool;
