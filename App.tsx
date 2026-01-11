@@ -14,7 +14,6 @@ import RulerTool from './components/RulerTool';
 import ColorPickerTool from './components/ColorPickerTool';
 import CameraManager from './components/CameraManager';
 import { CHALLENGES, Challenge } from './data/challenges';
-import { ThreeEvent } from '@react-three/fiber';
 
 const TICK_RATE = 16; 
 const BASE_VELOCITY = 0.165; 
@@ -151,7 +150,7 @@ const App: React.FC = () => {
   const controlsRef = useRef<any>(null);
   const historyRef = useRef<SimulationHistory>({ maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 });
   const executionId = useRef(0);
-  const pathCounter = useRef(0); // Counter for unique IDs
+  const pathCounter = useRef(0);
   const [numpadConfig, setNumpadConfig] = useState({ isOpen: false, value: 0, onConfirm: (val: number) => {} });
   const [toast, setToast] = useState<{message: string, type: 'success' | 'info' | 'error'} | null>(null);
   const [activeDrawing, setActiveDrawing] = useState<ContinuousDrawing | null>(null);
@@ -259,7 +258,8 @@ const App: React.FC = () => {
         historyRef.current.maxDistanceMoved = Math.max(historyRef.current.maxDistanceMoved, dMoved * 10);
         if (!historyRef.current.detectedColors.includes(sd.color)) historyRef.current.detectedColors.push(sd.color);
         historyRef.current.totalRotation = robotRef.current.rotation - (activeChallenge?.startRotation ?? 180);
-        if (next.penDown) { 
+        
+        if (next.penDown && !isNaN(next.x) && !isNaN(next.y) && !isNaN(next.z)) { 
           const currPos: [number, number, number] = [next.x, next.y + 0.02, next.z]; 
           setActiveDrawing(prev => {
               if (!prev || prev.color !== next.penColor) {
@@ -328,7 +328,7 @@ const App: React.FC = () => {
       </header>
       <main className="flex flex-1 overflow-hidden relative">
         <div className="w-1/2 relative flex flex-col bg-white border-r border-slate-200">
-          <BlocklyEditor ref={blocklyEditorRef} onCodeChange={useCallback((c, n) => { setGeneratedCode(c); setStartBlockCount(n); }, [])} visibleVariables={visibleVariables} onToggleVariable={useCallback((n) => setVisibleVariables(v => { const next = new Set(v); if (next.has(n)) next.delete(n); else next.add(n); return next; }), [])} onShowNumpad={useCallback((v, c) => setNumpadConfig({isOpen:true, value:parseFloat(String(v)), onConfirm:c}), [])} onShowColorPicker={useCallback((p) => {setIsColorPickerActive(true); setBlocklyColorPickCallback(() => p);}, [])} />
+          <BlocklyEditor onCodeChange={useCallback((c, n) => { setGeneratedCode(c); setStartBlockCount(n); }, [])} visibleVariables={visibleVariables} onToggleVariable={useCallback((n) => setVisibleVariables(v => { const next = new Set(v); if (next.has(n)) next.delete(n); else next.add(n); return next; }), [])} onShowNumpad={useCallback((v, c) => setNumpadConfig({isOpen:true, value:parseFloat(String(v)), onConfirm:c}), [])} onShowColorPicker={useCallback((p) => {setIsColorPickerActive(true); setBlocklyColorPickCallback(() => p);}, [])} />
         </div>
         <div className="w-1/2 relative bg-slate-900 overflow-hidden" style={{ cursor: isColorPickerActive ? DROPPER_CURSOR_URL : 'auto' }}>
           <div className="absolute top-4 right-4 z-50 flex flex-col gap-3">
@@ -346,10 +346,10 @@ const App: React.FC = () => {
           <Canvas shadows camera={{ position: [10, 10, 10], fov: 45 }}>
             <SimulationEnvironment challengeId={activeChallenge?.id} customObjects={customObjects} robotState={robotState} onPointerDown={(e) => { if (!isColorPickerActive && editorTool === 'ROBOT_MOVE') { const p = e.point; const sd = calculateSensorReadings(p.x, p.z, robotRef.current.rotation, activeChallenge?.id, customObjects); robotRef.current = { ...robotRef.current, x: p.x, z: p.z, y: sd.y, tilt: sd.tilt, roll: sd.roll }; setRobotState(robotRef.current); } }} />
             {completedDrawings.map((p) => (
-                <Line key={p.id} points={p.points} color={p.color} lineWidth={4} raycast={() => null} />
+                <Line key={p.id} points={p.points} color={p.color} lineWidth={4} raycast={() => null} layers={0} />
             ))}
             {activeDrawing && activeDrawing.points.length > 1 && (
-                <Line key={activeDrawing.id} points={activeDrawing.points} color={activeDrawing.color} lineWidth={4} raycast={() => null} />
+                <Line key={activeDrawing.id} points={activeDrawing.points} color={activeDrawing.color} lineWidth={4} raycast={() => null} layers={0} />
             )}
             <Robot3D state={robotState} isPlacementMode={editorTool === 'ROBOT_MOVE'} />
             <OrbitControls ref={controlsRef} makeDefault {...orbitProps} />
