@@ -1066,42 +1066,54 @@ const App: React.FC = () => {
             onColorClick={() => setIsColorPickerActive(!isColorPickerActive)} 
           />
           
-          <Canvas 
-            shadows 
-            camera={{ position: [10, 10, 10], fov: 45 }}
-          >
-            <SimulationEnvironment 
-              challengeId={activeChallenge?.id} 
-              customObjects={customObjects} 
-              robotState={robotState} 
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-            />
-            {/* Render completed drawings */}
-            {completedDrawings.map((path) => (
-                <Line key={path.id} points={path.points} color={path.color} lineWidth={4} />
-            ))}
-            {/* Render active drawing */}
-            {activeDrawing && activeDrawing.points.length > 1 && ( // Only render if at least two points to form a line
-                <Line key={activeDrawing.id} points={activeDrawing.points} color={activeDrawing.color} lineWidth={4} />
-            )}
-            <Robot3D state={robotState} isPlacementMode={editorTool === 'ROBOT_MOVE'} />
-            <OrbitControls 
-              ref={controlsRef} 
-              makeDefault 
-              {...orbitControlsProps}
-            />
-            {/* CameraManager component for handling follow camera logic */}
-            <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />
-            {isRulerActive && <RulerTool />}
-            {isColorPickerActive && (
-              <ColorPickerTool 
-                onColorHover={handlePickerHover} 
-                onColorSelect={handlePickerSelect} 
-              />
-            )}
-          </Canvas>
+         <Canvas 
+  shadows 
+  /* הגדרות קריטיות למניעת קריסה בשאיבת צבע */
+  gl={{ 
+    preserveDrawingBuffer: true, 
+    antialias: true,
+    powerPreference: "high-performance"
+  }}
+  camera={{ position: [10, 10, 10], fov: 45 }}
+>
+  <SimulationEnvironment 
+    challengeId={activeChallenge?.id} 
+    customObjects={customObjects} 
+    robotState={robotState} 
+    onPointerDown={handlePointerDown}
+    onPointerMove={handlePointerMove}
+    onPointerUp={handlePointerUp}
+  />
+  
+  {/* Render completed drawings */}
+  {completedDrawings.map((path) => (
+      <Line key={path.id} points={path.points} color={path.color} lineWidth={4} />
+  ))}
+  
+  {/* Render active drawing */}
+  {activeDrawing && activeDrawing.points.length > 1 && (
+      <Line key={activeDrawing.id} points={activeDrawing.points} color={activeDrawing.color} lineWidth={4} />
+  )}
+  
+  <Robot3D state={robotState} isPlacementMode={editorTool === 'ROBOT_MOVE'} />
+  
+  <OrbitControls 
+    ref={controlsRef} 
+    makeDefault 
+    {...orbitControlsProps}
+  />
+  
+  <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />
+  
+  {isRulerActive && <RulerTool />}
+  
+  {isColorPickerActive && (
+    <ColorPickerTool 
+      onColorHover={handlePickerHover} 
+      onColorSelect={handlePickerSelect} 
+    />
+  )}
+</Canvas>
         </div>
       </main>
       
