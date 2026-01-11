@@ -148,6 +148,7 @@ const App: React.FC = () => {
   const [visibleVariables, setVisibleVariables] = useState<Set<string>>(new Set());
   const blocklyEditorRef = useRef<BlocklyEditorHandle>(null);
   const controlsRef = useRef<any>(null);
+  const envGroupRef = useRef<THREE.Group>(null); // Ref לסביבה
   const historyRef = useRef<SimulationHistory>({ maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 });
   const executionId = useRef(0);
   const pathCounter = useRef(0);
@@ -344,7 +345,7 @@ const App: React.FC = () => {
           </div>
           <SensorDashboard distance={sensorReadings.distance} isTouching={sensorReadings.isTouching} gyroAngle={sensorReadings.gyro} tiltAngle={sensorReadings.tilt} detectedColor={sensorReadings.color} overrideColor={isColorPickerActive ? pickerHoverColor : null} onColorClick={() => setIsColorPickerActive(!isColorPickerActive)} />
           <Canvas shadows camera={{ position: [10, 10, 10], fov: 45 }}>
-            <SimulationEnvironment challengeId={activeChallenge?.id} customObjects={customObjects} robotState={robotState} onPointerDown={(e) => { if (!isColorPickerActive && editorTool === 'ROBOT_MOVE') { const p = e.point; const sd = calculateSensorReadings(p.x, p.z, robotRef.current.rotation, activeChallenge?.id, customObjects); robotRef.current = { ...robotRef.current, x: p.x, z: p.z, y: sd.y, tilt: sd.tilt, roll: sd.roll }; setRobotState(robotRef.current); } }} />
+            <SimulationEnvironment ref={envGroupRef} challengeId={activeChallenge?.id} customObjects={customObjects} robotState={robotState} onPointerDown={(e) => { if (!isColorPickerActive && editorTool === 'ROBOT_MOVE') { const p = e.point; const sd = calculateSensorReadings(p.x, p.z, robotRef.current.rotation, activeChallenge?.id, customObjects); robotRef.current = { ...robotRef.current, x: p.x, z: p.z, y: sd.y, tilt: sd.tilt, roll: sd.roll }; setRobotState(robotRef.current); } }} />
             {completedDrawings.map((p) => (
                 <Line key={p.id} points={p.points} color={p.color} lineWidth={4} raycast={() => null} layers={0} />
             ))}
@@ -355,7 +356,7 @@ const App: React.FC = () => {
             <OrbitControls ref={controlsRef} makeDefault {...orbitProps} />
             <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />
             {isRulerActive && <RulerTool />}
-            {isColorPickerActive && <ColorPickerTool onColorHover={setPickerHoverColor} onColorSelect={(h) => { if (blocklyColorPickCallback) blocklyColorPickCallback(h); setIsColorPickerActive(false); setPickerHoverColor(null); setBlocklyColorPickCallback(null); }} />}
+            {isColorPickerActive && <ColorPickerTool envGroupRef={envGroupRef} onColorHover={setPickerHoverColor} onColorSelect={(h) => { if (blocklyColorPickCallback) blocklyColorPickCallback(h); setIsColorPickerActive(false); setPickerHoverColor(null); setBlocklyColorPickCallback(null); }} />}
           </Canvas>
         </div>
       </main>
