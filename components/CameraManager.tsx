@@ -16,7 +16,8 @@ const CameraManager: React.FC<CameraManagerProps> = ({ robotState, cameraMode, c
     const desiredCameraTarget = useRef(new Vector3());
 
     useFrame(() => {
-        if (!controlsRef.current) return; // Add null check for controlsRef.current
+        if (!controlsRef.current) return;
+
         if (cameraMode === 'FOLLOW') {
             const { x, y, z, rotation } = robotState;
             
@@ -45,10 +46,9 @@ const CameraManager: React.FC<CameraManagerProps> = ({ robotState, cameraMode, c
     });
 
     useEffect(() => {
-        if (!controlsRef.current) return; // Add null check for controlsRef.current
         // When switching to FOLLOW mode, immediately set the camera to the desired position/target
         // to avoid a large jump from the previous mode. This also applies when robotState changes while in FOLLOW mode.
-        if (cameraMode === 'FOLLOW') {
+        if (cameraMode === 'FOLLOW' && controlsRef.current) {
             const { x, y, z, rotation } = robotState;
             const distanceBehind = 7; 
             const heightAbove = 5;    
@@ -59,17 +59,6 @@ const CameraManager: React.FC<CameraManagerProps> = ({ robotState, cameraMode, c
             // Immediately set the camera's position and target
             controlsRef.current.object.position.set(camX, y + heightAbove, camZ);
             controlsRef.current.target.set(x, y + 0.5, z);
-            controlsRef.current.update();
-        } else if (cameraMode === 'HOME') {
-            controlsRef.current.reset(); // Resets to initial position set in Canvas
-            controlsRef.current.minDistance = 1.2; // Restore default zoom limits
-            controlsRef.current.maxDistance = 60;
-            controlsRef.current.update();
-        } else if (cameraMode === 'TOP') {
-            controlsRef.current.object.position.set(0, 20, 0); // Position high up
-            controlsRef.current.target.set(0, 0, 0); // Look at the origin
-            controlsRef.current.minDistance = 0.1; // Allow closer zoom for top view
-            controlsRef.current.maxDistance = 100; // Allow further zoom out
             controlsRef.current.update();
         }
     }, [cameraMode, robotState, controlsRef]); // Dependencies for this effect

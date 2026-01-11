@@ -12,7 +12,6 @@ interface BlocklyEditorProps {
   onVariablesChanged?: (allVarNames: string[], renameInfo?: {oldName: string, newName: string}) => void;
   onShowNumpad: (initialValue: string | number, onConfirm: (newValue: number) => void) => void; // New prop
   onShowColorPicker: (onPick: (newColor: string) => void) => void; // New prop
-  environmentColors: string[]; // NEW PROP: Pass dynamic colors from the environment
 }
 
 export interface BlocklyEditorHandle {
@@ -92,7 +91,7 @@ const VariableModal = ({ isOpen, mode, initialValue, onClose, onConfirm }: { isO
     );
 };
 
-const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onCodeChange, onEval, visibleVariables, onToggleVariable, onVariablesChanged, onShowNumpad, onShowColorPicker, environmentColors }, ref) => {
+const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onCodeChange, onEval, visibleVariables, onToggleVariable, onVariablesChanged, onShowNumpad, onShowColorPicker }, ref) => {
   const blocklyDiv = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<any>(null);
   const [modalConfig, setModalConfig] = useState<{isOpen: boolean, mode: 'create' | 'rename', initialValue?: string, variableId?: string, onResult?: (res: string | null) => void}>({
@@ -204,9 +203,6 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
     // Expose these functions globally for Blockly to use, before initBlockly
     window.showBlocklyNumpad = onShowNumpad;
     window.showBlocklyColorPicker = onShowColorPicker;
-    // The global BlocklyEnvironmentColors is now managed by a separate useEffect.
-    // No direct assignment here to prevent re-injection of Blockly.
-
 
     initBlockly();
     const scratchTheme = getScratchTheme();
@@ -293,7 +289,7 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
           changeNum.setAttribute('name', 'NUM');
           changeNum.innerText = '1';
           setShadow.appendChild(changeNum);
-          changeValue.appendChild(setShadow);
+          changeValue.appendChild(changeShadow);
           changeBlock.appendChild(changeValue);
           xmlList.push(changeBlock);
         }
@@ -337,20 +333,10 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
         if (workspaceRef.current) workspaceRef.current.dispose();
         workspaceRef.current = null;
         // Clean up on unmount
-        (window as any).showBlocklyNumpad = undefined; // Assign undefined instead of delete to avoid TS2790
-        (window as any).showBlocklyColorPicker = undefined; // Assign undefined instead of delete to avoid TS2790
-        // The global BlocklyEnvironmentColors is managed by a separate useEffect. No need to delete here.
+        delete window.showBlocklyNumpad;
+        delete window.showBlocklyColorPicker;
     };
-  }, [generateAndNotify, notifyVariablesChange, onShowNumpad, onShowColorPicker]); // Removed environmentColors from dependencies
-
-  useEffect(() => {
-    // This effect ensures `window.BlocklyEnvironmentColors` is always up-to-date
-    // It's essential for the FieldDropperColor to pick up new colors when the environment changes
-    if (environmentColors) {
-      window.BlocklyEnvironmentColors = environmentColors;
-    }
-  }, [environmentColors]);
-
+  }, [generateAndNotify, notifyVariablesChange, onShowNumpad, onShowColorPicker]);
 
   useEffect(() => {
     const timer = setTimeout(updateCheckboxPositions, 50);

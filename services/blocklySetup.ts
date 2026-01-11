@@ -1,5 +1,4 @@
 
-
 // Initialize Blockly Setup
 
 // --- CONSTANTS ---
@@ -174,23 +173,22 @@ export const initBlockly = () => {
     showEditor_() {
         const pickerDiv = document.createElement('div');
         pickerDiv.className = 'p-3 bg-white rounded-xl shadow-xl border-2 border-slate-100 flex flex-col gap-3 min-w-[160px]';
-        
-        // --- Dynamic Colors from Environment ---
-        const environmentColors = window.BlocklyEnvironmentColors || [];
-        const uniqueColors = new Set<string>();
-
-        // Add canonical colors first to ensure they are always present
-        Object.values(CANONICAL_COLOR_MAP_FOR_BLOCKLY).forEach(color => uniqueColors.add(color.toUpperCase()));
-        // Add environment colors
-        environmentColors.forEach(color => uniqueColors.add(color.toUpperCase()));
-
-        const displayColors = Array.from(uniqueColors).sort();
-        // --- End Dynamic Colors ---
-
         const grid = document.createElement('div');
         grid.className = 'grid grid-cols-4 gap-2';
-        
-        displayColors.forEach(c => {
+        // Updated colors to align with CANONICAL_COLOR_MAP_FOR_BLOCKLY for better consistency
+        const colors = [
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['red'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['green'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['blue'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['yellow'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['orange'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['purple'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['cyan'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['magenta'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['white'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['black'],
+        ];
+        colors.forEach(c => {
             const btn = document.createElement('button');
             btn.className = 'w-8 h-8 rounded-lg border border-slate-200 transition-transform hover:scale-110 active:scale-95 shadow-sm';
             btn.style.backgroundColor = c;
@@ -198,14 +196,11 @@ export const initBlockly = () => {
             grid.appendChild(btn);
         });
         pickerDiv.appendChild(grid);
-        
-        // Always include the dropper button
         const dropperBtn = document.createElement('button');
         dropperBtn.className = 'flex items-center justify-center gap-2 w-full py-2.5 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-xl font-bold transition-all border border-pink-100 shadow-sm';
         dropperBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m2 22 5-5"/><path d="M9.5 14.5 16 8l3 3-6.5 6.5-3-3z"/><path d="m18 6 3-3"/><path d="M20.9 7.1a2 2 0 1 0-2.8-2.8l-1.4 1.4 2.8 2.8 1.4-1.4z"/></svg><span class="text-xs uppercase tracking-tight">Pick from Stage</span>`;
         dropperBtn.onclick = () => { Blockly.DropDownDiv.hideIfOwner(this); if (window.showBlocklyColorPicker) { window.showBlocklyColorPicker((newColor: string) => { this.setValue(newColor); }); } };
         pickerDiv.appendChild(dropperBtn);
-        
         Blockly.DropDownDiv.getContentDiv().appendChild(pickerDiv);
         Blockly.DropDownDiv.setColour('#ffffff', '#ffffff');
         Blockly.DropDownDiv.showPositionedByField(this, () => {});
@@ -219,7 +214,7 @@ export const initBlockly = () => {
 
   Blockly.Blocks['event_program_start'] = {
     init: function() {
-      this.appendDummyInput().appendField("when").appendField(new Blockly.FieldImage("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%234C97FF' stroke='%234C97FF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E", 20, 20, "Flag")).appendField("clicked");
+      this.appendDummyInput().appendField("when").appendField(new Blockly.FieldImage("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%234C97FF' stroke='%234C97FF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E", 20, 20, "Flag")).appendField("clicked");
       this.setNextStatement(true, null); this.setStyle('events_blocks');
     }
   };

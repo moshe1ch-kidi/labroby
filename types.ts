@@ -61,17 +61,14 @@ export interface SimulationHistory {
 
 declare global {
   interface Window {
-    showBlocklyNumpad?: ( // Marked as optional
+    showBlocklyNumpad: (
       initialValue: string | number, 
       onConfirm: (newValue: number) => void
     ) => void;
 
-    showBlocklyColorPicker?: ( // Marked as optional
+    showBlocklyColorPicker: (
       onPick: (newColor: string) => void
     ) => void;
-
-    // NEW: Dynamic environment colors for Blockly
-    BlocklyEnvironmentColors: string[];
   }
 }
 
