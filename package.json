@@ -15,7 +15,7 @@
     "@react-three/fiber": "^8.15.11",
     "@react-three/drei": "^9.88.16",
     "blockly": "^10.2.2",
-    "lucide-react": "^0.344.0"
+    "lucide-react": "0.344.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",
