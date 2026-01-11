@@ -1,4 +1,4 @@
-
+ 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -7,6 +7,7 @@ interface ColorPickerToolProps {
     isActive: boolean;
     onColorSelect: (hex: string) => void;
     onColorHover: (hex: string) => void; 
+    onDeactivate: () => void; // New prop to signal deactivation
 }
 
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -22,7 +23,7 @@ const CANONICAL_COLOR_MAP: Record<string, string> = {
     'white': '#FFFFFF',
 };
 
-const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSelect, onColorHover }) => {
+const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSelect, onColorHover, onDeactivate }) => {
     const { gl, scene, camera } = useThree();
     
     const raycaster = useRef(new THREE.Raycaster());
@@ -30,7 +31,6 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
     
     // Store raw screen coordinates from global events
     const mouseScreenCoordsRef = useRef<{clientX: number, clientY: number} | null>(null);
-    const isPointerDownRef = useRef(false);
     
     // State to hold the last picked color for consistent UI updates
     const [lastPickedColor, setLastPickedColor] = useState<string>("#FFFFFF");
@@ -168,15 +168,8 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
         
         // Update state for SensorDashboard preview (if needed for the hover effect)
         onColorHover(color);
-        setLastPickedColor(color); // Keep track of the last picked color for click action
+        setLastPickedColor(color); // Keep track of the last picked color for hover feedback
         lastPickedPointRef.current.copy(point); // Keep track of the last picked point
-
-        // If pointerdown happened, trigger select and reset
-        if (isPointerDownRef.current) {
-            onColorSelect(color);
-            isPointerDownRef.current = false; // Reset the flag
-            // Do NOT clear mouseScreenCoordsRef.current here; it would stop subsequent hover updates until next move.
-        }
     });
 
     // --- Global Pointer Event Handlers ---
@@ -188,23 +181,29 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
         }
     }, [isActive]);
 
+    // MODIFIED: This now directly triggers onColorSelect and deactivates the tool
     const handleWindowPointerDown = useCallback((event: PointerEvent) => {
         if (isActive) {
             event.preventDefault(); // Prevent default browser actions (like text selection)
             event.stopPropagation(); // Stop event from bubbling up
-            isPointerDownRef.current = true;
-            // Capture position immediately for click
-            mouseScreenCoordsRef.current = { clientX: event.clientX, clientY: event.clientY }; 
+            
+            // Immediately sample color and trigger select
+            if (mouseScreenCoordsRef.current) { // Ensure we have valid coordinates
+                const { clientX, clientY } = mouseScreenCoordsRef.current;
+                const { color } = sampleColor(clientX, clientY);
+                onColorSelect(color);
+            } else {
+                // Fallback if mouseScreenCoordsRef not yet updated (e.g., first click)
+                const { color } = sampleColor(event.clientX, event.clientY);
+                onColorSelect(color);
+            }
+            onDeactivate(); // Deactivate the tool immediately after selection
         }
-    }, [isActive]);
+    }, [isActive, onColorSelect, onDeactivate, sampleColor]);
 
     const handleWindowPointerUp = useCallback(() => {
-        if (isActive) {
-            isPointerDownRef.current = false; // Release click state
-            // No need for stopPropagation/preventDefault on pointerup unless specific browser default
-            // behavior needs to be suppressed here.
-        }
-    }, [isActive]);
+        // No action needed here for `onColorSelect` anymore
+    }, []);
 
 
     // --- useEffect for global listeners and cursor management ---
@@ -213,9 +212,13 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
             document.body.style.cursor = 'crosshair';
             window.addEventListener('pointermove', handleWindowPointerMove, { capture: true });
             window.addEventListener('pointerdown', handleWindowPointerDown, { capture: true });
-            window.addEventListener('pointerup', handleWindowPointerUp, { capture: true }); // Listen for pointerup
+            window.addEventListener('pointerup', handleWindowPointerUp, { capture: true }); // Listen for pointerup (still needed for cleanup, but no action)
+            // Initialize mouse coordinates for immediate hover feedback if mouse is already over canvas
+            if (!mouseScreenCoordsRef.current) {
+                mouseScreenCoordsRef.current = { clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 };
+            }
             // Set initial picked color and point
-            const { color, point } = sampleColor(mouseScreenCoordsRef.current?.clientX || 0, mouseScreenCoordsRef.current?.clientY || 0);
+            const { color, point } = sampleColor(mouseScreenCoordsRef.current.clientX, mouseScreenCoordsRef.current.clientY);
             setLastPickedColor(color);
             lastPickedPointRef.current.copy(point);
 
@@ -227,7 +230,6 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
             
             // Reset refs when deactivating
             mouseScreenCoordsRef.current = null;
-            isPointerDownRef.current = false;
             indicatorMeshRef.current = null!; // Explicitly clear the ref
         }
 
