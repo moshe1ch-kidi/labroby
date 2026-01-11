@@ -1,4 +1,4 @@
-  
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -337,30 +337,16 @@ const App: React.FC = () => {
 
   const showToast = useCallback((message: string, type: 'success' | 'info' | 'error' = 'success') => { setToast({ message, type }); setTimeout(() => setToast(null), 4000); }, []);
 
-  // Effect to scan environment and update Blockly palette whenever objects change
+  // Sync environment colors with Blockly palette
   useEffect(() => {
     const environmentColors: string[] = [];
-    
-    // 1. Scan custom objects
-    customObjects.forEach(obj => {
-        if (obj.color) environmentColors.push(obj.color);
-    });
+    customObjects.forEach(obj => { if (obj.color) environmentColors.push(obj.color); });
+    if (activeChallenge?.id === 'c21' || activeChallenge?.id === 'c12') environmentColors.push('#000000');
+    if (activeChallenge?.id === 'c12') environmentColors.push('#FF0000', '#0000FF', '#22C55E', '#FFFF00');
+    if (activeChallenge?.id === 'c10') environmentColors.push('#64748B');
+    if (activeChallenge?.id === 'c15' || activeChallenge?.id === 'c14') environmentColors.push('#0000FF', '#FF0000');
 
-    // 2. Scan challenge-specific features
-    if (activeChallenge?.id === 'c21' || activeChallenge?.id === 'c12') {
-        environmentColors.push('#000000'); // Black track
-    }
-    if (activeChallenge?.id === 'c12') {
-        environmentColors.push('#FF0000', '#0000FF', '#22C55E', '#FFFF00'); // Ellipse markers
-    }
-    if (activeChallenge?.id === 'c10') {
-        environmentColors.push('#64748B'); // Gray road
-    }
-    if (activeChallenge?.id === 'c15' || activeChallenge?.id === 'c14') {
-        environmentColors.push('#0000FF', '#FF0000'); // Blue/Red markers
-    }
-
-    // Update the service palette
+    // Call service update
     updateBlocklyPalette(environmentColors);
   }, [activeChallenge, customObjects]);
 
@@ -750,7 +736,7 @@ const App: React.FC = () => {
         
         <button 
           onClick={() => setShowChallenges(true)} 
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${activeChallenge ? 'bg-yellow-500 text-slate-900 hover:bg-yellow-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${activeChallenge ? activeChallenge.title : "Challenges"}`}
         >
           <Trophy size={16} /> 
           {activeChallenge ? activeChallenge.title : "Challenges"}
