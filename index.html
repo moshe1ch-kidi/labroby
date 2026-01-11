@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoboCode - Virtual Robot</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -51,13 +50,11 @@
         stroke: none !important;
       }
 
-      /* החזרת הצבע לאפור לאחר אישור הזיהוי */
       .blocklyScrollbarHandle {
         fill: #d1d5db !important;
         rx: 4px;
       }
 
-      /* העלמת פס הגלילה של ה-Flyout (התפריט השמאלי) באופן מוחלט */
       .blocklyFlyoutScrollbar {
         display: none !important;
         visibility: hidden !important;
@@ -177,26 +174,10 @@
     <script src="https://unpkg.com/blockly@10.4.3/python_compressed.js"></script>
     <script src="https://unpkg.com/blockly@10.4.3/msg/en.js"></script>
 
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "three": "https://esm.sh/three@^0.182.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
-    "@react-three/drei": "https://esm.sh/@react-three/drei@^10.7.7",
-    "@react-three/fiber": "https://esm.sh/@react-three/fiber@^9.4.2",
-    "vite": "https://esm.sh/vite@^7.3.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "threshold": "https://esm.sh/threshold@^0.3.0",
-    "this": "https://esm.sh/this@^1.1.0",
-    "react-dom": "https://esm.sh/react-dom@^19.2.3"
-  }
-}
-</script>
-</head>
+    </head>
   <body>
     <div id="root"></div>
+    
+    <script type="module" src="index.tsx"></script>
   </body>
 </html>
