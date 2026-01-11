@@ -1,10 +1,10 @@
 
 import React, { useEffect, useRef, useCallback } from 'react';
-import { useThree, useFrame } from '@react-three/fiber';
+import { useThree } from '@react-three/fiber';
 import * as THREE from 'three'; // Import all of Three.js
 
 interface ColorPickerToolProps {
-    isActive: boolean; // Renamed from isColorPickerActive
+    isActive: boolean;
     onColorSelect: (hex: string) => void;
     onColorHover: (hex: string) => void; 
 }
@@ -25,10 +25,12 @@ const CANONICAL_COLOR_MAP: Record<string, string> = {
 
 const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSelect, onColorHover }) => {
     const { gl, scene, camera } = useThree();
+    
+    // Refs for raycasting
     const raycaster = useRef(new THREE.Raycaster());
     const mouse = useRef(new THREE.Vector2());
     
-    // Ref for the visual indicator group
+    // Refs for the visual indicator group
     const indicatorGroupRef = useRef<THREE.Group | null>(null);
     const indicatorMeshRef = useRef<THREE.Mesh | null>(null); // For the actual ring mesh
 
@@ -80,13 +82,12 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
     // Function to update indicator position (called by pointermove/click)
     const updateIndicatorPosition = useCallback((point: THREE.Vector3) => {
         if (indicatorGroupRef.current) {
-            indicatorGroupRef.current.position.copy(point);
-            // We want the ring to always be slightly above the surface where we picked
-            indicatorGroupRef.current.position.y += 0.05; 
+            // Use set() for robustness, applying the y offset
+            indicatorGroupRef.current.position.set(point.x, point.y + 0.05, point.z);
         }
     }, []);
 
-    // --- Core Raycasting Logic (adapted from existing code) ---
+    // --- Core Raycasting Logic ---
     const sampleColor = useCallback((clientX: number, clientY: number) => {
         const rect = gl.domElement.getBoundingClientRect();
         mouse.current.x = ((clientX - rect.left) / rect.width) * 2 - 1;
@@ -102,25 +103,34 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
         for (const hit of intersects) {
             const object = hit.object;
             
-            // Skip helper objects and robot parts
+            // Skip helper objects and robot parts that should not be picked
             if (
                 object.name === 'picker-visual-indicator-group' || 
                 object.name === 'picker-visual-indicator-ring' ||
-                object.name === 'grid-helper' ||
+                object.name.includes('helper') || // Generic helper objects
                 object.name === 'start-marker' || 
-                object.userData?.isRobotPart
+                object.userData?.isRobotPart || // Robot components
+                object.name === 'custom-wall-wireframe' // Ruler tool's wireframe
             ) {
                 continue;
             }
+            
+            // Special handling for the transparent plane used by RulerTool
+            if (object.name === 'ruler-tool-plane' && !isActive) {
+                continue; // Only interact with ruler if ruler is active, not color picker.
+            }
+
 
             // If it's the ground plane, store it as a potential fallback
             if (object.name === 'ground-plane') {
                 if (object instanceof THREE.Mesh && object.material) {
                     const materials = Array.isArray(object.material) ? object.material : [object.material];
                     for (const mat of materials) {
-                        if (mat.color instanceof THREE.Color) {
-                            groundPlaneHit = { color: "#" + mat.color.getHexString().toUpperCase(), point: hit.point };
-                            break; 
+                        if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial) {
+                            if (mat.color instanceof THREE.Color) {
+                                groundPlaneHit = { color: "#" + mat.color.getHexString().toUpperCase(), point: hit.point };
+                                break; 
+                            }
                         }
                     }
                 }
@@ -132,11 +142,16 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
                 const materials = Array.isArray(object.material) ? object.material : [object.material];
                 
                 for (const mat of materials) {
+                    if (!(mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial)) {
+                        continue; // Skip non-standard/basic materials
+                    }
+
                     // Prioritize color over emissive, but check both
                     let potentialColor: THREE.Color | undefined;
                     if (mat.color instanceof THREE.Color) {
                         potentialColor = mat.color;
-                    } else if ((mat as THREE.MeshStandardMaterial).emissive instanceof THREE.Color) {
+                    } 
+                    if (!potentialColor && (mat as THREE.MeshStandardMaterial).emissive instanceof THREE.Color) {
                         potentialColor = (mat as THREE.MeshStandardMaterial).emissive;
                     }
 
@@ -144,8 +159,8 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
                         const hex = "#" + potentialColor.getHexString().toUpperCase();
                         
                         // If we find a non-white, non-transparent color, this is the best hit.
-                        const opacity = (mat as THREE.MeshStandardMaterial).opacity !== undefined ? (mat as THREE.MeshStandardMaterial).opacity : 1;
-                        if (hex !== '#FFFFFF' && opacity > 0) {
+                        const opacity = mat.opacity !== undefined ? mat.opacity : 1;
+                        if (hex !== '#FFFFFF' && opacity > 0.1) { // Consider nearly transparent objects as no color
                             pickedHex = hex;
                             pickedPoint = hit.point;
                             break; // Found a good color, stop searching materials for this object
@@ -163,9 +178,9 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
             return { color: groundPlaneHit.color, point: groundPlaneHit.point };
         }
         
-        // Default to white if nothing specific is found. Fallback point if no intersect.
+        // Fallback to white at a default point if no intersect found
         return { color: "#FFFFFF", point: intersects[0]?.point || new THREE.Vector3(0, 0, 0) }; 
-    }, [gl, camera, scene, mouse, raycaster]);
+    }, [gl, camera, scene, mouse, raycaster, isActive]); // isActive added to dependencies for ruler-tool-plane check
 
     // --- Global Pointer Event Handler ---
     const handleGlobalPointerEvent = useCallback((event: PointerEvent) => {
@@ -187,7 +202,7 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
         // If it's a click, trigger select event
         if (event.type === 'pointerdown') {
             onColorSelect(color);
-            // Deactivate picker after selection. This will be handled by App.tsx setting isActive to false.
+            // Deactivate picker after selection is handled by App.tsx setting isActive to false.
         }
     }, [isActive, sampleColor, onColorHover, onColorSelect, updateIndicatorPosition]);
 
