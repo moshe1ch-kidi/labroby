@@ -1,4 +1,4 @@
-
+ 
 // Initialize Blockly Setup
 
 // --- CONSTANTS ---
@@ -141,7 +141,13 @@ export const initBlockly = () => {
     }
     showEditor_() {
         if (window.showBlocklyNumpad) {
-            window.showBlocklyNumpad(this.getValue(), (newValue) => { this.setValue(newValue); });
+            // Get screen coordinates of the field
+            const bBox = this.fieldGroup_.getBoundingClientRect();
+            window.showBlocklyNumpad(
+                this.getValue(), 
+                (newValue) => { this.setValue(newValue); },
+                { x: bBox.left, y: bBox.top, width: bBox.width, height: bBox.height }
+            );
         } else { super.showEditor_(); }
     }
   }
@@ -550,7 +556,6 @@ export const initBlockly = () => {
   // --- DEFINE PYTHON GENERATORS ---
   pythonGenerator.forBlock['event_program_start'] = function() { return `# Program starts here\n`; };
   pythonGenerator.forBlock['event_when_message'] = function(block: any) { const msg = block.getFieldValue('MESSAGE'); const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_message_${msg}():\n${branch || '  pass'}\n\nrobot.on_message('${msg}', on_message_${msg})\n`; };
-  pythonGenerator.forBlock['event_send_message'] = function(block: any) { const msg = block.getFieldValue('MESSAGE'); return `robot.send_message('${msg}')\n`; };
   pythonGenerator.forBlock['event_when_obstacle'] = function(block: any) { const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_obstacle():\n${branch || '  pass'}\n\nrobot.on_obstacle(on_obstacle)\n`; };
   pythonGenerator.forBlock['event_when_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); const branch = pythonGenerator.statementToCode(block, 'DO'); const funcSuffix = color.startsWith('#') ? color.replace('#', '') : color; return `def on_color_${funcSuffix}():\n${branch || '  pass'}\n\nrobot.on_color('${color}', on_color_${funcSuffix})\n`; };
   pythonGenerator.forBlock['event_when_ultrasonic'] = function(block: any) { const threshold = block.getFieldValue('THRESHOLD'); const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_distance_detected():\n${branch || '  pass'}\n\nrobot.on_distance(${threshold}, on_distance_detected)\n`; };
