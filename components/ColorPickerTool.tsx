@@ -1,265 +1,121 @@
- 
-import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { useThree, useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+
+import React, { useState, useCallback, useMemo } from 'react';
+import { Vector3, Mesh, Color, Object3D } from 'three';
+import { useThree } from '@react-three/fiber';
 
 interface ColorPickerToolProps {
-    isActive: boolean;
-    onColorSelect: (hex: string) => void;
-    onColorHover: (hex: string) => void; 
-    onDeactivate: () => void; // New prop to signal deactivation
+    onColorHover: (hexColor: string) => void;
+    onColorSelect: (hexColor: string) => void;
 }
 
-const CANONICAL_COLOR_MAP: Record<string, string> = {
-    'red': '#EF4444',
-    'green': '#22C55E',
-    'blue': '#3B82F6',
-    'yellow': '#EAB308',
-    'orange': '#F97316',
-    'purple': '#A855F7',
-    'cyan': '#06B6D4',
-    'magenta': '#EC4899',
-    'black': '#000000',
-    'white': '#FFFFFF',
-};
+const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ onColorHover, onColorSelect }) => {
+    const { raycaster, scene, camera, mouse } = useThree();
 
-const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSelect, onColorHover, onDeactivate }) => {
-    const { gl, scene, camera } = useThree();
-    
-    const raycaster = useRef(new THREE.Raycaster());
-    const mouse = useRef(new THREE.Vector2()); // Stores normalized device coordinates (NDC)
-    
-    // Store raw screen coordinates from global events
-    const mouseScreenCoordsRef = useRef<{clientX: number, clientY: number} | null>(null);
-    
-    // State to hold the last picked color for consistent UI updates
-    const [lastPickedColor, setLastPickedColor] = useState<string>("#FFFFFF");
-    const lastPickedPointRef = useRef(new THREE.Vector3(0,0,0)); // Store the last valid point
+    // Memoize a function that gets all potentially pickable meshes in the scene.
+    // This avoids rebuilding the list on every render, but will re-run if `scene` itself changes.
+    // However, scene reference usually stays constant.
+    const getPickableMeshes = useCallback(() => {
+        // Fix: Changed `THREE.Mesh` to `Mesh` as `Mesh` is already imported directly.
+        const pickable: Mesh[] = [];
+        scene.traverse((obj: Object3D) => {
+            if (obj instanceof Mesh) {
+                // Exclude known non-pickable objects immediately
+                if (
+                    obj.name === 'picker-interaction-plane' ||
+                    obj.name === 'grid-helper' ||
+                    obj.userData?.isRobotPart
+                ) {
+                    return; // Skip this object and its children if traversing deeply
+                }
+                pickable.push(obj);
+            }
+        });
+        return pickable;
+    }, [scene]);
 
-    // Ref for the visual indicator mesh
-    const indicatorMeshRef = useRef<THREE.Mesh>(null!); // non-null assertion as R3F will set it
 
-    // --- Core Raycasting Logic (now defensive and safe) ---
-    const sampleColor = useCallback((clientX: number, clientY: number) => {
-        // Critical check: Ensure gl.domElement is available before calling getBoundingClientRect
-        if (!gl.domElement) {
-            console.warn("ColorPickerTool: gl.domElement is not available for raycasting.");
-            return { color: "#FFFFFF", point: new THREE.Vector3(0, 0, 0) };
-        }
-        
-        const rect = gl.domElement.getBoundingClientRect();
-        mouse.current.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.current.y = -(((clientY - rect.top) / rect.height) * 2 - 1);
+    const sampleColorUnderMouse = useCallback(() => {
+        raycaster.setFromCamera(mouse, camera);
 
-        raycaster.current.setFromCamera(mouse.current, camera);
-        
-        // Only intersect visible objects for performance and correctness
-        const intersects = raycaster.current.intersectObjects(scene.children, true)
-            .filter(hit => hit.object.visible); // Filter for visible objects
+        // Get the pre-filtered list of pickable meshes
+        const pickableMeshes = getPickableMeshes();
 
-        let groundPlaneHit: { color: string, point: THREE.Vector3 } | null = null;
-        let pickedHex: string | null = null;
-        let pickedPoint: THREE.Vector3 | null = null;
+        // Now, raycast only against the pickable meshes, without recursive traversal (false)
+        const intersects = raycaster.intersectObjects(pickableMeshes, false); 
+
+        let groundPlaneHit: { color: string, point: Vector3 } | null = null;
 
         for (const hit of intersects) {
             const object = hit.object;
             
-            // Critical checks: ensure object is a valid, renderable Mesh before proceeding
-            // Also ensure it's not null/undefined
-            if (!object || !(object instanceof THREE.Mesh)) {
-                continue;
-            }
-
-            // Skip helper objects and robot parts that should not be picked
-            if (
-                object.name === 'picker-visual-indicator-ring' || // Self-exclusion
-                object.name.includes('helper') || // Generic helper objects like GridHelper
-                object.name === 'start-marker' || 
-                (object.userData && object.userData.isRobotPart) || // Robot components (identified via userData)
-                object.name.includes('custom-wall-wireframe') || // Ruler tool's wireframe
-                object.name === 'ruler-tool-plane' 
-            ) {
-                continue;
-            }
-
-            // Ensure point is defined before cloning
-            const currentHitPoint = hit.point ? hit.point.clone() : new THREE.Vector3();
-
-            // If it's the ground plane, store it as a potential fallback
             if (object.name === 'ground-plane') {
-                if (object.material) { // Ensure material exists
+                if (object.material) {
                     const materials = Array.isArray(object.material) ? object.material : [object.material];
                     for (const mat of materials) {
-                        if (mat && (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial)) {
-                            if (mat.color instanceof THREE.Color) {
-                                groundPlaneHit = { color: "#" + mat.color.getHexString().toUpperCase(), point: currentHitPoint };
-                                break; 
-                            }
-                        }
-                    }
-                }
-                continue; // Continue searching for other objects on top of the ground
-            }
-
-            // For all other relevant meshes, try to get their color
-            if (object.material) { // Ensure material exists
-                const materials = Array.isArray(object.material) ? object.material : [object.material];
-                
-                for (const mat of materials) {
-                    if (!mat || (!(mat instanceof THREE.MeshStandardMaterial) && !(mat instanceof THREE.MeshBasicMaterial))) {
-                        continue; // Skip non-standard/basic materials
-                    }
-
-                    let potentialColor: THREE.Color | undefined;
-                    if (mat.color instanceof THREE.Color) {
-                        potentialColor = mat.color;
-                    } 
-                    if (!potentialColor && (mat as THREE.MeshStandardMaterial).emissive instanceof THREE.Color) {
-                        potentialColor = (mat as THREE.MeshStandardMaterial).emissive;
-                    }
-
-                    if (potentialColor) {
-                        const hex = "#" + potentialColor.getHexString().toUpperCase();
-                        const opacity = mat.opacity !== undefined ? mat.opacity : 1;
-                        if (hex !== '#FFFFFF' && opacity > 0.1) { // Prioritize opaque, non-white colors
-                            pickedHex = hex;
-                            pickedPoint = currentHitPoint;
+                        if (mat.color && mat.color instanceof Color) {
+                            groundPlaneHit = { color: "#" + mat.color.getHexString().toUpperCase(), point: hit.point };
                             break; 
                         }
                     }
                 }
+                continue; 
             }
-            if (pickedHex) break; 
+
+            // For all other relevant meshes, try to get their color
+            if (object.material) {
+                const materials = Array.isArray(object.material) ? object.material : [object.material];
+                
+                for (const mat of materials) {
+                    if (mat.color && mat.color instanceof Color) {
+                        const hex = "#" + mat.color.getHexString().toUpperCase();
+                        
+                        // If we find a non-white, non-transparent color, this is the best hit.
+                        // Prioritize this immediately.
+                        if (hex !== '#FFFFFF' && mat.opacity > 0) {
+                            return hex; 
+                        }
+                    }
+                }
+            }
         }
 
-        if (pickedHex && pickedPoint) {
-            return { color: pickedHex, point: pickedPoint };
-        } else if (groundPlaneHit) {
-            return { color: groundPlaneHit.color, point: groundPlaneHit.point };
+        if (groundPlaneHit) {
+            return groundPlaneHit.color;
         }
         
-        // Fallback: If no object is hit, return white at the origin (or robot's base for context)
-        // Ensure to return a new Vector3 in case hit.point was undefined for all intersects
-        return { color: "#FFFFFF", point: new THREE.Vector3(0, 0, 0) }; 
-    }, [gl, camera, scene]);
+        return "#FFFFFF";
+    }, [raycaster, camera, mouse, getPickableMeshes]);
 
-    // --- useFrame for Raycasting and Indicator Updates ---
-    useFrame(() => {
-        // Only run if active, mouse coords are available, and the indicator mesh is mounted by R3F
-        if (!isActive || !mouseScreenCoordsRef.current || !indicatorMeshRef.current) {
-            return;
-        }
+    const handlePointerMove = (e: any) => {
+        e.stopPropagation();
+        const hex = sampleColorUnderMouse();
+        if (hex) onColorHover(hex);
+    };
 
-        const { clientX, clientY } = mouseScreenCoordsRef.current;
-        const { color, point } = sampleColor(clientX, clientY);
+    const handleClick = (e: any) => {
+        e.stopPropagation();
+        const hex = sampleColorUnderMouse();
+        if (hex) onColorSelect(hex);
+    };
 
-        // Update indicator's position and color.
-        indicatorMeshRef.current.position.set(point.x, point.y + 0.05, point.z);
-        
-        // Update the indicator's color to reflect the picked color
-        const materials = Array.isArray(indicatorMeshRef.current.material) 
-                          ? indicatorMeshRef.current.material 
-                          : [indicatorMeshRef.current.material];
-        for (const mat of materials) {
-            if (mat instanceof THREE.MeshBasicMaterial) {
-                mat.color.set(color);
-            }
-        }
-        
-        // Update state for SensorDashboard preview (if needed for the hover effect)
-        onColorHover(color);
-        setLastPickedColor(color); // Keep track of the last picked color for hover feedback
-        lastPickedPointRef.current.copy(point); // Keep track of the last picked point
-    });
+    const handlePointerOut = () => {};
 
-    // --- Global Pointer Event Handlers ---
-    const handleWindowPointerMove = useCallback((event: PointerEvent) => {
-        if (isActive) {
-            event.preventDefault(); // Prevent default browser actions (like text selection)
-            event.stopPropagation(); // Stop event from bubbling up to other elements
-            mouseScreenCoordsRef.current = { clientX: event.clientX, clientY: event.clientY };
-        }
-    }, [isActive]);
-
-    // MODIFIED: This now directly triggers onColorSelect and deactivates the tool
-    const handleWindowPointerDown = useCallback((event: PointerEvent) => {
-        if (isActive) {
-            event.preventDefault(); // Prevent default browser actions (like text selection)
-            event.stopPropagation(); // Stop event from bubbling up
-            
-            // Immediately sample color and trigger select
-            if (mouseScreenCoordsRef.current) { // Ensure we have valid coordinates
-                const { clientX, clientY } = mouseScreenCoordsRef.current;
-                const { color } = sampleColor(clientX, clientY);
-                onColorSelect(color);
-            } else {
-                // Fallback if mouseScreenCoordsRef not yet updated (e.g., first click)
-                const { color } = sampleColor(event.clientX, event.clientY);
-                onColorSelect(color);
-            }
-            onDeactivate(); // Deactivate the tool immediately after selection
-        }
-    }, [isActive, onColorSelect, onDeactivate, sampleColor]);
-
-    const handleWindowPointerUp = useCallback(() => {
-        // No action needed here for `onColorSelect` anymore
-    }, []);
-
-
-    // --- useEffect for global listeners and cursor management ---
-    useEffect(() => {
-        if (isActive) {
-            document.body.style.cursor = 'crosshair';
-            window.addEventListener('pointermove', handleWindowPointerMove, { capture: true });
-            window.addEventListener('pointerdown', handleWindowPointerDown, { capture: true });
-            window.addEventListener('pointerup', handleWindowPointerUp, { capture: true }); // Listen for pointerup (still needed for cleanup, but no action)
-            // Initialize mouse coordinates for immediate hover feedback if mouse is already over canvas
-            if (!mouseScreenCoordsRef.current) {
-                mouseScreenCoordsRef.current = { clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 };
-            }
-            // Set initial picked color and point
-            const { color, point } = sampleColor(mouseScreenCoordsRef.current.clientX, mouseScreenCoordsRef.current.clientY);
-            setLastPickedColor(color);
-            lastPickedPointRef.current.copy(point);
-
-        } else {
-            document.body.style.cursor = 'default';
-            window.removeEventListener('pointermove', handleWindowPointerMove, { capture: true });
-            window.removeEventListener('pointerdown', handleWindowPointerDown, { capture: true });
-            window.removeEventListener('pointerup', handleWindowPointerUp, { capture: true }); // Clean up pointerup
-            
-            // Reset refs when deactivating
-            mouseScreenCoordsRef.current = null;
-            indicatorMeshRef.current = null!; // Explicitly clear the ref
-        }
-
-        return () => { // Cleanup on unmount or isActive change
-            document.body.style.cursor = 'default';
-            window.removeEventListener('pointermove', handleWindowPointerMove, { capture: true });
-            window.removeEventListener('pointerdown', handleWindowPointerDown, { capture: true });
-            window.removeEventListener('pointerup', handleWindowPointerUp, { capture: true });
-            indicatorMeshRef.current = null!; // Ensure ref is cleared on final unmount
-        };
-    }, [isActive, handleWindowPointerMove, handleWindowPointerDown, handleWindowPointerUp, sampleColor]); // Added sampleColor to dependencies for initial call
-
-    // Render the visual indicator as an R3F component, only when active
-    return isActive ? (
-        <mesh 
-            ref={indicatorMeshRef} 
-            rotation-x={-Math.PI / 2} 
-            position={lastPickedPointRef.current.toArray()} // Use the last picked point for initial position
-            name="picker-visual-indicator-ring"
-        >
-            <ringGeometry args={[0.15, 0.22, 32]} />
-            <meshBasicMaterial 
-                color={new THREE.Color("#ec4899")} // Default color for the indicator, will be updated in useFrame
-                transparent 
-                opacity={0.9} 
-                depthWrite={false} 
-                toneMapped={false} 
-            />
-        </mesh>
-    ) : null;
+    return (
+        <group>
+            {/* משטח אינטראקציה בלתי נראה שתופס את העכבר */}
+            <mesh 
+                name="picker-interaction-plane"
+                rotation={[-Math.PI / 2, 0, 0]} 
+                position={[0, 0.05, 0]} 
+                onPointerMove={handlePointerMove}
+                onPointerOut={handlePointerOut}
+                onClick={handleClick}
+            >
+                <planeGeometry args={[200, 200]} />
+                <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+        </group>
+    );
 };
 
 export default ColorPickerTool;
