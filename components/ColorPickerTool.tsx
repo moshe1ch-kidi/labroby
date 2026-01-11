@@ -1,7 +1,7 @@
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
-import * as THREE from 'three'; // Import all of Three.js
+import * as THREE from 'three';
 
 interface ColorPickerToolProps {
     isActive: boolean;
@@ -9,7 +9,6 @@ interface ColorPickerToolProps {
     onColorHover: (hex: string) => void; 
 }
 
-// Canonical map for consistent color names (copy from App.tsx/SensorDashboard)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
     'red': '#EF4444',
     'green': '#22C55E',
@@ -26,28 +25,28 @@ const CANONICAL_COLOR_MAP: Record<string, string> = {
 const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSelect, onColorHover }) => {
     const { gl, scene, camera } = useThree();
     
-    // Refs for raycasting
     const raycaster = useRef(new THREE.Raycaster());
-    const mouse = useRef(new THREE.Vector2());
+    const mouse = useRef(new THREE.Vector2()); // Stores normalized device coordinates (NDC)
     
-    // Ref for the visual indicator mesh (now managed by R3F)
+    // Store raw screen coordinates from global events
+    const mouseScreenCoordsRef = useRef<{clientX: number, clientY: number} | null>(null);
+    const isPointerDownRef = useRef(false);
+    
+    // State to hold the last picked color for consistent UI updates
+    const [lastPickedColor, setLastPickedColor] = useState<string>("#FFFFFF");
+    const lastPickedPointRef = useRef(new THREE.Vector3(0,0,0)); // Store the last valid point
+
+    // Ref for the visual indicator mesh
     const indicatorMeshRef = useRef<THREE.Mesh | null>(null);
 
-    // Function to update indicator position (called by pointermove/click)
-    const updateIndicatorPosition = useCallback((point: THREE.Vector3) => {
-        if (indicatorMeshRef.current) {
-            // Use set() for robustness, applying the y offset
-            indicatorMeshRef.current.position.set(point.x, point.y + 0.05, point.z);
-        }
-    }, []);
-
-    // --- Core Raycasting Logic ---
+    // --- Core Raycasting Logic (now defensive and safe) ---
     const sampleColor = useCallback((clientX: number, clientY: number) => {
         const rect = gl.domElement.getBoundingClientRect();
         mouse.current.x = ((clientX - rect.left) / rect.width) * 2 - 1;
         mouse.current.y = -(((clientY - rect.top) / rect.height) * 2 - 1);
 
         raycaster.current.setFromCamera(mouse.current, camera);
+        
         const intersects = raycaster.current.intersectObjects(scene.children, true);
 
         let groundPlaneHit: { color: string, point: THREE.Vector3 } | null = null;
@@ -57,12 +56,17 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
         for (const hit of intersects) {
             const object = hit.object;
             
+            // Critical check: ensure object is not null/undefined
+            if (!object) {
+                continue;
+            }
+
             // Skip helper objects and robot parts that should not be picked
             if (
                 object.name === 'picker-visual-indicator-ring' || // Self-exclusion
                 object.name.includes('helper') || // Generic helper objects like GridHelper
                 object.name === 'start-marker' || 
-                object.userData?.isRobotPart || // Robot components
+                object.userData?.isRobotPart || // Robot components (identified via userData)
                 object.name === 'custom-wall-wireframe' || // Ruler tool's wireframe
                 object.name === 'ruler-tool-plane' // The transparent plane of RulerTool
             ) {
@@ -74,9 +78,9 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
                 if (object instanceof THREE.Mesh && object.material) {
                     const materials = Array.isArray(object.material) ? object.material : [object.material];
                     for (const mat of materials) {
-                        if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial) {
+                        if (mat && (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial)) {
                             if (mat.color instanceof THREE.Color) {
-                                groundPlaneHit = { color: "#" + mat.color.getHexString().toUpperCase(), point: hit.point };
+                                groundPlaneHit = { color: "#" + mat.color.getHexString().toUpperCase(), point: hit.point.clone() }; // Clone point to be safe
                                 break; 
                             }
                         }
@@ -90,11 +94,10 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
                 const materials = Array.isArray(object.material) ? object.material : [object.material];
                 
                 for (const mat of materials) {
-                    if (!(mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial)) {
+                    if (!mat || (!(mat instanceof THREE.MeshStandardMaterial) && !(mat instanceof THREE.MeshBasicMaterial))) {
                         continue; // Skip non-standard/basic materials
                     }
 
-                    // Prioritize color over emissive, but check both
                     let potentialColor: THREE.Color | undefined;
                     if (mat.color instanceof THREE.Color) {
                         potentialColor = mat.color;
@@ -105,92 +108,132 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
 
                     if (potentialColor) {
                         const hex = "#" + potentialColor.getHexString().toUpperCase();
-                        
-                        // If we find a non-white, non-transparent color, this is the best hit.
                         const opacity = mat.opacity !== undefined ? mat.opacity : 1;
-                        if (hex !== '#FFFFFF' && opacity > 0.1) { // Consider nearly transparent objects as no color
+                        if (hex !== '#FFFFFF' && opacity > 0.1) {
                             pickedHex = hex;
-                            pickedPoint = hit.point;
-                            break; // Found a good color, stop searching materials for this object
+                            pickedPoint = hit.point.clone(); // Clone point to be safe
+                            break; 
                         }
                     }
                 }
             }
-            if (pickedHex) break; // Found a good color from an object, stop searching intersects
+            if (pickedHex) break; 
         }
 
-        // Final determination
         if (pickedHex && pickedPoint) {
             return { color: pickedHex, point: pickedPoint };
         } else if (groundPlaneHit) {
             return { color: groundPlaneHit.color, point: groundPlaneHit.point };
         }
         
-        // Fallback to white at a default point if no intersect found
-        // Use camera.position.clone() for a default point if no intersections at all
-        return { color: "#FFFFFF", point: intersects[0]?.point || camera.position.clone() }; 
-    }, [gl, camera, scene, mouse, raycaster]);
+        // Fallback: If no object is hit, return white at the origin (or robot's base for context)
+        return { color: "#FFFFFF", point: new THREE.Vector3(0, 0, 0) }; 
+    }, [gl, camera, scene]);
 
-    // --- Global Pointer Event Handler ---
-    const handleGlobalPointerEvent = useCallback((event: PointerEvent) => {
-        if (!isActive) return;
+    // --- useFrame for Raycasting and Indicator Updates ---
+    useFrame(() => {
+        if (!isActive || !mouseScreenCoordsRef.current) {
+            // No need to raycast if not active or no mouse movement since last frame
+            return;
+        }
 
-        // Prevent events from bubbling back to R3F's canvas internal handlers
-        // This is key to avoid conflicts when App.tsx also stops propagation
-        event.stopPropagation();
-        event.preventDefault(); // Also prevent default to avoid issues like text selection
+        const { clientX, clientY } = mouseScreenCoordsRef.current;
+        const { color, point } = sampleColor(clientX, clientY);
 
-        const { color, point } = sampleColor(event.clientX, event.clientY);
-        
-        // Only update indicator if it exists (i.e., isActive is true and it's rendered)
+        // Update indicator's position and color.
         if (indicatorMeshRef.current) {
-            updateIndicatorPosition(point);
+            indicatorMeshRef.current.position.set(point.x, point.y + 0.05, point.z);
+            // Optionally, update the indicator's color to reflect the picked color
+            if (Array.isArray(indicatorMeshRef.current.material)) {
+                indicatorMeshRef.current.material.forEach(mat => {
+                    if (mat instanceof THREE.MeshBasicMaterial) {
+                        mat.color.set(color);
+                    }
+                });
+            } else if (indicatorMeshRef.current.material instanceof THREE.MeshBasicMaterial) {
+                indicatorMeshRef.current.material.color.set(color);
+            }
         }
-
-        // Notify on hover (always)
+        
+        // Update state for SensorDashboard preview (if needed for the hover effect)
         onColorHover(color);
+        setLastPickedColor(color); // Keep track of the last picked color for click action
+        lastPickedPointRef.current.copy(point); // Keep track of the last picked point
 
-        // If it's a click, trigger select event
-        if (event.type === 'pointerdown') {
+        // If pointerdown happened, trigger select and reset
+        if (isPointerDownRef.current) {
             onColorSelect(color);
-            // Deactivate picker after selection is handled by App.tsx setting isActive to false.
+            isPointerDownRef.current = false; // Reset the flag
+            // Do not clear mouseScreenCoordsRef.current here; it would stop subsequent hover updates until next move.
         }
-    }, [isActive, sampleColor, onColorHover, onColorSelect, updateIndicatorPosition]);
+    });
+
+    // --- Global Pointer Event Handlers ---
+    const handleWindowPointerMove = useCallback((event: PointerEvent) => {
+        if (isActive) {
+            event.stopPropagation();
+            event.preventDefault();
+            mouseScreenCoordsRef.current = { clientX: event.clientX, clientY: event.clientY };
+        }
+    }, [isActive]);
+
+    const handleWindowPointerDown = useCallback((event: PointerEvent) => {
+        if (isActive) {
+            event.stopPropagation();
+            event.preventDefault();
+            isPointerDownRef.current = true;
+            mouseScreenCoordsRef.current = { clientX: event.clientX, clientY: event.clientY }; // Capture position for immediate click
+        }
+    }, [isActive]);
+
+    const handleWindowPointerUp = useCallback(() => {
+        if (isActive) {
+            isPointerDownRef.current = false; // Release click state
+        }
+    }, [isActive]);
+
 
     // --- useEffect for global listeners and cursor management ---
     useEffect(() => {
         if (isActive) {
             document.body.style.cursor = 'crosshair';
-            window.addEventListener('pointermove', handleGlobalPointerEvent, { capture: true });
-            window.addEventListener('pointerdown', handleGlobalPointerEvent, { capture: true });
+            window.addEventListener('pointermove', handleWindowPointerMove, { capture: true });
+            window.addEventListener('pointerdown', handleWindowPointerDown, { capture: true });
+            window.addEventListener('pointerup', handleWindowPointerUp, { capture: true }); // Listen for pointerup
         } else {
             document.body.style.cursor = 'default';
-            window.removeEventListener('pointermove', handleGlobalPointerEvent, { capture: true });
-            window.removeEventListener('pointerdown', handleGlobalPointerEvent, { capture: true });
+            window.removeEventListener('pointermove', handleWindowPointerMove, { capture: true });
+            window.removeEventListener('pointerdown', handleWindowPointerDown, { capture: true });
+            window.removeEventListener('pointerup', handleWindowPointerUp, { capture: true }); // Clean up pointerup
+            
+            // Reset refs when deactivating
+            mouseScreenCoordsRef.current = null;
+            isPointerDownRef.current = false;
         }
 
         return () => { // Cleanup on unmount or isActive change
             document.body.style.cursor = 'default';
-            window.removeEventListener('pointermove', handleGlobalPointerEvent, { capture: true });
-            window.removeEventListener('pointerdown', handleGlobalPointerEvent, { capture: true });
+            window.removeEventListener('pointermove', handleWindowPointerMove, { capture: true });
+            window.removeEventListener('pointerdown', handleWindowPointerDown, { capture: true });
+            window.removeEventListener('pointerup', handleWindowPointerUp, { capture: true });
         };
-    }, [isActive, handleGlobalPointerEvent]);
+    }, [isActive, handleWindowPointerMove, handleWindowPointerDown, handleWindowPointerUp]);
 
     // Render the visual indicator as an R3F component, only when active
     return isActive ? (
         <mesh 
             ref={indicatorMeshRef} 
             rotation-x={-Math.PI / 2} 
-            position-y={0.05} // Initial Y, will be updated by updateIndicatorPosition
+            position={lastPickedPointRef.current.toArray()} // Use the last picked point for initial position
             name="picker-visual-indicator-ring"
         >
             <ringGeometry args={[0.15, 0.22, 32]} />
             <meshBasicMaterial 
-                color={new THREE.Color("#ec4899")} 
+                color={new THREE.Color(lastPickedColor)} // Initial color from state
                 transparent 
                 opacity={0.9} 
-                depthWrite={false} // Don't write to depth buffer to avoid z-fighting with ground
-                toneMapped={false} // Prevent color mapping for UI elements
+                depthWrite={false} 
+                toneMapped={false} 
             />
         </mesh>
     ) : null;
