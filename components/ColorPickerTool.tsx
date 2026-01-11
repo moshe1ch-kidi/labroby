@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useCallback } from 'react';
-import { useThree } from '@react-three/fiber';
+import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three'; // Import all of Three.js
 
 interface ColorPickerToolProps {
@@ -30,60 +30,14 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
     const raycaster = useRef(new THREE.Raycaster());
     const mouse = useRef(new THREE.Vector2());
     
-    // Refs for the visual indicator group
-    const indicatorGroupRef = useRef<THREE.Group | null>(null);
-    const indicatorMeshRef = useRef<THREE.Mesh | null>(null); // For the actual ring mesh
-
-    // Function to create the visual indicator
-    const createIndicator = useCallback(() => {
-        const group = new THREE.Group();
-        group.name = 'picker-visual-indicator-group'; // Give it a name for easier debugging
-        
-        // Create the ring mesh (similar to previous HTML indicator)
-        const ringGeometry = new THREE.RingGeometry(0.15, 0.22, 32);
-        const ringMaterial = new THREE.MeshBasicMaterial({ 
-            color: new THREE.Color("#ec4899"), 
-            transparent: true, 
-            opacity: 0.9, 
-            depthWrite: false // Don't write to depth buffer to avoid z-fighting with ground
-        });
-        const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial);
-        ringMesh.rotation.x = -Math.PI / 2; // Orient it flat on the ground
-        ringMesh.position.y = 0.05; // Slightly above ground
-        ringMesh.name = 'picker-visual-indicator-ring';
-        group.add(ringMesh);
-
-        indicatorGroupRef.current = group;
-        indicatorMeshRef.current = ringMesh;
-        scene.add(group);
-        // console.log("ColorPickerTool: Indicator created and added to scene.");
-    }, [scene]);
-
-    // Function to dispose the visual indicator
-    const disposeIndicator = useCallback(() => {
-        if (indicatorGroupRef.current) {
-            scene.remove(indicatorGroupRef.current);
-            indicatorGroupRef.current.children.forEach(child => {
-                if (child instanceof THREE.Mesh) {
-                    child.geometry.dispose();
-                    if (Array.isArray(child.material)) {
-                        child.material.forEach(mat => mat.dispose());
-                    } else {
-                        child.material.dispose();
-                    }
-                }
-            });
-            indicatorGroupRef.current = null;
-            indicatorMeshRef.current = null;
-            // console.log("ColorPickerTool: Indicator removed from scene and disposed.");
-        }
-    }, [scene]);
+    // Ref for the visual indicator mesh (now managed by R3F)
+    const indicatorMeshRef = useRef<THREE.Mesh | null>(null);
 
     // Function to update indicator position (called by pointermove/click)
     const updateIndicatorPosition = useCallback((point: THREE.Vector3) => {
-        if (indicatorGroupRef.current) {
+        if (indicatorMeshRef.current) {
             // Use set() for robustness, applying the y offset
-            indicatorGroupRef.current.position.set(point.x, point.y + 0.05, point.z);
+            indicatorMeshRef.current.position.set(point.x, point.y + 0.05, point.z);
         }
     }, []);
 
@@ -105,21 +59,15 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
             
             // Skip helper objects and robot parts that should not be picked
             if (
-                object.name === 'picker-visual-indicator-group' || 
-                object.name === 'picker-visual-indicator-ring' ||
-                object.name.includes('helper') || // Generic helper objects
+                object.name === 'picker-visual-indicator-ring' || // Self-exclusion
+                object.name.includes('helper') || // Generic helper objects like GridHelper
                 object.name === 'start-marker' || 
                 object.userData?.isRobotPart || // Robot components
-                object.name === 'custom-wall-wireframe' // Ruler tool's wireframe
+                object.name === 'custom-wall-wireframe' || // Ruler tool's wireframe
+                object.name === 'ruler-tool-plane' // The transparent plane of RulerTool
             ) {
                 continue;
             }
-            
-            // Special handling for the transparent plane used by RulerTool
-            if (object.name === 'ruler-tool-plane' && !isActive) {
-                continue; // Only interact with ruler if ruler is active, not color picker.
-            }
-
 
             // If it's the ground plane, store it as a potential fallback
             if (object.name === 'ground-plane') {
@@ -179,8 +127,9 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
         }
         
         // Fallback to white at a default point if no intersect found
-        return { color: "#FFFFFF", point: intersects[0]?.point || new THREE.Vector3(0, 0, 0) }; 
-    }, [gl, camera, scene, mouse, raycaster, isActive]); // isActive added to dependencies for ruler-tool-plane check
+        // Use camera.position.clone() for a default point if no intersections at all
+        return { color: "#FFFFFF", point: intersects[0]?.point || camera.position.clone() }; 
+    }, [gl, camera, scene, mouse, raycaster]);
 
     // --- Global Pointer Event Handler ---
     const handleGlobalPointerEvent = useCallback((event: PointerEvent) => {
@@ -193,8 +142,10 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
 
         const { color, point } = sampleColor(event.clientX, event.clientY);
         
-        // Update visual indicator position immediately
-        updateIndicatorPosition(point);
+        // Only update indicator if it exists (i.e., isActive is true and it's rendered)
+        if (indicatorMeshRef.current) {
+            updateIndicatorPosition(point);
+        }
 
         // Notify on hover (always)
         onColorHover(color);
@@ -206,30 +157,43 @@ const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isActive, onColorSele
         }
     }, [isActive, sampleColor, onColorHover, onColorSelect, updateIndicatorPosition]);
 
-    // --- useEffect for global listeners and cursor/indicator management ---
+    // --- useEffect for global listeners and cursor management ---
     useEffect(() => {
         if (isActive) {
             document.body.style.cursor = 'crosshair';
             window.addEventListener('pointermove', handleGlobalPointerEvent, { capture: true });
             window.addEventListener('pointerdown', handleGlobalPointerEvent, { capture: true });
-            createIndicator(); // Create indicator when active
         } else {
             document.body.style.cursor = 'default';
             window.removeEventListener('pointermove', handleGlobalPointerEvent, { capture: true });
             window.removeEventListener('pointerdown', handleGlobalPointerEvent, { capture: true });
-            disposeIndicator(); // Dispose indicator when not active
         }
 
         return () => { // Cleanup on unmount or isActive change
             document.body.style.cursor = 'default';
             window.removeEventListener('pointermove', handleGlobalPointerEvent, { capture: true });
             window.removeEventListener('pointerdown', handleGlobalPointerEvent, { capture: true });
-            disposeIndicator();
         };
-    }, [isActive, handleGlobalPointerEvent, createIndicator, disposeIndicator]);
+    }, [isActive, handleGlobalPointerEvent]);
 
-    // This component renders nothing in the React tree, only manipulates the Three.js scene directly
-    return null;
+    // Render the visual indicator as an R3F component, only when active
+    return isActive ? (
+        <mesh 
+            ref={indicatorMeshRef} 
+            rotation-x={-Math.PI / 2} 
+            position-y={0.05} // Initial Y, will be updated by updateIndicatorPosition
+            name="picker-visual-indicator-ring"
+        >
+            <ringGeometry args={[0.15, 0.22, 32]} />
+            <meshBasicMaterial 
+                color={new THREE.Color("#ec4899")} 
+                transparent 
+                opacity={0.9} 
+                depthWrite={false} // Don't write to depth buffer to avoid z-fighting with ground
+                toneMapped={false} // Prevent color mapping for UI elements
+            />
+        </mesh>
+    ) : null;
 };
 
 export default ColorPickerTool;
