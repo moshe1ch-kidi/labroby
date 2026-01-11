@@ -10,8 +10,7 @@ interface BlocklyEditorProps {
   visibleVariables: Set<string>;
   onToggleVariable: (name: string) => void;
   onVariablesChanged?: (allVarNames: string[], renameInfo?: {oldName: string, newName: string}) => void;
-  onShowNumpad: (initialValue: string | number, onConfirm: (newValue: number) => void) => void; // New prop
-  onShowColorPicker: (onPick: (newColor: string) => void) => void; // New prop
+  onShowNumpad: (initialValue: string | number, onConfirm: (newValue: number) => void) => void;
 }
 
 export interface BlocklyEditorHandle {
@@ -91,7 +90,7 @@ const VariableModal = ({ isOpen, mode, initialValue, onClose, onConfirm }: { isO
     );
 };
 
-const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onCodeChange, onEval, visibleVariables, onToggleVariable, onVariablesChanged, onShowNumpad, onShowColorPicker }, ref) => {
+const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onCodeChange, onEval, visibleVariables, onToggleVariable, onVariablesChanged, onShowNumpad }, ref) => {
   const blocklyDiv = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<any>(null);
   const [modalConfig, setModalConfig] = useState<{isOpen: boolean, mode: 'create' | 'rename', initialValue?: string, variableId?: string, onResult?: (res: string | null) => void}>({
@@ -200,14 +199,12 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
     const python = (window as any).python;
     if (!Blockly || !javascript || !python) return;
 
-    // Expose these functions globally for Blockly to use, before initBlockly
+    // Expose numpad globally for Blockly to use
     window.showBlocklyNumpad = onShowNumpad;
-    window.showBlocklyColorPicker = onShowColorPicker;
 
     initBlockly();
     const scratchTheme = getScratchTheme();
 
-    // Override Blockly dialogs to use our React Modal
     Blockly.dialog.setPrompt((message: string, defaultValue: string, callback: (res: string | null) => void) => {
         const isRename = message.toLowerCase().includes('rename');
         setModalConfig({
@@ -332,11 +329,9 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
         window.removeEventListener('resize', handleResize);
         if (workspaceRef.current) workspaceRef.current.dispose();
         workspaceRef.current = null;
-        // Clean up on unmount
-        delete window.showBlocklyNumpad;
-        delete window.showBlocklyColorPicker;
+        delete (window as any).showBlocklyNumpad;
     };
-  }, [generateAndNotify, notifyVariablesChange, onShowNumpad, onShowColorPicker]);
+  }, [generateAndNotify, notifyVariablesChange, onShowNumpad]);
 
   useEffect(() => {
     const timer = setTimeout(updateCheckboxPositions, 50);
@@ -347,7 +342,6 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
     <div className="w-full h-full relative">
       <div ref={blocklyDiv} className="absolute inset-0" />
       
-      {/* Variable Action Overlay - Monitor Only */}
       {activeCategory === 'Variables' && variablePositions.map((pos) => (
           <div 
             key={pos.id}
@@ -358,7 +352,6 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
             }}
             onPointerDown={(e) => e.stopPropagation()} 
           >
-            {/* Monitor Toggle */}
             <div 
                 onClick={() => onToggleVariable(pos.name)}
                 className={`p-2 cursor-pointer bg-white shadow-md border rounded-xl transition-all flex items-center justify-center hover:scale-110 active:scale-95 ${visibleVariables.has(pos.name) ? 'border-orange-400 text-orange-600' : 'border-slate-200 text-slate-400'}`}
