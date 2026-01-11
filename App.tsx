@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import BlocklyEditor, { BlocklyEditorHandle } from './components/BlocklyEditor';
 import Robot3D from './components/Robot3D';
 import SimulationEnvironment from './components/Environment';
-import { RobotState, CustomObject, ContinuousDrawing, SimulationHistory, CameraMode, EditorTool, PathShape } from './types';
+import { RobotState, CustomObject, ContinuousDrawing, SimulationHistory, CameraMode, EditorTool, PathShape, NumpadPosition } from './types';
 import Numpad from './components/Numpad';
 import SensorDashboard from './components/SensorDashboard';
 import RulerTool from './components/RulerTool';
@@ -322,7 +322,7 @@ const App: React.FC = () => {
   const controlsRef = useRef<any>(null);
   const historyRef = useRef<SimulationHistory>({ maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 });
   const executionId = useRef(0);
-  const [numpadConfig, setNumpadConfig] = useState({ isOpen: false, value: 0, onConfirm: (val: number) => {} });
+  const [numpadConfig, setNumpadConfig] = useState<{ isOpen: boolean, value: number, onConfirm: (val: number) => void, position?: NumpadPosition }>({ isOpen: false, value: 0, onConfirm: (val: number) => {} });
   const [toast, setToast] = useState<{message: string, type: 'success' | 'info' | 'error'} | null>(null);
   
   const [activeDrawing, setActiveDrawing] = useState<ContinuousDrawing | null>(null);
@@ -656,8 +656,8 @@ const App: React.FC = () => {
 
   const openPythonView = () => { if (blocklyEditorRef.current) setIsPythonModalOpen(true); };
 
-  const showBlocklyNumpad = useCallback((initialValue: string | number, onConfirm: (newValue: number) => void) => {
-    setNumpadConfig({ isOpen: true, value: parseFloat(String(initialValue)), onConfirm });
+  const showBlocklyNumpad = useCallback((initialValue: string | number, onConfirm: (newValue: number) => void, position?: NumpadPosition) => {
+    setNumpadConfig({ isOpen: true, value: parseFloat(String(initialValue)), onConfirm, position });
   }, []);
 
   return (
@@ -962,7 +962,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <Numpad isOpen={numpadConfig.isOpen} initialValue={numpadConfig.value} onConfirm={numpadConfig.onConfirm} onClose={() => setNumpadConfig(p => ({ ...p, isOpen: false }))} />
+      <Numpad isOpen={numpadConfig.isOpen} initialValue={numpadConfig.value} onConfirm={numpadConfig.onConfirm} position={numpadConfig.position} onClose={() => setNumpadConfig(p => ({ ...p, isOpen: false }))} />
       
       {showChallenges && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
