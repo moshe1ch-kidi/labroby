@@ -1,27 +1,37 @@
 
-
 import React, { useMemo } from 'react';
-import { Grid, Environment as DreiEnvironment, ContactShadows, Text, Line as DreiLine } from '@react-three/drei';
+import { Grid, Environment as DreiEnvironment, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { CustomObject, RobotState } from '../types';
-import { ThreeEvent } from '@react-three/fiber'; // Import ThreeEvent here
+import { ThreeEvent } from '@react-three/fiber';
 
 interface EnvironmentProps {
     challengeId?: string;
     customObjects?: CustomObject[];
     selectedObjectId?: string | null;
     onObjectSelect?: (id: string) => void;
+    onPointerDown?: (e: ThreeEvent<MouseEvent>) => void;
+    onPointerMove?: (e: ThreeEvent<MouseEvent>) => void;
+    onPointerUp?: (e: ThreeEvent<MouseEvent>) => void;
     robotState?: RobotState;
 }
+
+// תגית לזיהוי אובייקטים שניתן לדגום מהם צבע
+const envData = { isEnvironment: true };
 
 const EllipseMarker = ({ centerX, centerZ, radiusX, radiusZ, angle, width, color }: any) => {
     const x = radiusX * Math.cos(angle);
     const z = radiusZ * Math.sin(angle);
     const nx = x / (radiusX * radiusX);
-    const nz = z / (radiusZ / radiusZ); // Changed from radiusZ * radiusZ to radiusZ / radiusZ for ellipse normal calculation
+    const nz = z / (radiusZ / radiusZ); 
     const rotation = Math.atan2(nx, -nz);
     return (
-        <mesh name="challenge-marker" position={[centerX + x, 0.025, centerZ + z]} rotation={[-Math.PI / 2, 0, rotation]}>
+        <mesh 
+            name="challenge-marker" 
+            position={[centerX + x, 0.025, centerZ + z]} 
+            rotation={[-Math.PI / 2, 0, rotation]}
+            userData={envData}
+        >
             <planeGeometry args={[width, 0.45]} />
             <meshBasicMaterial color={color} />
         </mesh>
@@ -53,7 +63,7 @@ const UniformEllipse = ({ x = 0, y = 0, z = 0, radiusX = 12, radiusZ = 6, width 
         geo.setIndex(indices); geo.computeVertexNormals(); return geo;
     }, [radiusX, radiusZ, width, segments]);
     return (
-        <mesh name="challenge-path" geometry={geometry} position={[x, y, z]} receiveShadow>
+        <mesh name="challenge-path" geometry={geometry} position={[x, y, z]} receiveShadow userData={envData}>
             <meshBasicMaterial color={color} side={THREE.DoubleSide} />
         </mesh>
     );
@@ -64,7 +74,10 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
     customObjects = [], 
     selectedObjectId,
     onObjectSelect,
-    robotState,
+    onPointerDown, 
+    onPointerMove, 
+    onPointerUp,
+    robotState
 }) => {
   const config = useMemo(() => {
       const isRoomNav = challengeId === 'c1';
@@ -85,13 +98,16 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
       <ambientLight intensity={0.7} />
       <directionalLight position={[10, 10, 5]} intensity={1} castShadow shadow-mapSize={[1024, 1024]} />
       
-      {/* Ground Plane - Now also handles selection */}
       <mesh 
         name="ground-plane"
         rotation={[-Math.PI / 2, 0, 0]} 
         position={[0, -0.01, 0]} 
         receiveShadow 
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
         onClick={(e) => { e.stopPropagation(); if (onObjectSelect) onObjectSelect("GROUND"); }} 
+        userData={envData}
       >
         <planeGeometry args={[200, 200]} />
         <meshStandardMaterial color="#ffffff" />
@@ -106,7 +122,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
       </mesh>
 
       {robotState && robotState.sensorX !== undefined && (
-          <group position={[robotState.sensorX, 0.03, robotState.sensorZ]} userData={{ isRobotPart: true }}>
+          <group position={[robotState.sensorX, 0.03, robotState.sensorZ]}>
               <mesh rotation={[-Math.PI/2, 0, 0]}>
                   <ringGeometry args={[0, 0.1, 16]} />
                   <meshBasicMaterial color="#ec4899" transparent opacity={0.6} toneMapped={false} />
@@ -126,48 +142,36 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
           };
 
           return (
-            <group 
-                key={obj.id} 
-                name={obj.id} // Set name for raycasting identification
-                position={[obj.x, 0, obj.z]} 
-                rotation={[0, obj.rotation || 0, 0]}
-                onClick={handleSelect} // Handle selection on the group
-                userData={{ isCustomObject: true, type: obj.type }} // Add userData for easier identification
-            >
+            <group key={obj.id} position={[obj.x, 0, obj.z]} rotation={[0, obj.rotation || 0, 0]}>
                 {obj.type === 'WALL' && (
-                    <mesh name={`custom-wall-mesh-${obj.id}`} position={[0, 0.5, 0]} castShadow receiveShadow>
+                    <mesh name="custom-wall" position={[0, 0.5, 0]} castShadow receiveShadow onClick={handleSelect} userData={envData}>
                         <boxGeometry args={[obj.width, 1, obj.length]} />
                         <meshStandardMaterial color={obj.color || "#ef4444"} roughness={0.2} transparent opacity={obj.opacity ?? 1} />
                     </mesh>
                 )}
                 {obj.type === 'RAMP' && (
-                    <group name={`custom-ramp-group-${obj.id}`}>
+                    <group name="custom-ramp" onClick={handleSelect}>
                         {(() => {
                             const section = obj.length / 3;
                             const h = obj.height || 1.0;
                             const slopeL = Math.sqrt(section * section + h * h);
                             const slopeAngle = Math.atan2(h, section);
-                            const t = 0.05; // עובי המשטח
-                            
+                            const t = 0.05; 
                             return (
                                 <>
-                                    {/* משטח עלייה */}
-                                    <mesh name={`ramp-incline-${obj.id}`} rotation={[-slopeAngle, 0, 0]} position={[0, h/2, -section]}>
+                                    <mesh rotation={[-slopeAngle, 0, 0]} position={[0, h/2, -section]} userData={envData}>
                                         <boxGeometry args={[obj.width, t, slopeL]} />
                                         <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
-                                    {/* משטח עליון ישר */}
-                                    <mesh name={`ramp-flat-${obj.id}`} position={[0, h, 0]}>
+                                    <mesh position={[0, h, 0]} userData={envData}>
                                         <boxGeometry args={[obj.width, t, section]} />
                                         <meshStandardMaterial color={obj.color || "#475569"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
-                                    {/* משטח ירידה */}
-                                    <mesh name={`ramp-decline-${obj.id}`} rotation={[slopeAngle, 0, 0]} position={[0, h/2, section]}>
+                                    <mesh rotation={[slopeAngle, 0, 0]} position={[0, h/2, section]} userData={envData}>
                                         <boxGeometry args={[obj.width, t, slopeL]} />
                                         <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
-                                    {/* גוף מילוי מתחת למשטח הישר */}
-                                    <mesh name={`ramp-base-${obj.id}`} position={[0, h/2, 0]}>
+                                    <mesh position={[0, h/2, 0]} userData={envData}>
                                         <boxGeometry args={[obj.width, h, section]} />
                                         <meshStandardMaterial color={obj.color || "#1e293b"} transparent opacity={(obj.opacity ?? 1) * 0.4} />
                                     </mesh>
@@ -177,106 +181,82 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                     </group>
                 )}
                 {obj.type === 'COLOR_LINE' && (
-                    <mesh name={`custom-marker-mesh-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} >
+                    <mesh name="custom-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} onClick={handleSelect} userData={envData}>
                         <planeGeometry args={[obj.width, obj.length]} />
                         <meshBasicMaterial color={obj.color || '#FF0000'} transparent opacity={obj.opacity ?? 1} />
                     </mesh>
                 )}
                 {obj.type === 'PATH' && (
-                    <group name={`custom-path-group-${obj.id}`}>
+                    <group name="custom-path" onClick={handleSelect}>
                         {(!obj.shape || obj.shape === 'STRAIGHT') && (
                             <>
-                                <mesh name={`path-straight-bg-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width, obj.length]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh name={`path-straight-line-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}><planeGeometry args={[0.2, obj.length]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow userData={envData}><planeGeometry args={[obj.width, obj.length]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]} userData={envData}><planeGeometry args={[0.2, obj.length]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
                         {obj.shape === 'CORNER' && (
                             <>
-                                <mesh name={`path-corner-bg-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width, obj.width]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh name={`path-corner-h-line-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[obj.width/4 - 0.05, 0.025, 0]}><planeGeometry args={[obj.width/2 + 0.1, 0.2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh name={`path-corner-v-line-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -obj.width/4 + 0.05]}><planeGeometry args={[0.2, obj.width/2 + 0.1]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow userData={envData}><planeGeometry args={[obj.width, obj.width]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[obj.width/4 - 0.05, 0.025, 0]} userData={envData}><planeGeometry args={[obj.width/2 + 0.1, 0.2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -obj.width/4 + 0.05]} userData={envData}><planeGeometry args={[0.2, obj.width/2 + 0.1]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
                         {obj.shape === 'CURVED' && (
                             <>
-                                <mesh name={`path-curved-bg-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.02, 0]}><ringGeometry args={[obj.length/2 - obj.width/2, obj.length/2 + obj.width/2, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh name={`path-curved-line-${obj.id}`} rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.025, 0]}><ringGeometry args={[obj.length/2 - 0.1, obj.length/2 + 0.1, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.02, 0]} userData={envData}><ringGeometry args={[obj.length/2 - obj.width/2, obj.length/2 + obj.width/2, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.025, 0]} userData={envData}><ringGeometry args={[0.1, 0.1, 64]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.025, 0]} userData={envData}><ringGeometry args={[obj.length/2 - 0.1, obj.length/2 + 0.1, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
                     </group>
-                )}
-                {isSelected && (
-                    // Wireframe for selection feedback
-                    <DreiLine
-                        points={[
-                            new THREE.Vector3(-obj.width/2, 0.01, obj.length/2),
-                            new THREE.Vector3(obj.width/2, 0.01, obj.length/2),
-                            new THREE.Vector3(obj.width/2, 0.01, -obj.length/2),
-                            new THREE.Vector3(-obj.width/2, 0.01, -obj.length/2),
-                            new THREE.Vector3(-obj.width/2, 0.01, obj.length/2)
-                        ]}
-                        color="#00e5ff" // Cyan color for selection
-                        lineWidth={3}
-                        renderOrder={1000} // Render on top of other objects
-                        rotation={[0, obj.rotation || 0, 0]}
-                        position={[0, 0.01, 0]}
-                        scale={[1, (obj.type === 'RAMP' ? 1 + (obj.height || 0) : 1), 1]} // Scale Y to encompass ramp height if needed
-                    />
                 )}
             </group>
           );
       })}
 
-      {/* Reintroduced environment elements from the working version */}
       {config.isGrayRoad && (
-          <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -7.5]} receiveShadow><planeGeometry args={[2.5, 15]} /><meshStandardMaterial color="#64748b" roughness={0.8} /></mesh>
+          <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -7.5]} receiveShadow userData={envData}><planeGeometry args={[2.5, 15]} /><meshStandardMaterial color="#64748b" roughness={0.8} /></mesh>
       )}
 
       {config.isComplexPath && (
-          <group position={[0, 0, 0]}>
-              <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -7.5]} receiveShadow><planeGeometry args={[3, 16]} /><meshStandardMaterial color="#94a3b8" roughness={0.8} /></mesh>
-              <mesh name="challenge-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, -11]}><planeGeometry args={[3, 3]} /><meshBasicMaterial color="#0000FF" /></mesh>
-              <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[-3, 0.015, -11]} receiveShadow><planeGeometry args={[3, 3]} /><meshStandardMaterial color="#94a3b8" roughness={0.8} /></mesh>
-              <mesh name="challenge-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, -5]}><planeGeometry args={[3, 3]} /><meshBasicMaterial color="#FF0000" /></mesh>
-              <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[3, 0.015, -5]} receiveShadow><planeGeometry args={[3, 3]} /><meshStandardMaterial color="#94a3b8" roughness={0.8} /></mesh>
-              <Text position={[0, 0.1, -1]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.3} color="white">START</Text>
+          <group>
+              <mesh name="road-background-1" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -7.5]} receiveShadow userData={envData}><planeGeometry args={[3, 16]} /><meshStandardMaterial color="#94a3b8" roughness={0.8} /></mesh>
+              <mesh name="challenge-marker-1" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, -11]} userData={envData}><planeGeometry args={[3, 3]} /><meshBasicMaterial color="#0000FF" /></mesh>
+              <mesh name="road-background-2" rotation={[-Math.PI / 2, 0, 0]} position={[-3, 0.015, -11]} receiveShadow userData={envData}><planeGeometry args={[3, 3]} /><meshStandardMaterial color="#94a3b8" roughness={0.8} /></mesh>
+              <mesh name="challenge-marker-2" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, -5]} userData={envData}><planeGeometry args={[3, 3]} /><meshBasicMaterial color="#FF0000" /></mesh>
+              <mesh name="road-background-3" rotation={[-Math.PI / 2, 0, 0]} position={[3, 0.015, -5]} receiveShadow userData={envData}><planeGeometry args={[3, 3]} /><meshStandardMaterial color="#94a3b8" roughness={0.8} /></mesh>
           </group>
       )}
 
       {config.isRoomNav && (
-          <group position={[0, 0, 0]}>
-              <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, -5]} receiveShadow><planeGeometry args={[2.5, 10]} /><meshStandardMaterial color="#64748b" roughness={0.8} /></mesh>
-              <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, -10]} receiveShadow><planeGeometry args={[2.5, 2.5]} /><meshStandardMaterial color="#64748b" roughness={0.8} /></mesh>
-              <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[3.75, 0.03, -10]} receiveShadow><planeGeometry args={[5, 2.5]} /><meshStandardMaterial color="#64748b" roughness={0.8} /></mesh>
-              <Text position={[0, 0.1, -1]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.3} color="white">START</Text>
-              <mesh name="challenge-marker" rotation={[-Math.PI / 2, 0, 0]} position={[6.25, 0.04, -10]}><ringGeometry args={[0.8, 1.0, 32]} /><meshBasicMaterial color="#ff0000" /></mesh>
-              <Text position={[6.25, 0.1, -10]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.4} color="#ff0000">FINISH</Text>
+          <group>
+              <mesh name="road-background-room-1" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, -5]} receiveShadow userData={envData}><planeGeometry args={[2.5, 10]} /><meshStandardMaterial color="#64748b" roughness={0.8} /></mesh>
+              <mesh name="road-background-room-2" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, -10]} receiveShadow userData={envData}><planeGeometry args={[2.5, 2.5]} /><meshStandardMaterial color="#64748b" roughness={0.8} /></mesh>
+              <mesh name="road-background-room-3" rotation={[-Math.PI / 2, 0, 0]} position={[3.75, 0.03, -10]} receiveShadow userData={envData}><planeGeometry args={[5, 2.5]} /><meshStandardMaterial color="#64748b" roughness={0.8} /></mesh>
+              <mesh name="challenge-marker-room" rotation={[-Math.PI / 2, 0, 0]} position={[6.25, 0.04, -10]} userData={envData}><ringGeometry args={[0.8, 1.0, 32]} /><meshBasicMaterial color="#ff0000" /></mesh>
           </group>
       )}
 
       {config.isAutoLevel && (
-          <group position={[0, 0, 0]}>
-              <mesh rotation={[0.523, 0, 0]} position={[0, 0.86 - 0.05, -2]} receiveShadow castShadow><boxGeometry args={[4.2, 0.1, 3.46]} /><meshStandardMaterial color="#334155" /></mesh>
-              <mesh position={[0, 1.73 - 0.05, -5.5]} receiveShadow castShadow><boxGeometry args={[4.2, 0.1, 4]} /><meshStandardMaterial color="#475569" /></mesh>
-              <mesh rotation={[-0.523, 0, 0]} position={[0, 0.86 - 0.05, -9]} receiveShadow castShadow><boxGeometry args={[4.2, 0.1, 3.46]} /><meshStandardMaterial color="#334155" /></mesh>
-              <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -14.5]} receiveShadow><planeGeometry args={[4.2, 8]} /><meshStandardMaterial color="#64748b" /></mesh>
-              <mesh name="challenge-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, -17.5]}><planeGeometry args={[4.2, 0.5]} /><meshBasicMaterial color="#ff0000" /></mesh>
-              <Text position={[0, 0.1, -0.4]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.3} color="white">STEEP RAMP</Text>
+          <group>
+              <mesh rotation={[0.523, 0, 0]} position={[0, 0.86 - 0.05, -2]} receiveShadow castShadow userData={envData}><boxGeometry args={[4.2, 0.1, 3.46]} /><meshStandardMaterial color="#334155" /></mesh>
+              <mesh position={[0, 1.73 - 0.05, -5.5]} receiveShadow castShadow userData={envData}><boxGeometry args={[4.2, 0.1, 4]} /><meshStandardMaterial color="#475569" /></mesh>
+              <mesh rotation={[-0.523, 0, 0]} position={[0, 0.86 - 0.05, -9]} receiveShadow castShadow userData={envData}><boxGeometry args={[4.2, 0.1, 3.46]} /><meshStandardMaterial color="#334155" /></mesh>
+              <mesh name="road-background-level" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -14.5]} receiveShadow userData={envData}><planeGeometry args={[4.2, 8]} /><meshStandardMaterial color="#64748b" /></mesh>
+              <mesh name="challenge-marker-level" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, -17.5]} userData={envData}><planeGeometry args={[4.2, 0.5]} /><meshBasicMaterial color="#ff0000" /></mesh>
           </group>
       )}
 
       {config.isSlope && (
-          <group position={[0, 0, 0]}>
-              <mesh name="road-background" rotation={[0.0665, 0, 0]} position={[0, 0.5 - 0.025, -9]} receiveShadow castShadow><boxGeometry args={[4.2, 0.05, 15]} /><meshStandardMaterial color="#f8fafc" /></mesh>
-          </group>
+          <mesh name="road-background-slope" rotation={[0.0665, 0, 0]} position={[0, 0.5 - 0.025, -9]} receiveShadow castShadow userData={envData}><boxGeometry args={[4.2, 0.05, 15]} /><meshStandardMaterial color="#f8fafc" /></mesh>
       )}
 
       {config.isFrontWall && (
-          <group position={[0, 0.5, -10]}><mesh name="challenge-wall" receiveShadow castShadow><boxGeometry args={[6, 1, 0.5]} /><meshStandardMaterial color="#ff0000" roughness={0.2} /></mesh></group>
+          <group position={[0, 0.5, -10]}><mesh name="challenge-wall" receiveShadow castShadow userData={envData}><boxGeometry args={[6, 1, 0.5]} /><meshStandardMaterial color="#ff0000" roughness={0.2} /></mesh></group>
       )}
 
       {config.isLineFollow && (
-         <group position={[-6, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}><mesh name="challenge-path"><ringGeometry args={[5.8, 6.2, 128]} /><meshBasicMaterial color="black" /></mesh></group>
+         <group position={[-6, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}><mesh name="challenge-path-follow" userData={envData}><ringGeometry args={[5.8, 6.2, 128]} /><meshBasicMaterial color="black" /></mesh></group>
       )}
 
       {config.isEllipseTrack && (
