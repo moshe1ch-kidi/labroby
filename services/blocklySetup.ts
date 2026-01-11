@@ -24,18 +24,23 @@ const CANONICAL_COLOR_MAP_FOR_BLOCKLY: Record<string, string> = {
     'white': '#FFFFFF',
 };
 
-// Global state for the active color palette
+// Global state for the active color palette used by the chocolate table
 let ACTIVE_PALETTE: string[] = Object.values(CANONICAL_COLOR_MAP_FOR_BLOCKLY);
 
 /**
  * Updates the global color palette used by Blockly color fields.
  * This is exported and used by App.tsx to push colors found in the 3D environment.
  */
-export function updateBlocklyPalette(colors: string[]) {
+export const updateBlocklyPalette = (colors: string[]) => {
     const baseColors = Object.values(CANONICAL_COLOR_MAP_FOR_BLOCKLY);
-    const uniqueColors = Array.from(new Set([...colors.map(c => c.toUpperCase()), ...baseColors]));
+    // Merge provided colors with canonical ones, normalize to uppercase hex
+    const uniqueColors = Array.from(new Set([
+        ...colors.filter(c => c && c.startsWith('#')).map(c => c.toUpperCase()), 
+        ...baseColors
+    ]));
+    // Final validation
     ACTIVE_PALETTE = uniqueColors.filter(c => /^#[0-9A-F]{6}$/i.test(c));
-}
+};
 
 // --- MESSAGE ICONS (SVG DATA URIs) ---
 const MSG_ICONS = {
@@ -155,7 +160,7 @@ export const initBlockly = () => {
         const grid = document.createElement('div');
         grid.className = 'grid grid-cols-5 gap-2';
         
-        // Use the dynamic global palette
+        // Use the current state of ACTIVE_PALETTE
         ACTIVE_PALETTE.forEach(c => {
             const btn = document.createElement('button');
             btn.className = 'w-7 h-7 rounded-lg border border-slate-200 transition-all hover:scale-110 active:scale-95 shadow-sm';
