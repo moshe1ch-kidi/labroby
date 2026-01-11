@@ -1,3 +1,4 @@
+ 
 
 import React, { useMemo } from 'react';
 import { Grid, Environment as DreiEnvironment, ContactShadows, Text } from '@react-three/drei';
@@ -10,12 +11,12 @@ interface EnvironmentProps {
     customObjects?: CustomObject[];
     selectedObjectId?: string | null;
     onObjectSelect?: (id: string) => void;
-    onPointerDown?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
-    onPointerMove?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
-    onPointerUp?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
+    // Removed onPointerDown?: (e: ThreeEvent<MouseEvent>) => void;
+    // Removed onPointerMove?: (e: ThreeEvent<MouseEvent>) => void;
+    // Removed onPointerUp?: (e: ThreeEvent<MouseEvent>) => void;
     robotState?: RobotState;
 
-    // No longer needs isColorPickerActive, as ColorPickerTool handles its own events.
+    // Removed isColorPickerActive prop as it's no longer needed here
     // isColorPickerActive?: boolean;
 }
 
@@ -69,12 +70,10 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
     customObjects = [], 
     selectedObjectId,
     onObjectSelect,
-    onPointerDown, 
-    onPointerMove, 
-    onPointerUp,
+    // Removed onPointerDown, 
+    // Removed onPointerMove, 
+    // Removed onPointerUp,
     robotState,
-    // Removed isColorPickerActive prop as it's no longer needed here
-    // isColorPickerActive
 }) => {
   const config = useMemo(() => {
       const isRoomNav = challengeId === 'c1';
@@ -100,11 +99,9 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
         rotation={[-Math.PI / 2, 0, 0]} 
         position={[0, -0.01, 0]} 
         receiveShadow 
-        // Reverted to always attach pointer events to ground-plane.
-        // ColorPickerTool's interaction plane will be positioned above it and handle stopping propagation.
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
+        // Removed onPointerDown={onPointerDown}
+        // Removed onPointerMove={onPointerMove}
+        // Removed onPointerUp={onPointerUp}
         onClick={(e) => { e.stopPropagation(); if (onObjectSelect) onObjectSelect("GROUND"); }} 
       >
         <planeGeometry args={[200, 200]} />
@@ -134,10 +131,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
 
       {customObjects.map((obj) => {
           const isSelected = obj.id === selectedObjectId;
-          // Updated handleSelect to check isColorPickerActive BEFORE handling selection,
-          // ensuring picker interaction is prioritized.
           const handleSelect = (e: ThreeEvent<MouseEvent>) => { 
-            // if (isColorPickerActive) { e.stopPropagation(); return; } // Removed conditional
             e.stopPropagation(); 
             if (onObjectSelect) onObjectSelect(obj.id); 
           };
@@ -148,7 +142,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                     <mesh name="custom-wall" position={[0, 0.5, 0]} castShadow receiveShadow onClick={handleSelect}>
                         <boxGeometry args={[obj.width, 1, obj.length]} />
                         <meshStandardMaterial color={obj.color || "#ef4444"} roughness={0.2} transparent opacity={obj.opacity ?? 1} />
-                        {isSelected && ( <mesh scale={[1.02, 1.02, 1.02]}><boxGeometry args={[obj.width, 1, obj.length]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.5} /></mesh> )}
+                        {isSelected && ( <mesh name="custom-wall-wireframe" scale={[1.02, 1.02, 1.02]}><boxGeometry args={[obj.width, 1, obj.length]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.5} /></mesh> )}
                     </mesh>
                 )}
                 {obj.type === 'RAMP' && (
@@ -214,7 +208,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.025, 0]}><ringGeometry args={[obj.length/2 - 0.1, obj.length/2 + 0.1, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
-                        {isSelected && ( <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.03, 0]}><planeGeometry args={[obj.width + 0.2, (obj.shape === 'CORNER' ? obj.width : obj.length) + 0.2]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.3} /></mesh> )}
+                        {isSelected && ( <mesh name="custom-path-wireframe" rotation={[-Math.PI/2, 0, 0]} position={[0, 0.03, 0]}><planeGeometry args={[obj.width + 0.2, (obj.shape === 'CORNER' ? obj.width : obj.length) + 0.2]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.3} /></mesh> )}
                     </group>
                 )}
             </group>
