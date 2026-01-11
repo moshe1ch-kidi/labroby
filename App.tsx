@@ -1,4 +1,4 @@
-
+ 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -11,7 +11,7 @@ import { RobotState, CustomObject, ContinuousDrawing, SimulationHistory, CameraM
 import Numpad from './components/Numpad';
 import SensorDashboard from './components/SensorDashboard';
 import RulerTool from './components/RulerTool';
-import ColorPickerTool from './components/ColorPickerTool';
+import ColorPickerTool from './components/ColorPickerTool'; // Import the new ColorPickerTool
 import CameraManager from './components/CameraManager'; // ייבוא CameraManager
 import { CHALLENGES, Challenge } from './data/challenges';
 import { ThreeEvent } from '@react-three/fiber'; // Import ThreeEvent here
@@ -21,7 +21,7 @@ const BASE_VELOCITY = 0.165; // Retained at 3x original for normal forward movem
 const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much faster turning
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwNC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmbGlsPSJub25lIiBzZmlsbC1vcGFjaXR5PSIxIiBzdHJva2U9IiNlYzQ4OTkiIHN0cm9rZS13aWR0aD0iMiIgc3RyYtBLLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtdW5lam9pbj0icm91bmQiPjxwYXRoIGQ9MTAuNTQgOC40NmE1IDUgMCAxIDAtNy4wNyA3LjA3bDEuNDEgMS40MWEyIDIgMCAwIDAgMi44MyAwbDIuODMtMi44M2EyIDIgMCAwIDAgMC0yLjgzbC0xLjQxLTEuNDF6Ii8+PHBhdGggZD0ibTkgMTkgNW0tNy05IDUtNSIvPjxwYXRoIGQ9Ik05LjUgMTQuNSA0IDkiLz48cGF0aCBkPSJtMTggNiAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAg1IDAtMi44LTy44bC0xLjQgMS40IDIuOCAy.4IDEuNC0x.4eiIvPjwvc3ZnPgo=') 0 24, crosshair`;
+const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwNC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzZmlsbC1vcGFjaXR5PSIxIiBzdHJva2U9IiNlYzQ4OTkiIHN0cm9rZS13aWR0aD0iMiIgc3RyYtBLLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtdW5lam9pbj0icm91bmQiPjxwYXRoIGQ9MTAuNTQgOC40NmE1IDUgMCAxIDAtNy4wNyA3LjA3bDEuNDEgMS40MWEyIDIgMCAwIDAgMi44MyAwbDIuODMtMi44M2EyIDIgMCAwIDAgMC0yLjgzbC0xLjQxLTEuNDF6Ii8+PHBhdGggZD0ibTkgMTkgNW0tNy05IDUtNSIvPjxwYXRoIGQ9Ik05LjUgMTQuNSA0IDkiLz48cGF0aCBkPSJmMTggNiAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAg1IDAtMi44LTy44bC0xLjQgMS40IDIuOCAy.4IDEuNC0x.4eiIvPjwvc3ZnPgo=') 0 24, crosshair`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -375,7 +375,7 @@ const App: React.FC = () => {
   const [startBlockCount, setStartBlockCount] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isRulerActive, setIsRulerActive] = useState(false);
-  const [isColorPickerActive, setIsColorPickerActive] = useState(false);
+  const [isColorPickerActive, setIsColorPickerActive] = useState(false); // Retain this state
   const [customObjects, setCustomObjects] = useState<CustomObject[]>([]);
   const [cameraMode, setCameraMode] = useState<CameraMode>('HOME');
   const [editorTool, setEditorTool] = useState<EditorTool>('NONE');
@@ -846,7 +846,7 @@ const App: React.FC = () => {
     if (blocklyColorPickCallback) {
       blocklyColorPickCallback(hexColor);
     }
-    setIsColorPickerActive(false);
+    setIsColorPickerActive(false); // Deactivate after selection
     setPickerHoverColor(null);
     setBlocklyColorPickCallback(null);
   }, [blocklyColorPickCallback]);
@@ -1063,57 +1063,45 @@ const App: React.FC = () => {
             detectedColor={sensorReadings.color} 
             lightIntensity={sensorReadings.intensity} 
             overrideColor={isColorPickerActive ? pickerHoverColor : null} 
-            onColorClick={() => setIsColorPickerActive(!isColorPickerActive)} 
+            onColorClick={() => setIsColorPickerActive(!isColorPickerActive)} // Now directly toggles isColorPickerActive
           />
           
-         <Canvas 
-  shadows 
-  /* הגדרות קריטיות למניעת קריסה בשאיבת צבע */
-  gl={{ 
-    preserveDrawingBuffer: true, 
-    antialias: true,
-    powerPreference: "high-performance"
-  }}
-  camera={{ position: [10, 10, 10], fov: 45 }}
->
-  <SimulationEnvironment 
-    challengeId={activeChallenge?.id} 
-    customObjects={customObjects} 
-    robotState={robotState} 
-    onPointerDown={handlePointerDown}
-    onPointerMove={handlePointerMove}
-    onPointerUp={handlePointerUp}
-  />
-  
-  {/* Render completed drawings */}
-  {completedDrawings.map((path) => (
-      <Line key={path.id} points={path.points} color={path.color} lineWidth={4} />
-  ))}
-  
-  {/* Render active drawing */}
-  {activeDrawing && activeDrawing.points.length > 1 && (
-      <Line key={activeDrawing.id} points={activeDrawing.points} color={activeDrawing.color} lineWidth={4} />
-  )}
-  
-  <Robot3D state={robotState} isPlacementMode={editorTool === 'ROBOT_MOVE'} />
-  
-  <OrbitControls 
-    ref={controlsRef} 
-    makeDefault 
-    {...orbitControlsProps}
-  />
-  
-  <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />
-  
-  {isRulerActive && <RulerTool />}
-  
-  {isColorPickerActive && (
-    <ColorPickerTool 
-      onColorHover={handlePickerHover} 
-      onColorSelect={handlePickerSelect} 
-    />
-  )}
-</Canvas>
+          <Canvas 
+            shadows 
+            camera={{ position: [10, 10, 10], fov: 45 }}
+          >
+            <SimulationEnvironment 
+              challengeId={activeChallenge?.id} 
+              customObjects={customObjects} 
+              robotState={robotState} 
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+            />
+            {/* Render completed drawings */}
+            {completedDrawings.map((path) => (
+                <Line key={path.id} points={path.points} color={path.color} lineWidth={4} />
+            ))}
+            {/* Render active drawing */}
+            {activeDrawing && activeDrawing.points.length > 1 && ( // Only render if at least two points to form a line
+                <Line key={activeDrawing.id} points={activeDrawing.points} color={activeDrawing.color} lineWidth={4} />
+            )}
+            <Robot3D state={robotState} isPlacementMode={editorTool === 'ROBOT_MOVE'} />
+            <OrbitControls 
+              ref={controlsRef} 
+              makeDefault 
+              {...orbitControlsProps}
+            />
+            {/* CameraManager component for handling follow camera logic */}
+            <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />
+            {isRulerActive && <RulerTool />}
+            {/* The new ColorPickerTool component */}
+            <ColorPickerTool 
+                isActive={isColorPickerActive} // Pass the state to activate/deactivate it
+                onColorHover={handlePickerHover} // Pass hover handler for SensorDashboard preview
+                onColorSelect={handlePickerSelect} // Pass select handler for Blockly
+            />
+          </Canvas>
         </div>
       </main>
       
