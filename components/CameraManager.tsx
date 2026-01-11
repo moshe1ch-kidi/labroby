@@ -1,7 +1,5 @@
-
-import React, { useEffect, useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
-import { Vector3 } from 'three';
+import { useEffect, useRef } from 'react';
+import { useThree } from '@react-three/fiber';
 import { RobotState, CameraMode } from '../types';
 
 interface CameraManagerProps {
@@ -12,58 +10,77 @@ interface CameraManagerProps {
 
 const CameraManager: React.FC<CameraManagerProps> = ({ robotState, cameraMode, controlsRef }) => {
     const { camera } = useThree();
-    const desiredCameraPosition = useRef(new Vector3());
-    const desiredCameraTarget = useRef(new Vector3());
-
-    useFrame(() => {
-        if (!controlsRef.current) return;
-
-        if (cameraMode === 'FOLLOW') {
-            const { x, y, z, rotation } = robotState;
-            
-            // Target the robot's center, slightly above ground
-            // We use robotState.y for accurate vertical positioning on ramps
-            desiredCameraTarget.current.set(x, y + 0.5, z);
-
-            // Calculate camera position behind the robot
-            const distanceBehind = 7; // How far behind the robot
-            const heightAbove = 5;    // How high above the robot
-            
-            const robotRad = rotation * Math.PI / 180; // Convert degrees to radians
-            // Calculate camera X and Z based on robot's rotation
-            const camX = x - Math.sin(robotRad) * distanceBehind;
-            const camZ = z - Math.cos(robotRad) * distanceBehind;
-            
-            // Set desired camera position, matching robot's Y for ramps
-            desiredCameraPosition.current.set(camX, y + heightAbove, camZ);
-
-            // Smoothly move camera and target using lerp
-            camera.position.lerp(desiredCameraPosition.current, 0.1); // Adjust lerp factor for smoothness
-            controlsRef.current.target.lerp(desiredCameraTarget.current, 0.1);
-
-            controlsRef.current.update(); // Important to update OrbitControls after manual position/target changes
-        }
-    });
+    const lastRobotPosRef = useRef({ x: 0, z: 0 });
 
     useEffect(() => {
-        // When switching to FOLLOW mode, immediately set the camera to the desired position/target
-        // to avoid a large jump from the previous mode. This also applies when robotState changes while in FOLLOW mode.
-        if (cameraMode === 'FOLLOW' && controlsRef.current) {
-            const { x, y, z, rotation } = robotState;
-            const distanceBehind = 7; 
-            const heightAbove = 5;    
-            const robotRad = rotation * Math.PI / 180;
-            const camX = x - Math.sin(robotRad) * distanceBehind;
-            const camZ = z - Math.cos(robotRad) * distanceBehind;
-            
-            // Immediately set the camera's position and target
-            controlsRef.current.object.position.set(camX, y + heightAbove, camZ);
-            controlsRef.current.target.set(x, y + 0.5, z);
-            controlsRef.current.update();
+        // Safety checks - if camera or controls don't exist, exit early
+        if (!camera) {
+            console.warn("Camera not available");
+            return;
         }
-    }, [cameraMode, robotState, controlsRef]); // Dependencies for this effect
 
-    return null; // This component doesn't render anything visually in the scene
+        if (!controlsRef.current) {
+            console.warn("Controls not available");
+            return;
+        }
+
+        try {
+            if (cameraMode === 'FOLLOW') {
+                // Follow camera mode - camera follows the robot
+                if (!camera.position) {
+                    console.error("Camera position not available");
+                    return;
+                }
+
+                const robotX = robotState.x;
+                const robotZ = robotState.z;
+                const robotY = robotState.y || 0;
+
+                // Camera offset from robot
+                const cameraDistance = 5;
+                const cameraHeight = 3;
+                const cameraOffsetZ = -cameraDistance;
+
+                // Calculate rotation-aware camera position
+                const rad = (robotState.rotation * Math.PI) / 180;
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
+
+                // Position camera behind and above the robot
+                const targetCameraX = robotX - sin * cameraDistance;
+                const targetCameraY = robotY + cameraHeight;
+                const targetCameraZ = robotZ - cos * cameraDistance;
+
+                // Smooth camera movement
+                const smoothFactor = 0.1;
+                camera.position.x += (targetCameraX - camera.position.x) * smoothFactor;
+                camera.position.y += (targetCameraY - camera.position.y) * smoothFactor;
+                camera.position.z += (targetCameraZ - camera.position.z) * smoothFactor;
+
+                // Update controls target to follow robot
+                if (controlsRef.current.target) {
+                    const targetX = robotX;
+                    const targetY = robotY + 0.5;
+                    const targetZ = robotZ;
+
+                    controlsRef.current.target.x += (targetX - controlsRef.current.target.x) * smoothFactor;
+                    controlsRef.current.target.y += (targetY - controlsRef.current.target.y) * smoothFactor;
+                    controlsRef.current.target.z += (targetZ - controlsRef.current.target.z) * smoothFactor;
+
+                    if (controlsRef.current.update) {
+                        controlsRef.current.update();
+                    }
+                }
+
+                lastRobotPosRef.current = { x: robotX, z: robotZ };
+            }
+        } catch (err) {
+            console.error("Error in CameraManager:", err);
+        }
+    }, [robotState, cameraMode, camera, controlsRef]);
+
+    // This component doesn't render anything, it just manages camera state
+    return null;
 };
 
 export default CameraManager;
