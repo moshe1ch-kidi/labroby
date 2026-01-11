@@ -1,4 +1,4 @@
- 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -21,7 +21,8 @@ const BASE_VELOCITY = 0.165; // Retained at 3x original for normal forward movem
 const BASE_TURN_SPEED = 3.9; // Increased to 30x original (0.13 * 30) for much faster turning
 const TURN_TOLERANCE = 0.5; // degrees - for turn precision
 
-const DROPPER_CURSOR_URL = `url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwNC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzZmlsbC1vcGFjaXR5PSIxIiBzdHJva2U9IiNlYzQ4OTkiIHN0cm9rZS13aWR0aD0iMiIgc3RyYtBLLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtdW5lam9pbj0icm91bmQiPjxwYXRoIGQ9MTAuNTQgOC40NmE1IDUgMCAxIDAtNy4wNyA3LjA3bDEuNDEgMS40MWEyIDIgMCAwIDAgMi44MyAwbDIuODMtMi44M2EyIDIgMCAwIDAgMC0yLjgzbC0xLjQxLTEuNDF6Ii8+PHBhdGggZD0ibTkgMTkgNW0tNy05IDUtNSIvPjxwYXRoIGQ9Ik05LjUgMTQuNSA0IDkiLz48cGF0aCBkPSJmMTggNiAzLTMiLz48cGF0aCBkPSJNMjAuOSA3LjFhMiAyIDAg1IDAtMi44LTy44bC0xLjQgMS40IDIuOCAy.4IDEuNC0x.4eiIvPjwvc3ZnPgo=') 0 24, crosshair`;
+// Corrected and URL-encoded SVG data URI for the eyedropper cursor
+const DROPPER_CURSOR_URL = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ec4899' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2 22 5-5'/%3E%3Cpath d='M9.5 14.5 16 8l3 3-6.5 6.5-3-3z'/%3E%3Cpath d='m18 6 3-3'/%3E%3Cpath d='M20.9 7.1a2 2 0 1 0-2.8-2.8l-1.4 1.4 2.8 2.8 1.4-1.4z'/%3E%3C/svg%3E") 0 24, crosshair`;
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP: Record<string, string> = {
@@ -386,7 +387,7 @@ const App: React.FC = () => {
   const [projectModal, setProjectModal] = useState<{isOpen: boolean, mode: 'save' | 'load'}>({isOpen: false, mode: 'save'});
   const [isPythonModalOpen, setIsPythonModalOpen] = useState(false);
   const [monitoredValues, setMonitoredValues] = useState<Record<string, any>>({});
-  const [visibleVariables, setVisibleVariables] = useState<Set<string>>(new Set());
+  const [visibleVariables, setVisibleVariables] = new Set([]);
   const blocklyEditorRef = useRef<BlocklyEditorHandle>(null);
   const controlsRef = useRef<any>(null); // Reference to OrbitControls
   const historyRef = useRef<SimulationHistory>({ maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 });
