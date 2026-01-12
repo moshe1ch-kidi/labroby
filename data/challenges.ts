@@ -1,5 +1,6 @@
 
-import { RobotState, CustomObject, SimulationHistory } from '../types';
+
+import { RobotState, EnvironmentObject, SimulationHistory } from '../types';
 
 export interface Challenge {
     id: string;
@@ -9,7 +10,7 @@ export interface Challenge {
     check: (startState: RobotState, endState: RobotState, history: SimulationHistory) => boolean;
     startPosition?: { x: number; y: number; z: number };
     startRotation?: number;
-    environmentObjects?: CustomObject[];
+    environmentObjects?: EnvironmentObject[];
 }
 
 export const CHALLENGES: Challenge[] = [
@@ -64,6 +65,23 @@ export const CHALLENGES: Challenge[] = [
 
     // --- MEDIUM CHALLENGES ---
     {
+        id: 'c_conditional_stop',
+        title: 'משימת תנאי: עצירה בצבע הנכון',
+        description: 'סע ישר עד שתזהה קו כחול. לאחר זיהוי הקו הכחול, פנה ימינה ועצור בדיוק על הקו הירוק.',
+        difficulty: 'Medium',
+        check: (start, end, history) => {
+            // Win condition: Robot is stopped on the green line.
+            const onGreenLine = end.x < -9 && end.x > -11 && end.z < -8 && end.z > -12;
+            return !end.isMoving && onGreenLine;
+        },
+        startPosition: { x: 0, y: 0, z: 0 },
+        startRotation: 180,
+        environmentObjects: [
+            { id: 'blue_trigger', type: 'COLOR_LINE', x: 0, z: -10, width: 4, length: 0.5, color: '#3B82F6' },
+            { id: 'green_target', type: 'COLOR_LINE', x: -10, z: -10, width: 0.5, length: 4, color: '#22C55E' }
+        ]
+    },
+    {
         id: 'c9',
         title: 'Color Identification - Multi-line Path',
         description: 'סע לאורך המסלול וזהה 5 קווים צבעוניים במרחקים שווים. רוחב כל קו 1 ס"מ. הקו האחרון הוא קו עצירה אדום.',
@@ -88,7 +106,7 @@ export const CHALLENGES: Challenge[] = [
         title: 'ניווט בחדר - מסלול קירות',
         description: 'עבור דרך מסדרון הקירות והגע לאזור היעד הירוק מבלי לגעת במכשולים.',
         difficulty: 'Medium',
-        check: (start, end, history) => end.x > 14 && end.z < 0,
+        check: (start, end, history) => end.x > 14 && end.z < 0 && !history.touchedWall, // Added !history.touchedWall for consistency with maze
         startPosition: { x: 0.10, y: 0, z: 0.10 },
         startRotation: 180,
         environmentObjects: [
@@ -96,21 +114,6 @@ export const CHALLENGES: Challenge[] = [
             { "id": "w2", "type": "WALL", "x": 2.26, "z": -3.97, "width": 0.5, "length": 7.75, "rotation": 0.00, "color": "#ef4444" },
             { "id": "w3", "type": "WALL", "x": 5.50, "z": -7.93, "width": 0.5, "length": 6.95, "rotation": 1.58, "color": "#ef4444" },
             { "id": "w4", "type": "WALL", "x": 3.48, "z": -12.26, "width": 0.5, "length": 11.56, "rotation": -1.57, "color": "#ef4444" }
-        ]
-    },
-    {
-        id: 'c5',
-        title: 'בקרת רמזור - ניווט כביש',
-        description: 'סע לאורך הכביש הצהוב, פנה ימינה ועצור בקו האדום.',
-        difficulty: 'Medium',
-        check: (start, end, history) => end.x > 8 && end.z < -15,
-        startPosition: { x: 0.00, y: 0, z: 0.00 },
-        startRotation: 180,
-        environmentObjects: [
-            { "id": "p1", "type": "PATH", "shape": "STRAIGHT", "x": -0.03, "z": -8.67, "width": 2.8, "length": 14.01, "rotation": 3.13, "color": "#facc15" },
-            { "id": "p2", "type": "PATH", "shape": "CORNER", "x": 0.00, "z": -16.67, "width": 2.8, "length": 2.8, "rotation": -1.56, "color": "#FFFF00" },
-            { "id": "p3", "type": "PATH", "shape": "STRAIGHT", "x": 4.77, "z": -16.65, "width": 2.8, "length": 6.92, "rotation": 1.56, "color": "#FFFF00" },
-            { "id": "l1", "type": "COLOR_LINE", "x": 8.99, "z": -16.62, "width": 2.8, "length": 1.67, "rotation": 1.56, "color": "#FF0000" }
         ]
     },
     {
