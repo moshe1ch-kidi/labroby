@@ -163,7 +163,6 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     const wheelOffsetZ = 0.5;
     const wheelOffsetX = 0.95;
     const casterOffsetZ = -0.8;
-    const frontSensorPos = getPointWorldPos(0, 1.1);
 
     const leftWheelPos = getPointWorldPos(-wheelOffsetX, wheelOffsetZ);
     const rightWheelPos = getPointWorldPos(wheelOffsetX, wheelOffsetZ);
@@ -228,8 +227,25 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
         }
 
         if (onZone) {
-            sensorRawDecimalColor = zZone.color; 
+            // New logic: Differentiate between center line and black road surface
+            let onLine = true;
+            if (zZone.type === 'PATH') {
+                const lineWidth = 0.12; // Radius of detection for the 0.2cm line
+                if (zZone.shape === 'STRAIGHT' || !zZone.shape) {
+                    onLine = Math.abs(lX) <= lineWidth;
+                } else if (zZone.shape === 'CORNER') {
+                    onLine = Math.abs(lX) <= lineWidth || Math.abs(lZ) <= lineWidth;
+                } else if (zZone.shape === 'CURVED') {
+                    const midRadius = zZone.length / 2;
+                    const shiftedLX = lX + midRadius;
+                    const distFromArcCenter = Math.sqrt(Math.pow(shiftedLX, 2) + Math.pow(lZ, 2));
+                    onLine = Math.abs(distFromArcCenter - midRadius) <= lineWidth;
+                }
+            }
+
+            sensorRawDecimalColor = onLine ? zZone.color : 0x000000; 
             const hexStr = "#" + sensorRawDecimalColor.toString(16).padStart(6, '0').toUpperCase();
+            
             if (isColorClose(hexStr, CANONICAL_COLOR_MAP['red'])) sensorDetectedColor = "red";
             else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['blue'])) sensorDetectedColor = "blue";
             else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['green'])) sensorDetectedColor = "green";
@@ -241,6 +257,10 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
             else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['black'])) sensorDetectedColor = "black";
             else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['white'])) sensorDetectedColor = "white";
             else sensorDetectedColor = hexStr;
+
+            // Set intensity based on brightness
+            const c = new THREE.Color(hexStr);
+            sensorIntensity = Math.round((c.r + c.g + c.b) / 3 * 100);
             break; 
         }
     }
@@ -329,6 +349,7 @@ const App: React.FC = () => {
   const [completedDrawings, setCompletedDrawings] = useState<ContinuousDrawing[]>([]);
   const activeDrawingRef = useRef<ContinuousDrawing | null>(null); 
 
+  // Fix syntax error in robotRef initialization where a type was used as a value.
   const robotRef = useRef<RobotState>({ x: 0, y: 0, z: 0, rotation: 180, tilt: 0, roll: 0, speed: 100, motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', ledRightColor: 'black', isMoving: false, isTouching: false, penDown: false, penColor: '#000000' });
   const [robotState, setRobotState] = useState<RobotState>(robotRef.current);
   const isPlacingRobot = useRef(false);
@@ -340,8 +361,12 @@ const App: React.FC = () => {
   // Sync environment colors with Blockly palette
   useEffect(() => {
     const environmentColors: string[] = [];
-    customObjects.forEach(obj => { if (obj.color) environmentColors.push(obj.color); });
-    if (activeChallenge?.id === 'c21' || activeChallenge?.id === 'c12') environmentColors.push('#000000');
+    let hasPaths = false;
+    customObjects.forEach(obj => { 
+        if (obj.color) environmentColors.push(obj.color); 
+        if (obj.type === 'PATH') hasPaths = true;
+    });
+    if (activeChallenge?.id === 'c21' || activeChallenge?.id === 'c12' || hasPaths) environmentColors.push('#000000');
     if (activeChallenge?.id === 'c12') environmentColors.push('#FF0000', '#0000FF', '#22C55E', '#FFFF00');
     if (activeChallenge?.id === 'c10') environmentColors.push('#64748B');
     if (activeChallenge?.id === 'c15' || activeChallenge?.id === 'c14') environmentColors.push('#0000FF', '#FF0000');
