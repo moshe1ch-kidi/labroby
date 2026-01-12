@@ -65,6 +65,32 @@ export const CHALLENGES: Challenge[] = [
 
     // --- MEDIUM CHALLENGES ---
     {
+        id: 'c_simple_maze',
+        title: 'מבוך פשוט',
+        description: 'נווט את הרובוט דרך המבוך והגע לקו הסיום הירוק מבלי להתנגש בקירות.',
+        difficulty: 'Medium',
+        check: (start, end, history) => {
+            const inFinishZone = end.z < -10 && Math.abs(end.x) < 2;
+            return !end.isMoving && inFinishZone && !history.touchedWall;
+        },
+        startPosition: { x: 0, y: 0, z: 12 },
+        startRotation: 180,
+        environmentObjects: [
+            // Outer walls with entrance/exit
+            { id: 'm_outer_top_left', type: 'WALL', z: 10, x: -5, width: 6, length: 0.5, color: '#475569' },
+            { id: 'm_outer_top_right', type: 'WALL', z: 10, x: 5, width: 6, length: 0.5, color: '#475569' },
+            { id: 'm_outer_bottom_left', type: 'WALL', z: -10, x: -5, width: 6, length: 0.5, color: '#475569' },
+            { id: 'm_outer_bottom_right', type: 'WALL', z: -10, x: 5, width: 6, length: 0.5, color: '#475569' },
+            { id: 'm_outer_left', type: 'WALL', x: -8, z: 0, width: 0.5, length: 20, color: '#475569' },
+            { id: 'm_outer_right', type: 'WALL', x: 8, z: 0, width: 0.5, length: 20, color: '#475569' },
+            // Inner walls for S-path
+            { id: 'm_inner_1', type: 'WALL', z: 5, x: 3, width: 10, length: 0.5, color: '#475569' },
+            { id: 'm_inner_2', type: 'WALL', z: -5, x: -3, width: 10, length: 0.5, color: '#475569' },
+            // Finish line
+            { id: 'maze_finish', type: 'COLOR_LINE', x: 0, z: -10.5, width: 4, length: 2, color: '#22C55E' }
+        ]
+    },
+    {
         id: 'c_conditional_stop',
         title: 'משימת תנאי: עצירה בצבע הנכון',
         description: 'סע ישר עד שתזהה קו כחול. לאחר זיהוי הקו הכחול, פנה ימינה ועצור בדיוק על הקו הירוק.',
