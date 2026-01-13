@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { initBlockly, toolbox, getScratchTheme, HAT_BLOCKS } from '../services/blocklySetup';
@@ -10,7 +9,8 @@ interface BlocklyEditorProps {
   visibleVariables: Set<string>;
   onToggleVariable: (name: string) => void;
   onVariablesChanged?: (allVarNames: string[], renameInfo?: {oldName: string, newName: string}) => void;
-  onShowNumpad: (initialValue: string | number, onConfirm: (newValue: number) => void) => void;
+  // FIX: Added the `position` argument to match the signature of the callback passed from App.tsx.
+  onShowNumpad: (initialValue: string | number, onConfirm: (newValue: number) => void, position: DOMRect) => void;
 }
 
 export interface BlocklyEditorHandle {
@@ -199,12 +199,13 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
     const python = (window as any).python;
     if (!Blockly || !javascript || !python) return;
 
-    // Expose numpad globally for Blockly to use
+    // Expose these functions globally for Blockly to use, before initBlockly
     window.showBlocklyNumpad = onShowNumpad;
 
     initBlockly();
     const scratchTheme = getScratchTheme();
 
+    // Override Blockly dialogs to use our React Modal
     Blockly.dialog.setPrompt((message: string, defaultValue: string, callback: (res: string | null) => void) => {
         const isRename = message.toLowerCase().includes('rename');
         setModalConfig({
@@ -329,6 +330,7 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
         window.removeEventListener('resize', handleResize);
         if (workspaceRef.current) workspaceRef.current.dispose();
         workspaceRef.current = null;
+        // Clean up on unmount
         delete (window as any).showBlocklyNumpad;
     };
   }, [generateAndNotify, notifyVariablesChange, onShowNumpad]);
@@ -342,6 +344,7 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
     <div className="w-full h-full relative">
       <div ref={blocklyDiv} className="absolute inset-0" />
       
+      {/* Variable Action Overlay - Monitor Only */}
       {activeCategory === 'Variables' && variablePositions.map((pos) => (
           <div 
             key={pos.id}
@@ -352,6 +355,7 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
             }}
             onPointerDown={(e) => e.stopPropagation()} 
           >
+            {/* Monitor Toggle */}
             <div 
                 onClick={() => onToggleVariable(pos.name)}
                 className={`p-2 cursor-pointer bg-white shadow-md border rounded-xl transition-all flex items-center justify-center hover:scale-110 active:scale-95 ${visibleVariables.has(pos.name) ? 'border-orange-400 text-orange-600' : 'border-slate-200 text-slate-400'}`}
