@@ -1,5 +1,4 @@
 
-
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Group, Vector3 } from 'three';
@@ -198,8 +197,8 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
           <CasterWheel position={[0, -0.4, -0.8]} />
           <CasterWheel position={[0, -0.4, 0.8]} />
           
-          <LegoLight position={[-0.6, 1.0, 0.9]} color={state.ledLeftColor} />
-          <LegoLight position={[0.6, 1.0, 0.9]} color={state.ledRightColor} />
+          <LegoLight position={[-0.6, 1.0, 0.9]} color={state.ledRightColor} />
+          <LegoLight position={[0.6, 1.0, 0.9]} color={state.ledLeftColor} />
           <ColorSensor position={[0, -0.1, 0.9]} />
           <UltrasonicSensor position={[0, 0.5, 1.1]} />
           {/* שינוי מיקום חיישן המגע קדימה */}
