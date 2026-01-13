@@ -1,4 +1,4 @@
- 
+
 // Initialize Blockly Setup
 
 // --- CONSTANTS ---
@@ -9,38 +9,6 @@ export const HAT_BLOCKS = [
     'event_when_color', 
     'event_when_ultrasonic'
 ];
-
-// Canonical map for common color names to their representative hex values
-const CANONICAL_COLOR_MAP_FOR_BLOCKLY: Record<string, string> = {
-    'red': '#EF4444',
-    'green': '#22C55E',
-    'blue': '#3B82F6',
-    'yellow': '#EAB308',
-    'orange': '#F97316',
-    'purple': '#A855F7',
-    'cyan': '#06B6D4',
-    'magenta': '#EC4899',
-    'black': '#000000',
-    'white': '#FFFFFF',
-};
-
-// Global state for the active color palette used by the chocolate table
-let ACTIVE_PALETTE: string[] = Object.values(CANONICAL_COLOR_MAP_FOR_BLOCKLY);
-
-/**
- * Updates the global color palette used by Blockly color fields.
- * This is exported and used by App.tsx to push colors found in the 3D environment.
- */
-export const updateBlocklyPalette = (colors: string[]) => {
-    const baseColors = Object.values(CANONICAL_COLOR_MAP_FOR_BLOCKLY);
-    // Merge provided colors with canonical ones, normalize to uppercase hex
-    const uniqueColors = Array.from(new Set([
-        ...colors.filter(c => c && c.startsWith('#')).map(c => c.toUpperCase()), 
-        ...baseColors
-    ]));
-    // Final validation
-    ACTIVE_PALETTE = uniqueColors.filter(c => /^#[0-9A-F]{6}$/i.test(c));
-};
 
 // --- MESSAGE ICONS (SVG DATA URIs) ---
 const MSG_ICONS = {
@@ -73,16 +41,56 @@ export const getScratchTheme = () => {
   return Blockly.Theme.defineTheme('scratch', {
     'base': Blockly.Themes.Classic,
     'blockStyles': {
-      'motion_blocks': { 'colourPrimary': '#4C97FF', 'colourSecondary': '#4280D7', 'colourTertiary': '#3373CC' },
-      'looks_blocks': { 'colourPrimary': '#9966FF', 'colourSecondary': '#855CD6', 'colourTertiary': '#774DCB' },
-      'pen_blocks': { 'colourPrimary': '#0FBD8C', 'colourSecondary': '#0DA57A', 'colourTertiary': '#0B8E69' },
-      'events_blocks': { 'colourPrimary': '#FFBF00', 'colourSecondary': '#E6AC00', 'colourTertiary': '#CC9900' },
-      'control_blocks': { 'colourPrimary': '#FFAB19', 'colourSecondary': '#EC9C13', 'colourTertiary': '#CF8B17' },
-      'sensors_blocks': { 'colourPrimary': '#00C7E5', 'colourSecondary': '#00B8D4', 'colourTertiary': '#00ACC1' },
-      'logic_blocks': { 'colourPrimary': '#59C059', 'colourSecondary': '#46B946', 'colourTertiary': '#389438' },
-      'math_blocks': { 'colourPrimary': '#59C059', 'colourSecondary': '#46B946', 'colourTertiary': '#389438' },
-      'variable_blocks': { 'colourPrimary': '#FF8C1A', 'colourSecondary': '#FF8000', 'colourTertiary': '#DB6E00' },
-      'variable_dynamic_blocks': { 'colourPrimary': '#FF8C1A', 'colourSecondary': '#FF8000', 'colourTertiary': '#DB6E00' }
+      'motion_blocks': {
+        'colourPrimary': '#4C97FF',
+        'colourSecondary': '#4280D7',
+        'colourTertiary': '#3373CC'
+      },
+      'looks_blocks': {
+        'colourPrimary': '#9966FF',
+        'colourSecondary': '#855CD6',
+        'colourTertiary': '#774DCB'
+      },
+      'pen_blocks': {
+        'colourPrimary': '#0FBD8C',
+        'colourSecondary': '#0DA57A',
+        'colourTertiary': '#0B8E69'
+      },
+      'events_blocks': {
+        'colourPrimary': '#FFBF00',
+        'colourSecondary': '#E6AC00',
+        'colourTertiary': '#CC9900'
+      },
+      'control_blocks': {
+        'colourPrimary': '#FFAB19',
+        'colourSecondary': '#EC9C13',
+        'colourTertiary': '#CF8B17'
+      },
+      'sensors_blocks': {
+        'colourPrimary': '#00C7E5',
+        'colourSecondary': '#00B8D4',
+        'colourTertiary': '#00ACC1'
+      },
+      'logic_blocks': {
+        'colourPrimary': '#59C059',
+        'colourSecondary': '#46B946',
+        'colourTertiary': '#389438'
+      },
+      'math_blocks': {
+          'colourPrimary': '#59C059',
+          'colourSecondary': '#46B946',
+          'colourTertiary': '#389438'
+      },
+      'variable_blocks': {
+          'colourPrimary': '#FF8C1A',
+          'colourSecondary': '#FF8000',
+          'colourTertiary': '#DB6E00'
+      },
+      'variable_dynamic_blocks': {
+          'colourPrimary': '#FF8C1A',
+          'colourSecondary': '#FF8000',
+          'colourTertiary': '#DB6E00'
+      }
     },
     'categoryStyles': {
       'motion_category': { 'colour': '#4C97FF' },
@@ -141,42 +149,38 @@ export const initBlockly = () => {
     }
     showEditor_() {
         if (window.showBlocklyNumpad) {
-            // Get screen coordinates of the field
-            const bBox = this.fieldGroup_.getBoundingClientRect();
-            window.showBlocklyNumpad(
-                this.getValue(), 
-                (newValue) => { this.setValue(newValue); },
-                { x: bBox.left, y: bBox.top, width: bBox.width, height: bBox.height }
-            );
+            window.showBlocklyNumpad(this.getValue(), (newValue) => { this.setValue(newValue); });
         } else { super.showEditor_(); }
     }
   }
 
-  class FieldFixedColor extends Blockly.FieldColour {
+  class FieldStageColor extends Blockly.FieldColour {
     constructor(value?: string, validator?: Function) { super(value, validator); }
     showEditor_() {
         const pickerDiv = document.createElement('div');
-        pickerDiv.className = 'p-3 bg-white rounded-xl shadow-xl border-2 border-slate-100 flex flex-col gap-3 min-w-[180px]';
+        pickerDiv.className = 'p-3 bg-white rounded-xl shadow-xl border-2 border-slate-100 flex flex-col gap-3 min-w-[160px]';
         
-        const label = document.createElement('div');
-        label.className = 'text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-1';
-        label.innerText = 'מפת צבעים למשימה';
-        pickerDiv.appendChild(label);
+        const stageColors = window.getStageColors ? window.getStageColors() : [];
+        
+        if (stageColors.length === 0) {
+            const noColorsMsg = document.createElement('div');
+            noColorsMsg.className = 'text-center text-xs text-slate-500 p-2';
+            noColorsMsg.textContent = 'אין צבעים זמינים על הבמה';
+            pickerDiv.appendChild(noColorsMsg);
+        } else {
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-4 gap-2';
+            
+            stageColors.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = 'w-8 h-8 rounded-lg border border-slate-200 transition-transform hover:scale-110 active:scale-95 shadow-sm';
+                btn.style.backgroundColor = c;
+                btn.onclick = () => { this.setValue(c); Blockly.DropDownDiv.hideIfOwner(this); };
+                grid.appendChild(btn);
+            });
+            pickerDiv.appendChild(grid);
+        }
 
-        const grid = document.createElement('div');
-        grid.className = 'grid grid-cols-5 gap-2';
-        
-        // Use the current state of ACTIVE_PALETTE
-        ACTIVE_PALETTE.forEach(c => {
-            const btn = document.createElement('button');
-            btn.className = 'w-7 h-7 rounded-lg border border-slate-200 transition-all hover:scale-110 active:scale-95 shadow-sm';
-            btn.style.backgroundColor = c;
-            btn.title = c;
-            btn.onclick = () => { this.setValue(c); Blockly.DropDownDiv.hideIfOwner(this); };
-            grid.appendChild(btn);
-        });
-        
-        pickerDiv.appendChild(grid);
         Blockly.DropDownDiv.getContentDiv().appendChild(pickerDiv);
         Blockly.DropDownDiv.setColour('#ffffff', '#ffffff');
         Blockly.DropDownDiv.showPositionedByField(this, () => {});
@@ -184,9 +188,10 @@ export const initBlockly = () => {
   }
 
   Blockly.fieldRegistry.register('field_numpad', FieldNumpad);
-  Blockly.fieldRegistry.register('field_fixed_color', FieldFixedColor);
+  Blockly.fieldRegistry.register('field_stage_color', FieldStageColor);
 
   // --- DEFINE BLOCKS ---
+
   Blockly.Blocks['event_program_start'] = {
     init: function() {
       this.appendDummyInput().appendField("when").appendField(new Blockly.FieldImage("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%234C97FF' stroke='%234C97FF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E", 20, 20, "Flag")).appendField("clicked");
@@ -217,7 +222,7 @@ export const initBlockly = () => {
 
   Blockly.Blocks['event_when_color'] = {
       init: function() {
-          this.appendDummyInput().appendField("when color").appendField(new FieldFixedColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['yellow']), "COLOR").appendField("detected");
+          this.appendDummyInput().appendField("when color").appendField(new FieldStageColor("#ffbf00"), "COLOR").appendField("detected");
           this.appendStatementInput("DO"); this.setStyle('events_blocks');
       }
   };
@@ -228,6 +233,8 @@ export const initBlockly = () => {
         this.appendStatementInput("DO"); this.setStyle('events_blocks');
     }
   };
+
+  // --- MOTION ---
 
   Blockly.Blocks['robot_drive_simple'] = {
     init: function() {
@@ -284,14 +291,7 @@ export const initBlockly = () => {
 
   Blockly.Blocks['robot_turn'] = {
     init: function() {
-      this.appendDummyInput()
-          .appendField("turn")
-          .appendField(new Blockly.FieldDropdown([["right","RIGHT"], ["left","LEFT"]]), "DIRECTION")
-          .appendField("by")
-          .appendField(new FieldNumpad(90), "ANGLE")
-          .appendField("degrees at speed")
-          .appendField(new FieldNumpad(100, 0, 100), "SPEED")
-          .appendField("%");
+      this.appendDummyInput().appendField("turn").appendField(new Blockly.FieldDropdown([["right","RIGHT"], ["left","LEFT"]]), "DIRECTION").appendField("by").appendField(new FieldNumpad(90), "ANGLE").appendField("degrees");
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks');
     }
   };
@@ -310,6 +310,7 @@ export const initBlockly = () => {
       }
   };
 
+  // --- PEN BLOCKS ---
   Blockly.Blocks['robot_pen_down'] = {
       init: function() {
           this.appendDummyInput().appendField("pen down");
@@ -326,7 +327,7 @@ export const initBlockly = () => {
 
   Blockly.Blocks['robot_pen_set_color'] = {
       init: function() {
-          this.appendDummyInput().appendField("set pen color").appendField(new FieldFixedColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['black']), "COLOR");
+          this.appendDummyInput().appendField("set pen color").appendField(new FieldStageColor("#000000"), "COLOR");
           this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('pen_blocks');
       }
   };
@@ -340,7 +341,7 @@ export const initBlockly = () => {
 
   Blockly.Blocks['robot_led'] = {
     init: function() {
-      this.appendDummyInput().appendField("set").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"], ["both","BOTH"]]), "SIDE").appendField("LED to color").appendField(new FieldFixedColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['red']), "COLOR");
+      this.appendDummyInput().appendField("set").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"], ["both","BOTH"]]), "SIDE").appendField("LED to color").appendField(new FieldStageColor("#ff0000"), "COLOR");
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('looks_blocks');
     }
   };
@@ -467,7 +468,7 @@ export const initBlockly = () => {
 
   Blockly.Blocks['sensor_touching_color'] = {
     init: function() {
-      this.appendDummyInput().appendField("touching color").appendField(new FieldFixedColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['yellow']), "COLOR").appendField("?");
+      this.appendDummyInput().appendField("touching color").appendField(new FieldStageColor("#ffbf00"), "COLOR").appendField("?");
       this.setOutput(true, "Boolean"); this.setStyle('sensors_blocks');
     }
   };
@@ -488,6 +489,7 @@ export const initBlockly = () => {
 
 
   // --- DEFINE JAVASCRIPT GENERATORS ---
+
   javascriptGenerator.forBlock['event_program_start'] = function() { return ''; };
   javascriptGenerator.forBlock['event_when_message'] = function(block: any) { const msg = block.getFieldValue('MESSAGE'); const branch = javascriptGenerator.statementToCode(block, 'DO'); return `robot.onMessage('${msg}', async () => {\n${wrapHatCode(branch)}});\n`; };
   javascriptGenerator.forBlock['event_send_message'] = function(block: any) { const msg = block.getFieldValue('MESSAGE'); return `await robot.sendMessage('${msg}');\n`; };
@@ -501,13 +503,7 @@ export const initBlockly = () => {
   javascriptGenerator.forBlock['robot_drive_until'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const speed = block.getFieldValue('SPEED'); const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false'; const motorPower = direction === 'BACKWARD' ? -100 : 100; return `await robot.setSpeed(${speed});\nawait robot.setMotorPower(${motorPower}, ${motorPower});\nwhile (!(${condition})) { await robot.wait(10); }\nawait robot.stop();\n`; };
   javascriptGenerator.forBlock['robot_turn_until'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const speed = block.getFieldValue('SPEED'); const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false'; const leftPower = direction === 'LEFT' ? -100 : 100; const rightPower = direction === 'LEFT' ? 100 : -100; return `await robot.setSpeed(${speed});\nawait robot.setMotorPower(${leftPower}, ${rightPower});\nwhile (!(${condition})) { await robot.wait(10); }\nawait robot.stop();\n`; };
   javascriptGenerator.forBlock['robot_stop'] = function() { return 'await robot.stop();\n'; };
-  javascriptGenerator.forBlock['robot_turn'] = function(block: any) { 
-    const direction = block.getFieldValue('DIRECTION'); 
-    const angle = block.getFieldValue('ANGLE'); 
-    const speed = block.getFieldValue('SPEED');
-    const angVal = direction === 'LEFT' ? angle : -angle; 
-    return `await robot.setSpeed(${speed});\nawait robot.turn(${angVal});\n`; 
-  };
+  javascriptGenerator.forBlock['robot_turn'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const angle = block.getFieldValue('ANGLE'); const angVal = direction === 'LEFT' ? angle : -angle; return `await robot.turn(${angVal});\n`; };
   javascriptGenerator.forBlock['robot_set_heading'] = function(block: any) { const angle = block.getFieldValue('ANGLE'); return `await robot.setHeading(${angle});\n`; };
   javascriptGenerator.forBlock['robot_set_speed'] = function(block: any) { const speed = block.getFieldValue('SPEED'); return `await robot.setSpeed(${speed});\n`; };
   javascriptGenerator.forBlock['robot_pen_down'] = function() { return 'await robot.setPen(true);\n'; };
@@ -556,6 +552,7 @@ export const initBlockly = () => {
   // --- DEFINE PYTHON GENERATORS ---
   pythonGenerator.forBlock['event_program_start'] = function() { return `# Program starts here\n`; };
   pythonGenerator.forBlock['event_when_message'] = function(block: any) { const msg = block.getFieldValue('MESSAGE'); const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_message_${msg}():\n${branch || '  pass'}\n\nrobot.on_message('${msg}', on_message_${msg})\n`; };
+  pythonGenerator.forBlock['event_send_message'] = function(block: any) { const msg = block.getFieldValue('MESSAGE'); return `robot.send_message('${msg}')\n`; };
   pythonGenerator.forBlock['event_when_obstacle'] = function(block: any) { const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_obstacle():\n${branch || '  pass'}\n\nrobot.on_obstacle(on_obstacle)\n`; };
   pythonGenerator.forBlock['event_when_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); const branch = pythonGenerator.statementToCode(block, 'DO'); const funcSuffix = color.startsWith('#') ? color.replace('#', '') : color; return `def on_color_${funcSuffix}():\n${branch || '  pass'}\n\nrobot.on_color('${color}', on_color_${funcSuffix})\n`; };
   pythonGenerator.forBlock['event_when_ultrasonic'] = function(block: any) { const threshold = block.getFieldValue('THRESHOLD'); const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_distance_detected():\n${branch || '  pass'}\n\nrobot.on_distance(${threshold}, on_distance_detected)\n`; };
@@ -566,13 +563,7 @@ export const initBlockly = () => {
   pythonGenerator.forBlock['robot_drive_until'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const speed = block.getFieldValue('SPEED'); const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False'; const motorPower = direction === 'BACKWARD' ? -100 : 100; return `robot.set_speed(${speed})\nrobot.set_motor_power(${motorPower}, ${motorPower})\nwhile not (${condition}):\n  robot.wait(0.01)\nrobot.stop()\n`; };
   pythonGenerator.forBlock['robot_turn_until'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const speed = block.getFieldValue('SPEED'); const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False'; const leftPower = direction === 'LEFT' ? -100 : 100; const rightPower = direction === 'LEFT' ? 100 : -100; return `robot.set_speed(${speed})\nrobot.set_motor_power(${leftPower}, ${rightPower})\nwhile not (${condition}):\n  robot.wait(0.01)\nrobot.stop()\n`; };
   pythonGenerator.forBlock['robot_stop'] = function() { return 'robot.stop()\n'; };
-  pythonGenerator.forBlock['robot_turn'] = function(block: any) { 
-    const direction = block.getFieldValue('DIRECTION'); 
-    const angle = block.getFieldValue('ANGLE'); 
-    const speed = block.getFieldValue('SPEED');
-    const angVal = direction === 'LEFT' ? angle : -angle; 
-    return `robot.set_speed(${speed})\nrobot.turn(${angVal})\n`; 
-  };
+  pythonGenerator.forBlock['robot_turn'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const angle = block.getFieldValue('ANGLE'); const angVal = direction === 'LEFT' ? angle : -angle; return `robot.turn(${angVal})\n`; };
   pythonGenerator.forBlock['robot_set_heading'] = function(block: any) { const angle = block.getFieldValue('ANGLE'); return `robot.set_heading(${angle})\n`; };
   pythonGenerator.forBlock['robot_set_speed'] = function(block: any) { const speed = block.getFieldValue('SPEED'); return `robot.set_speed(${speed})\n`; };
   pythonGenerator.forBlock['robot_pen_down'] = function() { return 'robot.pen_down()\n'; };
