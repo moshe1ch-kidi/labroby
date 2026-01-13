@@ -25,13 +25,6 @@ export interface DrawingSegment {
     color: string;
 }
 
-// New interface for continuous drawing paths
-export interface ContinuousDrawing {
-    id: string; // Unique ID for React keys
-    points: [number, number, number][]; // Array of vertices for the continuous line
-    color: string;
-}
-
 export interface RobotState {
   x: number;
   y: number; 
@@ -59,23 +52,13 @@ export interface SimulationHistory {
     totalRotation: number;
 }
 
-export interface NumpadPosition {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
-
 declare global {
   interface Window {
     showBlocklyNumpad: (
       initialValue: string | number, 
-      onConfirm: (newValue: number) => void,
-      position?: NumpadPosition
+      onConfirm: (newValue: number) => void
     ) => void;
 
-    showBlocklyColorPicker: (
-      onPick: (newColor: string) => void
-    ) => void;
+    getStageColors: () => string[];
   }
 }
