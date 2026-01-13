@@ -12,7 +12,7 @@ interface NumpadProps {
 const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfirm, position }) => {
   const [display, setDisplay] = useState('0');
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
-  const [style, setStyle] = useState<React.CSSProperties>({ visibility: 'hidden' });
+  const [style, setStyle] = useState<React.CSSProperties>({ top: '-9999px', left: '-9999px', opacity: 0 });
   const padRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,7 +35,10 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfir
       let left = position.left + position.width / 2 - padRect.width / 2;
       left = Math.max(10, Math.min(left, window.innerWidth - padRect.width - 10));
 
-      setStyle({ top: `${top}px`, left: `${left}px`, visibility: 'visible' });
+      setStyle({ top: `${top}px`, left: `${left}px`, opacity: 1 });
+    } else if (!isOpen) {
+      // Reset position when closing to ensure it's hidden for the next opening
+      setStyle({ top: '-9999px', left: '-9999px', opacity: 0 });
     }
   }, [isOpen, position]);
 
@@ -107,7 +110,7 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfir
       <div 
         ref={padRef}
         className="absolute bg-white p-3 rounded-[12px] shadow-2xl w-[250px] border-2 animate-in zoom-in-95 duration-100" 
-        style={{ ...style, borderColor: scratchColors.blue }}
+        style={{ ...style, borderColor: scratchColors.blue, transition: 'opacity 100ms ease-in-out' }}
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="bg-slate-100 p-3 rounded-[8px] mb-3 text-right border border-slate-200 shadow-inner">
