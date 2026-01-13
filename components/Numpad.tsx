@@ -12,7 +12,7 @@ interface NumpadProps {
 const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfirm, position }) => {
   const [display, setDisplay] = useState('0');
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
-  const [style, setStyle] = useState<React.CSSProperties>({});
+  const [style, setStyle] = useState<React.CSSProperties>({ visibility: 'hidden' });
   const padRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,7 +35,7 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfir
       let left = position.left + position.width / 2 - padRect.width / 2;
       left = Math.max(10, Math.min(left, window.innerWidth - padRect.width - 10));
 
-      setStyle({ top: `${top}px`, left: `${left}px` });
+      setStyle({ top: `${top}px`, left: `${left}px`, visibility: 'visible' });
     }
   }, [isOpen, position]);
 
@@ -97,11 +97,16 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfir
     blue: '#4C97FF', green: '#59C059', orange: '#FFAB19', red: '#FF6680', text: '#575E75', buttonBg: '#F0F3F8'
   };
 
+  const baseButtonClass = "font-bold rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all flex items-center justify-center";
+  const numberButtonClass = `${baseButtonClass} text-xl py-3 hover:bg-slate-200`;
+  const symbolButtonClass = `${baseButtonClass} text-2xl py-3 hover:bg-slate-200`;
+  const operationButtonClass = `${baseButtonClass} text-white hover:opacity-90`;
+
   return (
     <div className="fixed inset-0 z-[300000]" onPointerDown={handleWrapperClick}>
       <div 
         ref={padRef}
-        className="absolute bg-white p-3 rounded-[12px] shadow-2xl w-[280px] border-2 animate-in zoom-in-95 duration-100" 
+        className="absolute bg-white p-3 rounded-[12px] shadow-2xl w-[250px] border-2 animate-in zoom-in-95 duration-100" 
         style={{ ...style, borderColor: scratchColors.blue }}
         onPointerDown={(e) => e.stopPropagation()}
       >
@@ -110,20 +115,27 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfir
             {display}
           </span>
         </div>
-        <div className="grid grid-cols-4 gap-2">
-          {['7', '8', '9'].map(n => <button key={n} onClick={() => handleNumber(n)} className="text-xl font-bold py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all hover:bg-slate-200" style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>{n}</button>)}
-          <button onClick={handleBackspace} className="flex items-center justify-center py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all text-white hover:opacity-90" style={{ backgroundColor: scratchColors.orange }}><Delete size={24} /></button>
-          
-          {['4', '5', '6'].map(n => <button key={n} onClick={() => handleNumber(n)} className="text-xl font-bold py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all hover:bg-slate-200" style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>{n}</button>)}
-          <button onClick={onClose} className="py-3 row-span-2 rounded-[10px] flex items-center justify-center shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all text-white hover:opacity-90" style={{ backgroundColor: scratchColors.red }}><X size={28} /></button>
-          
-          {['1', '2', '3'].map(n => <button key={n} onClick={() => handleNumber(n)} className="text-xl font-bold py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all hover:bg-slate-200" style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>{n}</button>)}
+        
+        <div className="flex gap-2 mb-2">
+          {/* Numbers and symbols grid */}
+          <div className="grid grid-cols-3 gap-2 flex-grow">
+            {['7', '8', '9', '4', '5', '6', '1', '2', '3'].map(n => (
+              <button key={n} onClick={() => handleNumber(n)} className={numberButtonClass} style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>{n}</button>
+            ))}
+            <button onClick={handleToggleSign} className={symbolButtonClass} style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>-</button>
+            <button onClick={() => handleNumber('0')} className={numberButtonClass} style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>0</button>
+            <button onClick={() => handleNumber('.')} className={symbolButtonClass} style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>.</button>
+          </div>
 
-          <button onClick={handleToggleSign} className="text-2xl font-bold py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all hover:bg-slate-200" style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>-</button>
-          <button onClick={() => handleNumber('0')} className="text-xl font-bold py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all hover:bg-slate-200" style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>0</button>
-          <button onClick={() => handleNumber('.')} className="text-2xl font-bold py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all hover:bg-slate-200" style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>.</button>
-          <button onClick={handleConfirm} className="py-3 rounded-[10px] col-span-full flex items-center justify-center shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all text-white hover:opacity-90" style={{ backgroundColor: scratchColors.green }}><Check size={28} strokeWidth={3} /></button>
+          {/* Operations column */}
+          <div className="flex flex-col gap-2" style={{width: '58px'}}>
+            <button onClick={handleBackspace} className={`${operationButtonClass} h-[46px]`} style={{ backgroundColor: scratchColors.orange }}><Delete size={24} /></button>
+            <button onClick={onClose} className={`${operationButtonClass} flex-grow`} style={{ backgroundColor: scratchColors.red }}><X size={28} /></button>
+          </div>
         </div>
+        
+        {/* Confirm button */}
+        <button onClick={handleConfirm} className={`${operationButtonClass} w-full py-3`} style={{ backgroundColor: scratchColors.green }}><Check size={28} strokeWidth={3} /></button>
       </div>
     </div>
   );
