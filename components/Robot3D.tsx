@@ -92,20 +92,34 @@ const RobotPen = ({ position, isDown, color }: { position: [number, number, numb
 };
 
 const TouchSensor = ({ position, pressed }: { position: [number, number, number], pressed: boolean }) => {
-    const plungerPos = pressed ? -0.1 : 0.2;
+    // When not pressed, the plunger group is at its default Z.
+    // When pressed, it moves back slightly along Z.
+    const plungerPos = pressed ? -0.1 : 0; 
+
     return (
         <group position={position} userData={{ isRobotPart: true }}>
-            <mesh position={[0, 0.2, -0.2]} userData={{ isRobotPart: true }}><boxGeometry args={[0.4, 0.1, 0.4]} /><meshStandardMaterial color={THEME.magenta} /></mesh>
+            {/* Magenta connector piece, moved back to accommodate the new white box */}
+            <mesh position={[0, 0.2, -0.4]} userData={{ isRobotPart: true }}>
+                <boxGeometry args={[0.4, 0.1, 0.4]} />
+                <meshStandardMaterial color={THEME.magenta} />
+            </mesh>
+            
+            {/* White casing - this is now the main body of the sensor */}
             <group position={[0, -0.1, 0]} userData={{ isRobotPart: true }}>
-                <mesh castShadow userData={{ isRobotPart: true }}><boxGeometry args={[0.45, 0.4, 0.4]} /><meshStandardMaterial color={THEME.white} roughness={0.2} /></mesh>
-                <mesh position={[0, 0.15, -0.15]} userData={{ isRobotPart: true }}><boxGeometry args={[0.45, 0.2, 0.2]} /><meshStandardMaterial color={THEME.darkGrey} /></mesh>
+                <mesh castShadow userData={{ isRobotPart: true }}>
+                    <boxGeometry args={[0.45, 0.4, 0.4]} />
+                    <meshStandardMaterial color={THEME.white} roughness={0.2} />
+                </mesh>
             </group>
+            
+            {/* Red Plunger (the "tip") that protrudes from the white box */}
+            {/* The entire group moves back when pressed */}
             <group position={[0, -0.1, plungerPos]} userData={{ isRobotPart: true }}>
-                <mesh rotation={[Math.PI/2, 0, 0]} userData={{ isRobotPart: true }}><cylinderGeometry args={[0.15, 0.15, 0.4, 32]} /><meshStandardMaterial color="#CC0000" /></mesh>
-                <group position={[0, 0, 0.2]} userData={{ isRobotPart: true }}>
-                    <mesh userData={{ isRobotPart: true }}><boxGeometry args={[0.3, 0.08, 0.05]} /><meshStandardMaterial color="#111" /></mesh>
-                    <mesh userData={{ isRobotPart: true }}><boxGeometry args={[0.08, 0.3, 0.05]} /><meshStandardMaterial color="#111" /></mesh>
-                </group>
+                {/* The red tip itself, positioned to stick out from the white casing */}
+                <mesh position={[0, 0, 0.3]} castShadow>
+                    <boxGeometry args={[0.25, 0.25, 0.25]} />
+                    <meshStandardMaterial color="#CC0000" />
+                </mesh>
             </group>
         </group>
     );
@@ -202,7 +216,7 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
           <ColorSensor position={[0, -0.1, 0.9]} />
           <UltrasonicSensor position={[0, 0.5, 1.1]} />
           {/* שינוי מיקום חיישן המגע קדימה */}
-          <TouchSensor position={[0, -0.2, 1.7]} pressed={state.isTouching} /> 
+          <TouchSensor position={[0, -0.2, 1.825]} pressed={state.isTouching} /> 
           <RobotPen position={[0, 0.1, -0.6]} isDown={state.penDown} color={state.penColor} />
           <group position={[0.6, 1.1, -0.5]} userData={{ isRobotPart: true }}>
               <mesh userData={{ isRobotPart: true }}><boxGeometry args={[0.4, 0.2, 0.4]} /><meshStandardMaterial color={THEME.white} /></mesh>
