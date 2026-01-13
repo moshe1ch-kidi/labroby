@@ -328,7 +328,7 @@ const App: React.FC = () => {
   const controlsRef = useRef<any>(null);
   const historyRef = useRef<SimulationHistory>({ maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 });
   const executionId = useRef(0);
-  const [numpadConfig, setNumpadConfig] = useState({ isOpen: false, value: 0, onConfirm: (val: number) => {} });
+  const [numpadConfig, setNumpadConfig] = useState<{isOpen: boolean, value: number, onConfirm: (val: number) => void, position: DOMRect | null}>({ isOpen: false, value: 0, onConfirm: () => {}, position: null });
   const [toast, setToast] = useState<{message: string, type: 'success' | 'info' | 'error'} | null>(null);
   
   const [activeDrawing, setActiveDrawing] = useState<ContinuousDrawing | null>(null);
@@ -734,8 +734,8 @@ const App: React.FC = () => {
     }
   };
 
-  const showBlocklyNumpad = useCallback((initialValue: string | number, onConfirm: (newValue: number) => void) => {
-    setNumpadConfig({ isOpen: true, value: parseFloat(String(initialValue)), onConfirm });
+  const showBlocklyNumpad = useCallback((initialValue: string | number, onConfirm: (newValue: number) => void, position: DOMRect) => {
+    setNumpadConfig({ isOpen: true, value: parseFloat(String(initialValue)), onConfirm, position });
   }, []);
 
   return (
@@ -1080,8 +1080,9 @@ const App: React.FC = () => {
       <Numpad 
         isOpen={numpadConfig.isOpen} 
         initialValue={numpadConfig.value} 
-        onConfirm={numpadConfig.onConfirm} 
+        onConfirm={(val) => { numpadConfig.onConfirm(val); setNumpadConfig(p => ({ ...p, isOpen: false })); }} 
         onClose={() => setNumpadConfig(p => ({ ...p, isOpen: false }))} 
+        position={numpadConfig.position}
       />
       
       {showChallenges && (
