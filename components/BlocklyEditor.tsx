@@ -93,11 +93,37 @@ const VariableModal = ({ isOpen, mode, initialValue, onClose, onConfirm }: { isO
 const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onCodeChange, onEval, visibleVariables, onToggleVariable, onVariablesChanged, onShowNumpad }, ref) => {
   const blocklyDiv = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<any>(null);
+  const [isBlocklyReady, setIsBlocklyReady] = useState(false);
   const [modalConfig, setModalConfig] = useState<{isOpen: boolean, mode: 'create' | 'rename', initialValue?: string, variableId?: string, onResult?: (res: string | null) => void}>({
       isOpen: false, mode: 'create'
   });
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [variablePositions, setVariablePositions] = useState<{name: string, id: string, top: number, left: number}[]>([]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+        const Blockly = (window as any).Blockly;
+        // Check for specific properties to be more certain it's fully loaded.
+        // `Blockly.inject` is a core function, and `Blockly.Msg` ensures language files are ready.
+        if (Blockly && Blockly.inject && Blockly.Msg) {
+            clearInterval(interval);
+            setIsBlocklyReady(true);
+        }
+    }, 100);
+
+    // Set a timeout to prevent infinite loops in case of loading failure
+    const timeout = setTimeout(() => {
+        clearInterval(interval);
+        if (!(window as any).Blockly) {
+            console.error("Blockly failed to load after 10 seconds.");
+        }
+    }, 10000);
+
+    return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+    };
+  }, []);
 
   const generateAndNotify = useCallback(() => {
     const javascript = (window as any).javascript;
@@ -194,6 +220,8 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
   }));
 
   useEffect(() => {
+    if (!isBlocklyReady) return;
+
     const Blockly = (window as any).Blockly;
     const javascript = (window as any).javascript;
     const python = (window as any).python;
@@ -328,12 +356,14 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
     window.addEventListener('resize', handleResize);
     return () => {
         window.removeEventListener('resize', handleResize);
-        if (workspaceRef.current) workspaceRef.current.dispose();
-        workspaceRef.current = null;
+        if (workspaceRef.current) {
+          workspaceRef.current.dispose();
+          workspaceRef.current = null;
+        }
         // Clean up on unmount
         delete (window as any).showBlocklyNumpad;
     };
-  }, [generateAndNotify, notifyVariablesChange, onShowNumpad]);
+  }, [isBlocklyReady, generateAndNotify, notifyVariablesChange, onShowNumpad]);
 
   useEffect(() => {
     const timer = setTimeout(updateCheckboxPositions, 50);
