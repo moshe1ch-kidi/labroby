@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+ import React, { useState, useEffect, useRef } from 'react';
 import { Delete, Check, X } from 'lucide-react';
 
 interface NumpadProps {
