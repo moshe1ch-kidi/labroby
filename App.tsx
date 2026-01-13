@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -130,26 +131,6 @@ const getSurfaceHeightAt = (qx: number, qz: number, challengeId?: string, custom
     return maxHeight;
 };
 
-const checkTouchSensorHit = (x: number, z: number, rotation: number, walls: {minX: number, maxX: number, minZ: number, maxZ: number}[]) => {
-    const rad = (rotation * Math.PI) / 180; 
-    const sin = Math.sin(rad); 
-    const cos = Math.cos(rad);
-    const sensorTipX = x + sin * 1.7; 
-    const sensorTipZ = z + cos * 1.7;
-
-    for (const w of walls) { 
-        if (sensorTipX >= w.minX && sensorTipX <= w.maxX && sensorTipZ >= w.minZ && sensorTipZ <= w.maxZ) return true; 
-    }
-    return false;
-};
-
-const checkPhysicsHit = (px: number, pz: number, walls: {minX: number, maxX: number, minZ: number, maxZ: number}[]) => {
-    for (const w of walls) { 
-        if (px >= w.minX && px <= w.maxX && pz >= w.minZ && pz <= w.maxZ) return true; 
-    }
-    return false;
-};
-
 const calculateSensorReadings = (x: number, z: number, rotation: number, challengeId?: string, customObjects: CustomObject[] = []) => {
     const rad = (rotation * Math.PI) / 180; 
     const sin = Math.sin(rad); 
@@ -158,14 +139,13 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     const gyro = Math.round(normalizeAngle(rotation));
     
     const getPointWorldPos = (lx: number, lz: number) => ({
-        wx: x + (lx * Math.cos(rad) + lz * Math.sin(rad)),
-        wz: z + (-lx * Math.sin(rad) + lz * Math.cos(rad))
+        wx: x + (lx * cos + lz * sin),
+        wz: z + (-lx * sin + lz * cos)
     });
 
     const wheelOffsetZ = 0.5;
     const wheelOffsetX = 0.95;
     const casterOffsetZ = -0.8;
-    const frontSensorPos = getPointWorldPos(0, 1.1);
 
     const leftWheelPos = getPointWorldPos(-wheelOffsetX, wheelOffsetZ);
     const rightWheelPos = getPointWorldPos(wheelOffsetX, wheelOffsetZ);
@@ -279,29 +259,75 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
             }
         } else if (challengeId === 'c15' || challengeId === 'c14') {
             if (Math.abs(cx) <= 1.5 && cz <= -9.5 && cz >= -12.5) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
-            else if (Math.abs(cx) <= 1.5 && cz <= -3.5 && cz >= -6.5) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
+            else if (Math.abs(cx) <= -3.5 && cz >= -6.5) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
         }
     }
 
-    const touchSensorPressed = checkTouchSensorHit(x, z, rotation, env.walls);
-    const physicalHitForMovement = checkPhysicsHit(x + sin * 1.5, z + cos * 1.5, env.walls);
+    const isPointInObject = (px: number, pz: number, obj: CustomObject) => {
+        const { lx, lz } = getLocalCoords(px, pz, obj.x, obj.z, obj.rotation || 0);
+        const halfW = obj.width / 2;
+        const halfL = obj.length / 2;
+        return Math.abs(lx) <= halfW && Math.abs(lz) <= halfL;
+    };
 
-    let distance = 255; 
-    for (let d = 0; d < 40.0; d += 0.2) { 
-        if (checkPhysicsHit(x + sin * (1.7 + d), z + cos * (1.7 + d), env.walls)) {
-            distance = Math.round(d * 10); 
-            break; 
-        } 
+    const checkPhysicsHit = (px: number, pz: number) => {
+        for (const w of env.walls) {
+            if (px >= w.minX && px <= w.maxX && pz >= w.minZ && pz <= w.maxZ) return true;
+        }
+        for (const obj of customObjects) {
+            if (obj.type === 'WALL' || obj.type === 'RAMP') {
+                if (isPointInObject(px, pz, obj)) return true;
+            }
+        }
+        return false;
+    };
+
+    const physicalStopDist = 1.45;
+    const touchTriggerDist = 1.55;
+
+    const checkBumperHit = (dist: number) => {
+        const lateralOffset = 0.7;
+        const points = [
+            { lx: 0, lz: dist },
+            { lx: -lateralOffset, lz: dist },
+            { lx: lateralOffset, lz: dist }
+        ];
+        for (const p of points) {
+            const worldPos = getPointWorldPos(p.lx, p.lz);
+            if (checkPhysicsHit(worldPos.wx, worldPos.wz)) return true;
+        }
+        return false;
+    };
+
+    const physicalHit = checkBumperHit(physicalStopDist);
+    let isTouching = checkBumperHit(touchTriggerDist);
+    if (physicalHit) {
+        isTouching = true;
     }
     
+    let distance = 255;
+    const ultrasonicStartDist = 1.5;
+    const scanStep = 0.05;
+    for (let d = 0; d < 40.0; d += scanStep) {
+        const rayPos = getPointWorldPos(0, ultrasonicStartDist + d);
+        if (checkPhysicsHit(rayPos.wx, rayPos.wz)) {
+            distance = Math.round(d * 10);
+            break;
+        }
+    }
+    
+    if (physicalHit) {
+        distance = 0;
+    }
+
     return { 
         gyro, 
         tilt, 
         roll, 
         y, 
-        isTouching: touchSensorPressed,
-        physicalHit: physicalHitForMovement,
-        distance, 
+        isTouching: isTouching,
+        physicalHit: physicalHit,
+        distance: distance, 
         color: sensorDetectedColor, 
         intensity: sensorIntensity, 
         rawDecimalColor: sensorRawDecimalColor, 
@@ -420,8 +446,7 @@ const App: React.FC = () => {
           const moved = Math.sqrt(Math.pow(robotRef.current.x - startX, 2) + Math.pow(robotRef.current.z - startZ, 2));
           if (moved >= targetDist) break;
           await new Promise(r => setTimeout(r, TICK_RATE));
-          const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
-          if (sd.isTouching) break;
+          if (robotRef.current.isTouching) break;
         }
         robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
       },
@@ -547,41 +572,43 @@ const App: React.FC = () => {
         
         const sd_predicted = calculateSensorReadings(nx_potential, nz_potential, nr_potential, activeChallenge?.id, customObjects);
         
-        const finalX = sd_predicted.isTouching ? current.x : nx_potential; 
-        const finalZ = sd_predicted.isTouching ? current.z : nz_potential;
+        const finalX = sd_predicted.physicalHit ? current.x : nx_potential; 
+        const finalZ = sd_predicted.physicalHit ? current.z : nz_potential;
         
+        const sd_final = calculateSensorReadings(finalX, finalZ, nr_potential, activeChallenge?.id, customObjects);
+
         const next = { 
           ...current, 
           x: finalX, 
           z: finalZ, 
-          y: current.y + (sd_predicted.y - current.y) * 0.3,
-          tilt: current.tilt + (sd_predicted.tilt - current.tilt) * 0.3,
-          roll: current.roll + (sd_predicted.roll - current.roll) * 0.3,
+          y: current.y + (sd_final.y - current.y) * 0.3,
+          tilt: current.tilt + (sd_final.tilt - current.tilt) * 0.3,
+          roll: current.roll + (sd_final.roll - current.roll) * 0.3,
           rotation: nr_potential,
-          isTouching: sd_predicted.isTouching,
+          isTouching: sd_final.isTouching,
           isMoving: Math.abs(fV_adjusted) > 0.001 || Math.abs(rV) > 0.001, 
-          sensorX: sd_predicted.sensorX, 
-          sensorZ: sd_predicted.sensorZ,
+          sensorX: sd_final.sensorX, 
+          sensorZ: sd_final.sensorZ,
         }; 
         robotRef.current = next; setRobotState(next); 
 
-        const curDetectedColor = sd_predicted.color;
+        const curDetectedColor = sd_final.color;
         listenersRef.current.colors.forEach(l => { 
             const isMatch = isColorClose(curDetectedColor, l.color); 
             if (isMatch && !l.lastMatch) l.cb(); 
             l.lastMatch = isMatch; 
         });
         listenersRef.current.obstacles.forEach(l => { 
-            const isMatch = sd_predicted.isTouching;
+            const isMatch = sd_final.isTouching;
             if (isMatch && !l.lastMatch) l.cb(); 
             l.lastMatch = isMatch; 
         });
         listenersRef.current.distances.forEach(l => { 
-            const isMatch = sd_predicted.distance < l.threshold; 
+            const isMatch = sd_final.distance < l.threshold; 
             if (isMatch && !l.lastMatch) l.cb(); 
             l.lastMatch = isMatch; 
         });
-        if (sd_predicted.isTouching) historyRef.current.touchedWall = true; 
+        if (sd_final.isTouching) historyRef.current.touchedWall = true; 
         
         const startX = activeChallenge?.startPosition?.x || 0; 
         const startZ = activeChallenge?.startPosition?.z || 0;
@@ -746,7 +773,8 @@ const App: React.FC = () => {
         width: position.width,
         height: position.height,
     };
-    setNumpadConfig({ isOpen: true, value: parseFloat(String(initialValue)), onConfirm, position: plainPosition });
+    // FIX: Replaced `String(initialValue)` with `initialValue.toString()` to avoid potential scope conflicts with the global `String` object, resolving a "not callable" TypeScript error.
+    setNumpadConfig({ isOpen: true, value: parseFloat(initialValue.toString()), onConfirm, position: plainPosition });
   }, []);
 
   return (
