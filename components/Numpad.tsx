@@ -1,20 +1,25 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Delete, Check, X } from 'lucide-react';
 
+// Define a plain object type for position to avoid passing live DOMRect objects as props
+type PlainDOMRect = { top: number, bottom: number, left: number, right: number, width: number, height: number };
+
 interface NumpadProps {
   isOpen: boolean;
   initialValue: string | number;
   onClose: () => void;
   onConfirm: (value: number) => void;
-  position: DOMRect | null;
+  position: PlainDOMRect | null;
 }
 
 const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfirm, position }) => {
   const [display, setDisplay] = useState('0');
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
-  const [style, setStyle] = useState<React.CSSProperties>({ top: '-9999px', left: '-9999px', opacity: 0 });
+  // Start with visibility: 'hidden' to ensure it's in the DOM for measurement without being seen.
+  const [style, setStyle] = useState<React.CSSProperties>({ visibility: 'hidden' });
   const padRef = useRef<HTMLDivElement>(null);
 
+  // Effect to update the display value when the numpad is opened
   useEffect(() => {
     if (isOpen) {
       setDisplay(String(initialValue));
@@ -22,27 +27,50 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfir
     }
   }, [isOpen, initialValue]);
 
+  // This effect runs after the component is rendered but before the browser paints.
+  // It measures the numpad's size and calculates its correct position to avoid any flicker.
   useLayoutEffect(() => {
     if (isOpen && position && padRef.current) {
       const padRect = padRef.current.getBoundingClientRect();
-      const screenHeight = window.innerHeight;
       
-      let top = position.bottom + 8; // Default below
+      // A crucial guard: if for some reason the component's size is 0 (e.g., timing issue),
+      // we abort positioning to prevent it from appearing at an incorrect spot or causing errors.
+      if (padRect.width === 0 || padRect.height === 0) {
+        return;
+      }
+      
+      const screenHeight = window.innerHeight;
+      const screenWidth = window.innerWidth;
+      
+      let top = position.bottom + 8; // Default: position below the target element
+      // If it doesn't fit below, position it above
       if (top + padRect.height > screenHeight - 10) {
-        top = position.top - padRect.height - 8; // Place above if not enough space below
+        top = position.top - padRect.height - 8;
       }
 
+      // Center it horizontally relative to the target element
       let left = position.left + position.width / 2 - padRect.width / 2;
-      left = Math.max(10, Math.min(left, window.innerWidth - padRect.width - 10));
+      
+      // Prevent it from going off-screen
+      left = Math.max(10, Math.min(left, screenWidth - padRect.width - 10));
+      top = Math.max(10, top);
 
-      setStyle({ top: `${top}px`, left: `${left}px`, opacity: 1 });
+      // Apply the calculated position and make it visible.
+      setStyle({
+        top: `${top}px`,
+        left: `${left}px`,
+        visibility: 'visible',
+      });
     } else if (!isOpen) {
-      // Reset position when closing to ensure it's hidden for the next opening
-      setStyle({ top: '-9999px', left: '-9999px', opacity: 0 });
+      // When closed, reset to hidden state for the next time it opens.
+      setStyle({ visibility: 'hidden' });
     }
   }, [isOpen, position]);
 
-  if (!isOpen) return null;
+  // If the numpad is not supposed to be open, render nothing.
+  if (!isOpen) {
+    return null;
+  }
 
   const handleNumber = (num: string) => {
     if (!hasStartedTyping) {
@@ -109,8 +137,8 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfir
     <div className="fixed inset-0 z-[300000]" onPointerDown={handleWrapperClick}>
       <div 
         ref={padRef}
-        className="absolute bg-white p-3 rounded-[12px] shadow-2xl w-[250px] border-2 animate-in zoom-in-95 duration-100" 
-        style={{ ...style, borderColor: scratchColors.blue, transition: 'opacity 100ms ease-in-out' }}
+        className="absolute bg-white p-3 rounded-[12px] shadow-2xl w-[250px] border-2" 
+        style={{ ...style, borderColor: scratchColors.blue }}
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="bg-slate-100 p-3 rounded-[8px] mb-3 text-right border border-slate-200 shadow-inner">
