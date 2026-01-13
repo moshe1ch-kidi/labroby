@@ -1,4 +1,4 @@
- import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Delete, Check, X } from 'lucide-react';
 
 interface NumpadProps {
@@ -12,7 +12,7 @@ interface NumpadProps {
 const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfirm, position }) => {
   const [display, setDisplay] = useState('0');
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
-  const [style, setStyle] = useState({});
+  const [style, setStyle] = useState<React.CSSProperties>({});
   const padRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfir
     }
   }, [isOpen, initialValue]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isOpen && position && padRef.current) {
       const padRect = padRef.current.getBoundingClientRect();
       const screenHeight = window.innerHeight;
