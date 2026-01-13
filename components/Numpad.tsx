@@ -1,19 +1,19 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Delete, Check, X } from 'lucide-react';
-import { NumpadPosition } from '../types';
 
 interface NumpadProps {
   isOpen: boolean;
   initialValue: string | number;
-  position?: NumpadPosition;
   onClose: () => void;
   onConfirm: (value: number) => void;
+  position: DOMRect | null;
 }
 
-const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, position, onClose, onConfirm }) => {
+const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, onClose, onConfirm, position }) => {
   const [display, setDisplay] = useState('0');
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
+  const [style, setStyle] = useState({});
+  const padRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -22,47 +22,33 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, position, onClose
     }
   }, [isOpen, initialValue]);
 
-  // Calculate dynamic position to keep it near the field but within window bounds
-  const floatingStyle = useMemo(() => {
-    if (!position) return {};
-    
-    const width = 180; // Compact width
-    const height = 240; // Compact height
-    
-    let top = position.y + position.height + 8;
-    let left = position.x;
+  useEffect(() => {
+    if (isOpen && position && padRef.current) {
+      const padRect = padRef.current.getBoundingClientRect();
+      const screenHeight = window.innerHeight;
+      
+      let top = position.bottom + 8; // Default below
+      if (top + padRect.height > screenHeight - 10) {
+        top = position.top - padRect.height - 8; // Place above if not enough space below
+      }
 
-    // Check bottom boundary
-    if (top + height > window.innerHeight) {
-        top = position.y - height - 8;
-    }
-    
-    // Check right boundary
-    if (left + width > window.innerWidth) {
-        left = window.innerWidth - width - 16;
-    }
+      let left = position.left + position.width / 2 - padRect.width / 2;
+      left = Math.max(10, Math.min(left, window.innerWidth - padRect.width - 10));
 
-    return {
-        top: Math.max(8, top),
-        left: Math.max(8, left),
-        width: `${width}px`
-    };
-  }, [position]);
+      setStyle({ top: `${top}px`, left: `${left}px` });
+    }
+  }, [isOpen, position]);
 
   if (!isOpen) return null;
 
   const handleNumber = (num: string) => {
     if (!hasStartedTyping) {
-      if (num === '.') {
-        setDisplay('0.');
-      } else {
-        setDisplay(num);
-      }
+      if (num === '.') setDisplay('0.');
+      else setDisplay(num);
       setHasStartedTyping(true);
     } else {
-      if (display === '0' && num !== '.') {
-        setDisplay(num);
-      } else {
+      if (display === '0' && num !== '.') setDisplay(num);
+      else {
         if (num === '.' && display.includes('.')) return;
         setDisplay(display + num);
       }
@@ -71,7 +57,7 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, position, onClose
 
   const handleBackspace = () => {
     setHasStartedTyping(true);
-    if (display.length <= 1 || (display.length === 2 && display.startsWith('-'))) {
+    if (display.length === 1 || (display.length === 2 && display.startsWith('-'))) {
       setDisplay('0');
     } else {
       setDisplay(display.slice(0, -1));
@@ -100,100 +86,43 @@ const Numpad: React.FC<NumpadProps> = ({ isOpen, initialValue, position, onClose
     }
     onClose();
   };
+  
+  const handleWrapperClick = (e: React.MouseEvent) => {
+      if (e.target === e.currentTarget) {
+          onClose();
+      }
+  };
 
   const scratchColors = {
-    blue: '#4C97FF',
-    green: '#59C059',
-    orange: '#FFAB19',
-    red: '#FF6680',
-    text: '#575E75',
-    bg: '#FFFFFF'
+    blue: '#4C97FF', green: '#59C059', orange: '#FFAB19', red: '#FF6680', text: '#575E75', buttonBg: '#F0F3F8'
   };
 
   return (
-    <div 
-        className="fixed inset-0 z-[300000] pointer-events-none"
-        onPointerDown={(e) => {
-            if (e.target === e.currentTarget) onClose();
-        }}
-    >
+    <div className="fixed inset-0 z-[300000]" onPointerDown={handleWrapperClick}>
       <div 
-        className="absolute pointer-events-auto bg-white p-3 rounded-2xl shadow-2xl border-4 animate-in zoom-in duration-100 ease-out flex flex-col gap-2" 
-        style={{ 
-            ...floatingStyle,
-            borderColor: scratchColors.blue,
-            zIndex: 300001
-        }}
+        ref={padRef}
+        className="absolute bg-white p-3 rounded-[12px] shadow-2xl w-[280px] border-2 animate-in zoom-in-95 duration-100" 
+        style={{ ...style, borderColor: scratchColors.blue }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        {/* Compact Display */}
-        <div className="bg-slate-50 p-2 rounded-xl text-right border-2 border-slate-100 shadow-inner">
-          <span 
-            className="text-xl font-bold tracking-tight block h-7 overflow-hidden text-ellipsis" 
-            style={{ color: scratchColors.text, fontFamily: '"Rubik", sans-serif' }}
-          >
+        <div className="bg-slate-100 p-3 rounded-[8px] mb-3 text-right border border-slate-200 shadow-inner">
+          <span className="text-3xl font-bold tracking-wider block h-9 overflow-hidden" style={{ color: scratchColors.text }}>
             {display}
           </span>
         </div>
-
-        {/* Small Grid */}
-        <div className="grid grid-cols-3 gap-1.5">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-            <button
-              key={num}
-              onClick={() => handleNumber(String(num))}
-              className="text-lg font-bold py-2 rounded-lg bg-slate-100 text-slate-600 shadow-sm active:shadow-none active:translate-y-[1px] transition-all hover:bg-slate-200"
-            >
-              {num}
-            </button>
-          ))}
+        <div className="grid grid-cols-4 gap-2">
+          {['7', '8', '9'].map(n => <button key={n} onClick={() => handleNumber(n)} className="text-xl font-bold py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all hover:bg-slate-200" style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>{n}</button>)}
+          <button onClick={handleBackspace} className="flex items-center justify-center py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all text-white hover:opacity-90" style={{ backgroundColor: scratchColors.orange }}><Delete size={24} /></button>
           
-          <button
-            onClick={() => handleNumber('.')}
-            className="text-lg font-bold py-2 rounded-lg bg-slate-100 text-slate-600 shadow-sm transition-all hover:bg-slate-200"
-          >
-            .
-          </button>
+          {['4', '5', '6'].map(n => <button key={n} onClick={() => handleNumber(n)} className="text-xl font-bold py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all hover:bg-slate-200" style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>{n}</button>)}
+          <button onClick={onClose} className="py-3 row-span-2 rounded-[10px] flex items-center justify-center shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all text-white hover:opacity-90" style={{ backgroundColor: scratchColors.red }}><X size={28} /></button>
           
-          <button
-            onClick={() => handleNumber('0')}
-            className="text-lg font-bold py-2 rounded-lg bg-slate-100 text-slate-600 shadow-sm transition-all hover:bg-slate-200"
-          >
-            0
-          </button>
+          {['1', '2', '3'].map(n => <button key={n} onClick={() => handleNumber(n)} className="text-xl font-bold py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all hover:bg-slate-200" style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>{n}</button>)}
 
-          <button
-            onClick={handleBackspace}
-            className="flex items-center justify-center py-2 rounded-lg text-white shadow-sm active:shadow-none active:translate-y-[1px] transition-all hover:opacity-90"
-            style={{ backgroundColor: scratchColors.orange }}
-          >
-            <Delete size={18} />
-          </button>
-        </div>
-
-        {/* Small Action Row */}
-        <div className="grid grid-cols-3 gap-1.5 mt-1">
-            <button
-                onClick={handleToggleSign}
-                className="text-xl font-bold py-2 rounded-lg flex items-center justify-center text-white shadow-sm active:shadow-none active:translate-y-[1px] transition-all hover:opacity-90"
-                style={{ backgroundColor: scratchColors.blue }}
-            >
-                -
-            </button>
-            <button
-                onClick={onClose}
-                className="py-2 rounded-lg flex items-center justify-center text-white shadow-sm active:shadow-none active:translate-y-[1px] transition-all hover:opacity-90"
-                style={{ backgroundColor: scratchColors.red }}
-            >
-                <X size={18} />
-            </button>
-            <button
-                onClick={handleConfirm}
-                className="py-2 rounded-lg flex items-center justify-center text-white shadow-sm active:shadow-none active:translate-y-[1px] transition-all hover:opacity-90"
-                style={{ backgroundColor: scratchColors.green }}
-            >
-                <Check size={22} strokeWidth={3} />
-            </button>
+          <button onClick={handleToggleSign} className="text-2xl font-bold py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all hover:bg-slate-200" style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>-</button>
+          <button onClick={() => handleNumber('0')} className="text-xl font-bold py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all hover:bg-slate-200" style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>0</button>
+          <button onClick={() => handleNumber('.')} className="text-2xl font-bold py-3 rounded-[10px] shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all hover:bg-slate-200" style={{ backgroundColor: scratchColors.buttonBg, color: scratchColors.text }}>.</button>
+          <button onClick={handleConfirm} className="py-3 rounded-[10px] col-span-full flex items-center justify-center shadow-[0_3px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[3px] transition-all text-white hover:opacity-90" style={{ backgroundColor: scratchColors.green }}><Check size={28} strokeWidth={3} /></button>
         </div>
       </div>
     </div>
