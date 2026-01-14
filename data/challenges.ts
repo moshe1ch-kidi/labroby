@@ -1,6 +1,4 @@
-
-
-import { RobotState, EnvironmentObject, SimulationHistory } from '../types';
+import { RobotState, CustomObject, SimulationHistory } from '../types';
 
 export interface Challenge {
     id: string;
@@ -10,15 +8,15 @@ export interface Challenge {
     check: (startState: RobotState, endState: RobotState, history: SimulationHistory) => boolean;
     startPosition?: { x: number; y: number; z: number };
     startRotation?: number;
-    environmentObjects?: EnvironmentObject[];
+    environmentObjects?: CustomObject[];
 }
 
 export const CHALLENGES: Challenge[] = [
     // --- EASY CHALLENGES ---
     {
         id: 'c_square_loop',
-        title: 'ריבוע הקסם - לולאות',
-        description: 'תכנת את הרובוט לנסוע במסלול הריבוע הצהוב. השתמש בלבנת "חזור 4 פעמים"!',
+        title: 'Magic Square - Loops',
+        description: 'Program the robot to drive on the yellow square track. Use the "repeat 4 times" block!',
         difficulty: 'Easy',
         check: (start, end, history) => end.x > 14 && end.z < 0,
         startPosition: { x: 0, y: 0, z: 0 },
@@ -37,80 +35,37 @@ export const CHALLENGES: Challenge[] = [
     {
         id: 'c2',
         title: 'Directions - Turn in Place',
-        description: 'בצע סיבוב מלא של 360 מעלות וחזור לכיוון המקורי.',
+        description: 'Perform a full 360-degree turn and return to the original direction.',
         difficulty: 'Easy',
         check: (start, end, history) => Math.abs(history.totalRotation) >= 350
     },
     {
         id: 'c3',
         title: 'Speed - Hill Climb',
-        description: 'סע במהירות 100% למרחק 2 מטרים וחזור במהירות 20%.',
+        description: 'Drive at 100% speed for 2 meters and return at 20% speed.',
         difficulty: 'Easy',
         check: (start, end, history) => history.maxDistanceMoved >= 18
     },
     {
         id: 'c4',
         title: 'Speed - Emergency Brake',
-        description: 'סע מהר ועצור בפתאומיות מבלי להחליק.',
+        description: 'Drive fast and stop suddenly without sliding.',
         difficulty: 'Easy',
         check: (start, end, history) => history.maxDistanceMoved > 5 && !end.isMoving
     },
     {
         id: 'c6',
         title: 'Lights - Turn Signal',
-        description: 'הפעל נורת איתות כתומה למשך 2 שניות לפני תחילת פנייה.',
+        description: 'Activate an orange turn signal for 2 seconds before starting a turn.',
         difficulty: 'Easy',
         check: (start, end, history) => Math.abs(history.totalRotation) > 10 && (end.ledLeftColor !== 'black' || end.ledRightColor !== 'black')
     },
 
     // --- MEDIUM CHALLENGES ---
     {
-        id: 'c_simple_maze',
-        title: 'מבוך פשוט',
-        description: 'נווט את הרובוט דרך המבוך והגע לקו הסיום הירוק מבלי להתנגש בקירות.',
-        difficulty: 'Medium',
-        check: (start, end, history) => {
-            const inFinishZone = end.z < -10 && Math.abs(end.x) < 2;
-            return !end.isMoving && inFinishZone && !history.touchedWall;
-        },
-        startPosition: { x: 0, y: 0, z: 12 },
-        startRotation: 180,
-        environmentObjects: [
-            // Outer walls with entrance/exit
-            { id: 'm_outer_top_left', type: 'WALL', z: 10, x: -5, width: 6, length: 0.5, color: '#475569' },
-            { id: 'm_outer_top_right', type: 'WALL', z: 10, x: 5, width: 6, length: 0.5, color: '#475569' },
-            { id: 'm_outer_bottom_left', type: 'WALL', z: -10, x: -5, width: 6, length: 0.5, color: '#475569' },
-            { id: 'm_outer_bottom_right', type: 'WALL', z: -10, x: 5, width: 6, length: 0.5, color: '#475569' },
-            { id: 'm_outer_left', type: 'WALL', x: -8, z: 0, width: 0.5, length: 20, color: '#475569' },
-            { id: 'm_outer_right', type: 'WALL', x: 8, z: 0, width: 0.5, length: 20, color: '#475569' },
-            // Inner walls for S-path
-            { id: 'm_inner_1', type: 'WALL', z: 5, x: 3, width: 10, length: 0.5, color: '#475569' },
-            { id: 'm_inner_2', type: 'WALL', z: -5, x: -3, width: 10, length: 0.5, color: '#475569' },
-            // Finish line
-            { id: 'maze_finish', type: 'COLOR_LINE', x: 0, z: -10.5, width: 4, length: 2, color: '#22C55E' }
-        ]
-    },
-    {
-        id: 'c_conditional_stop',
-        title: 'משימת תנאי: עצירה בצבע הנכון',
-        description: 'סע ישר עד שתזהה קו כחול. לאחר זיהוי הקו הכחול, פנה ימינה ועצור בדיוק על הקו הירוק.',
-        difficulty: 'Medium',
-        check: (start, end, history) => {
-            // Win condition: Robot is stopped on the green line.
-            const onGreenLine = end.x < -9 && end.x > -11 && end.z < -8 && end.z > -12;
-            return !end.isMoving && onGreenLine;
-        },
-        startPosition: { x: 0, y: 0, z: 0 },
-        startRotation: 180,
-        environmentObjects: [
-            { id: 'blue_trigger', type: 'COLOR_LINE', x: 0, z: -10, width: 4, length: 0.5, color: '#3B82F6' },
-            { id: 'green_target', type: 'COLOR_LINE', x: -10, z: -10, width: 0.5, length: 4, color: '#22C55E' }
-        ]
-    },
-    {
         id: 'c9',
-        title: 'Color Identification - Multi-line Path',
-        description: 'סע לאורך המסלול וזהה 5 קווים צבעוניים במרחקים שווים. רוחב כל קו 1 ס"מ. הקו האחרון הוא קו עצירה אדום.',
+        title: 'Color ID - Multi-line Path',
+        description: 'Drive along the path and identify 5 colored lines. The last line is a red stop line.',
         difficulty: 'Medium',
         check: (start, end, history) => {
             const requiredColors = ['magenta', 'cyan', 'yellow', 'green', 'red'];
@@ -129,10 +84,10 @@ export const CHALLENGES: Challenge[] = [
     },
     {
         id: 'c1',
-        title: 'ניווט בחדר - מסלול קירות',
-        description: 'עבור דרך מסדרון הקירות והגע לאזור היעד הירוק מבלי לגעת במכשולים.',
+        title: 'Room Navigation - Wall Course',
+        description: 'Go through the wall corridor and reach the green target area without touching obstacles.',
         difficulty: 'Medium',
-        check: (start, end, history) => end.x > 14 && end.z < 0 && !history.touchedWall, // Added !history.touchedWall for consistency with maze
+        check: (start, end, history) => end.x > 14 && end.z < 0,
         startPosition: { x: 0.10, y: 0, z: 0.10 },
         startRotation: 180,
         environmentObjects: [
@@ -143,9 +98,24 @@ export const CHALLENGES: Challenge[] = [
         ]
     },
     {
+        id: 'c5',
+        title: 'Traffic Light - Road Nav',
+        description: 'Drive along the yellow road, turn right, and stop at the red line.',
+        difficulty: 'Medium',
+        check: (start, end, history) => end.x > 8 && end.z < -15,
+        startPosition: { x: 0.00, y: 0, z: 0.00 },
+        startRotation: 180,
+        environmentObjects: [
+            { "id": "p1", "type": "PATH", "shape": "STRAIGHT", "x": -0.03, "z": -8.67, "width": 2.8, "length": 14.01, "rotation": 3.13, "color": "#facc15" },
+            { "id": "p2", "type": "PATH", "shape": "CORNER", "x": 0.00, "z": -16.67, "width": 2.8, "length": 2.8, "rotation": -1.56, "color": "#FFFF00" },
+            { "id": "p3", "type": "PATH", "shape": "STRAIGHT", "x": 4.77, "z": -16.65, "width": 2.8, "length": 6.92, "rotation": 1.56, "color": "#FFFF00" },
+            { "id": "l1", "type": "COLOR_LINE", "x": 8.99, "z": -16.62, "width": 2.8, "length": 1.67, "rotation": 1.56, "color": "#FF0000" }
+        ]
+    },
+    {
         id: 'c7',
-        title: 'סללום - מסלול מכשולים',
-        description: 'נווט סביב 4 מכשולים צבעוניים והגע לקצה המסלול.',
+        title: 'Slalom - Obstacle Course',
+        description: 'Navigate around 4 colored obstacles and reach the end of the track.',
         difficulty: 'Medium',
         check: (start, end, history) => end.z > 22 && !history.touchedWall,
         startPosition: { x: 0, y: 0, z: 0 },
@@ -159,7 +129,7 @@ export const CHALLENGES: Challenge[] = [
     {
         id: 'c10',
         title: 'Touch Sensor - Obstacle Retreat',
-        description: 'סע עד שתתנגש בקיר. לאחר הנגיעה, סע לאחור עד לקו הירוק.',
+        description: 'Drive until you hit the wall. After touching it, drive backward to the green line.',
         difficulty: 'Medium',
         check: (start, end, history) => history.touchedWall && history.detectedColors.includes('green'),
         environmentObjects: [
@@ -170,7 +140,7 @@ export const CHALLENGES: Challenge[] = [
     {
         id: 'c10_lines',
         title: 'Sensors - Line Counting',
-        description: 'ספור 5 קווים שחורים ועצור בקו האדום.',
+        description: 'Count 5 black lines and stop at the red line.',
         difficulty: 'Medium',
         check: (start, end, history) => history.detectedColors.filter(c => c === 'black').length >= 4 && history.detectedColors.includes('red'),
         environmentObjects: [
@@ -182,12 +152,33 @@ export const CHALLENGES: Challenge[] = [
             { id: 'l_stop', type: 'COLOR_LINE', x: 0, z: -15, width: 2.5, length: 1, color: '#FF0000' }
         ]
     },
+    {
+        id: 'c_winding_path',
+        title: 'הדרך המתפתלת',
+        description: 'על הרובוט לעקוב אחרי השביל הצהוב, לעבור מעל רמפה, ולהיעצר על הריבוע הכחול בסוף.',
+        difficulty: 'Medium',
+        check: (start, end, history) => {
+            const onBlueSquare = end.z < -16 && Math.abs(end.x) < 2;
+            const stopped = !end.isMoving;
+            const detectedBlue = history.detectedColors.includes('blue');
+            return onBlueSquare && stopped && detectedBlue;
+        },
+        startPosition: { x: 0, y: 0, z: 0 },
+        startRotation: 180,
+        environmentObjects: [
+            { "id": "path_1", "type": "PATH", "shape": "STRAIGHT", "x": 0, "z": -5, "width": 2.8, "length": 10, "rotation": 0, "color": "#FFFF00" },
+            { "id": "ramp_1", "type": "RAMP", "x": 0, "z": -13, "width": 2.8, "length": 6, "height": 1, "color": "#334155" },
+            { "id": "finish_zone", "type": "COLOR_LINE", "x": 0, "z": -17.4, "width": 2.8, "length": 2.8, "rotation": 0, "color": "#3B82F6" },
+            { "id": "wall_1", "type": "WALL", "x": 5, "z": -10, "width": 0.5, "length": 20, "rotation": 0, "color": "#EF4444" }
+        ]
+    },
+
 
     // --- HARD CHALLENGES ---
     {
         id: 'c_maze_original',
-        title: 'מבוך הקוד המעודכן',
-        description: 'נווט במבוך והגע לקו הסיום הירוק.',
+        title: 'The Updated Code Maze',
+        description: 'Navigate the maze and reach the green finish line.',
         difficulty: 'Hard',
         check: (start, end, history) => end.x > 14 && end.z < 0 && !history.touchedWall,
         startPosition: { x: -18.00, y: 0, z: 0.00 },
@@ -205,7 +196,7 @@ export const CHALLENGES: Challenge[] = [
     {
         id: 'c12',
         title: 'Line Following - Ellipse Track',
-        description: 'עקוב אחרי הקו האליפטי השחור למשך הקפה מלאה.',
+        description: 'Follow the black elliptical line for one full lap.',
         difficulty: 'Hard',
         check: (start, end, history) => history.maxDistanceMoved > 22 && history.detectedColors.includes('black'),
         startPosition: { x: 0, y: 0, z: -2 },
@@ -214,7 +205,7 @@ export const CHALLENGES: Challenge[] = [
     {
         id: 'c21',
         title: 'Line Following - Track Follower',
-        description: 'עקוב אחרי הקו השחור המעגלי.',
+        description: 'Follow the circular black line.',
         difficulty: 'Hard',
         check: (start, end, history) => history.maxDistanceMoved > 11 && history.detectedColors.includes('black'),
         startPosition: { x: 0, y: 0, z: 0 },
@@ -223,7 +214,7 @@ export const CHALLENGES: Challenge[] = [
     {
         id: 'c18',
         title: 'Gyro - Auto Leveling',
-        description: 'טפס על רמפה, חצה את המישור ורד בבטחה.',
+        description: 'Climb a ramp, cross the platform, and descend safely.',
         difficulty: 'Hard',
         check: (start, end, history) => history.maxDistanceMoved > 14
     }
