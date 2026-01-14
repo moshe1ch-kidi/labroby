@@ -1,4 +1,5 @@
- 
+
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -275,7 +276,7 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
             if (px >= w.minX && px <= w.maxX && pz >= w.minZ && pz <= w.maxZ) return true;
         }
         for (const obj of customObjects) {
-            if (obj.type === 'WALL' || obj.type === 'RAMP') {
+            if (obj.type === 'WALL') {
                 if (isPointInObject(px, pz, obj)) return true;
             }
         }
