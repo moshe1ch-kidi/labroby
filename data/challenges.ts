@@ -1,3 +1,4 @@
+
 import { RobotState, CustomObject, SimulationHistory } from '../types';
 
 export interface Challenge {
@@ -22,14 +23,14 @@ export const CHALLENGES: Challenge[] = [
         startPosition: { x: 0, y: 0, z: 0 },
         startRotation: 180,
         environmentObjects: [
-            { "id": "obj_1", "type": "PATH", "shape": "STRAIGHT", "x": 11.45, "z": -3.13, "width": 2.8, "length": 20, "rotation": 1.56, "color": "#FFFF00" },
-            { "id": "obj_2", "type": "PATH", "shape": "STRAIGHT", "x": 0.08, "z": -14.58, "width": 2.8, "length": 20, "rotation": -3.14, "color": "#FFFF00" },
-            { "id": "obj_3", "type": "PATH", "shape": "CORNER", "x": 0.10, "z": -3.17, "width": 2.8, "length": 2.8, "rotation": 0.00, "color": "#FFFF00" },
-            { "id": "obj_4", "type": "PATH", "shape": "CORNER", "x": 0.06, "z": -25.92, "width": 2.8, "length": 2.8, "rotation": -1.55, "color": "#FFFF00" },
-            { "id": "obj_5", "type": "PATH", "shape": "CORNER", "x": 22.78, "z": -25.78, "width": 2.8, "length": 2.8, "rotation": 3.14, "color": "#FFFF00" },
-            { "id": "obj_6", "type": "PATH", "shape": "STRAIGHT", "x": 11.39, "z": -25.86, "width": 2.8, "length": 20, "rotation": 1.56, "color": "#FFFF00" },
-            { "id": "obj_7", "type": "PATH", "shape": "STRAIGHT", "x": 22.83, "z": -14.35, "width": 2.8, "length": 20, "rotation": 0.00, "color": "#FFFF00" },
-            { "id": "obj_8", "type": "PATH", "shape": "CORNER", "x": 22.83, "z": -3.03, "width": 2.8, "length": 2.8, "rotation": 1.56, "color": "#FFFF00" }
+            { "id": "obj_1", "type": "PATH", "shape": "STRAIGHT", "x": 11.45, "z": -3.13, "width": 2.8, "length": 20, "rotation": 1.56, "color": "#EAB308" },
+            { "id": "obj_2", "type": "PATH", "shape": "STRAIGHT", "x": 0.08, "z": -14.58, "width": 2.8, "length": 20, "rotation": -3.14, "color": "#EAB308" },
+            { "id": "obj_3", "type": "PATH", "shape": "CORNER", "x": 0.10, "z": -3.17, "width": 2.8, "length": 2.8, "rotation": 0.00, "color": "#EAB308" },
+            { "id": "obj_4", "type": "PATH", "shape": "CORNER", "x": 0.06, "z": -25.92, "width": 2.8, "length": 2.8, "rotation": -1.55, "color": "#EAB308" },
+            { "id": "obj_5", "type": "PATH", "shape": "CORNER", "x": 22.78, "z": -25.78, "width": 2.8, "length": 2.8, "rotation": 3.14, "color": "#EAB308" },
+            { "id": "obj_6", "type": "PATH", "shape": "STRAIGHT", "x": 11.39, "z": -25.86, "width": 2.8, "length": 20, "rotation": 1.56, "color": "#EAB308" },
+            { "id": "obj_7", "type": "PATH", "shape": "STRAIGHT", "x": 22.83, "z": -14.35, "width": 2.8, "length": 20, "rotation": 0.00, "color": "#EAB308" },
+            { "id": "obj_8", "type": "PATH", "shape": "CORNER", "x": 22.83, "z": -3.03, "width": 2.8, "length": 2.8, "rotation": 1.56, "color": "#EAB308" }
         ]
     },
     {
@@ -75,9 +76,9 @@ export const CHALLENGES: Challenge[] = [
         startPosition: { x: 0, y: 0, z: 0 },
         startRotation: 180,
         environmentObjects: [
-            { id: 'line1', type: 'COLOR_LINE', x: 0, z: -3.0, width: 2.5, length: 0.1, color: '#D946EF' },
+            { id: 'line1', type: 'COLOR_LINE', x: 0, z: -3.0, width: 2.5, length: 0.1, color: '#EC4899' },
             { id: 'line2', type: 'COLOR_LINE', x: 0, z: -6.0, width: 2.5, length: 0.1, color: '#06B6D4' },
-            { id: 'line3', type: 'COLOR_LINE', x: 0, z: -9.0, width: 2.5, length: 0.1, color: '#FACC15' },
+            { id: 'line3', type: 'COLOR_LINE', x: 0, z: -9.0, width: 2.5, length: 0.1, color: '#EAB308' },
             { id: 'line4', type: 'COLOR_LINE', x: 0, z: -12.0, width: 2.5, length: 0.1, color: '#22C55E' },
             { id: 'line5', type: 'COLOR_LINE', x: 0, z: -15.0, width: 2.5, length: 0.1, color: '#EF4444' }
         ]
@@ -106,10 +107,10 @@ export const CHALLENGES: Challenge[] = [
         startPosition: { x: 0.00, y: 0, z: 0.00 },
         startRotation: 180,
         environmentObjects: [
-            { "id": "p1", "type": "PATH", "shape": "STRAIGHT", "x": -0.03, "z": -8.67, "width": 2.8, "length": 14.01, "rotation": 3.13, "color": "#facc15" },
-            { "id": "p2", "type": "PATH", "shape": "CORNER", "x": 0.00, "z": -16.67, "width": 2.8, "length": 2.8, "rotation": -1.56, "color": "#FFFF00" },
-            { "id": "p3", "type": "PATH", "shape": "STRAIGHT", "x": 4.77, "z": -16.65, "width": 2.8, "length": 6.92, "rotation": 1.56, "color": "#FFFF00" },
-            { "id": "l1", "type": "COLOR_LINE", "x": 8.99, "z": -16.62, "width": 2.8, "length": 1.67, "rotation": 1.56, "color": "#FF0000" }
+            { "id": "p1", "type": "PATH", "shape": "STRAIGHT", "x": -0.03, "z": -8.67, "width": 2.8, "length": 14.01, "rotation": 3.13, "color": "#EAB308" },
+            { "id": "p2", "type": "PATH", "shape": "CORNER", "x": 0.00, "z": -16.67, "width": 2.8, "length": 2.8, "rotation": -1.56, "color": "#EAB308" },
+            { "id": "p3", "type": "PATH", "shape": "STRAIGHT", "x": 4.77, "z": -16.65, "width": 2.8, "length": 6.92, "rotation": 1.56, "color": "#EAB308" },
+            { "id": "l1", "type": "COLOR_LINE", "x": 8.99, "z": -16.62, "width": 2.8, "length": 1.67, "rotation": 1.56, "color": "#EF4444" }
         ]
     },
     {
@@ -123,7 +124,7 @@ export const CHALLENGES: Challenge[] = [
             { "id": "sl1", "type": "WALL", "x": 0, "z": 5, "width": 0.5, "length": 2, "color": "#ef4444" },
             { "id": "sl2", "type": "WALL", "x": 0, "z": 10, "width": 0.5, "length": 2, "color": "#3b82f6" },
             { "id": "sl3", "type": "WALL", "x": 0, "z": 15, "width": 0.5, "length": 2, "color": "#22c55e" },
-            { "id": "sl4", "type": "WALL", "x": 0, "z": 20, "width": 0.5, "length": 2, "color": "#facc15" }
+            { "id": "sl4", "type": "WALL", "x": 0, "z": 20, "width": 0.5, "length": 2, "color": "#EAB308" }
         ]
     },
     {
@@ -133,7 +134,7 @@ export const CHALLENGES: Challenge[] = [
         difficulty: 'Medium',
         check: (start, end, history) => history.touchedWall && history.detectedColors.includes('green'),
         environmentObjects: [
-            { id: 'w_hit', type: 'WALL', x: 0, z: -10, width: 6, length: 0.5, color: '#FF0000' },
+            { id: 'w_hit', type: 'WALL', x: 0, z: -10, width: 6, length: 0.5, color: '#EF4444' },
             { id: 'l_green', type: 'COLOR_LINE', x: 0, z: 0.5, width: 2.5, length: 0.5, color: '#22c55e' }
         ]
     },
@@ -149,7 +150,7 @@ export const CHALLENGES: Challenge[] = [
             { id: 'l3', type: 'COLOR_LINE', x: 0, z: -6, width: 2.5, length: 0.1, color: '#000000' },
             { id: 'l4', type: 'COLOR_LINE', x: 0, z: -8, width: 2.5, length: 0.1, color: '#000000' },
             { id: 'l5', type: 'COLOR_LINE', x: 0, z: -10, width: 2.5, length: 0.1, color: '#000000' },
-            { id: 'l_stop', type: 'COLOR_LINE', x: 0, z: -15, width: 2.5, length: 1, color: '#FF0000' }
+            { id: 'l_stop', type: 'COLOR_LINE', x: 0, z: -15, width: 2.5, length: 1, color: '#EF4444' }
         ]
     },
     {
@@ -166,11 +167,32 @@ export const CHALLENGES: Challenge[] = [
         startPosition: { x: 0, y: 0, z: 0 },
         startRotation: 180,
         environmentObjects: [
-            { "id": "path_1", "type": "PATH", "shape": "STRAIGHT", "x": 0, "z": -5, "width": 2.8, "length": 10, "rotation": 0, "color": "#FFFF00" },
+            { "id": "path_1", "type": "PATH", "shape": "STRAIGHT", "x": 0, "z": -5, "width": 2.8, "length": 10, "rotation": 0, "color": "#EAB308" },
             { "id": "ramp_1", "type": "RAMP", "x": 0, "z": -13, "width": 2.8, "length": 6, "height": 1, "color": "#334155" },
             { "id": "finish_zone", "type": "COLOR_LINE", "x": 0, "z": -17.4, "width": 2.8, "length": 2.8, "rotation": 0, "color": "#3B82F6" },
             { "id": "wall_1", "type": "WALL", "x": 5, "z": -10, "width": 0.5, "length": 20, "rotation": 0, "color": "#EF4444" }
         ]
+    },
+    {
+        id: 'c_snake_path',
+        title: 'שביל הנחש',
+        description: 'מסלול אליפסה שחור עם 4 צבעים: כחול, ירוק, צהוב, ואדום.',
+        difficulty: 'Medium',
+        check: (start, end, history) => {
+            // Target: Red Marker
+            const onRed = history.detectedColors.some(c => c.toLowerCase().includes('red') || c === '#FF0000');
+            const stopped = !end.isMoving;
+            
+            const detectedBlue = history.detectedColors.some(c => c.toLowerCase().includes('blue') || c === '#0000FF');
+            const detectedGreen = history.detectedColors.some(c => c.toLowerCase().includes('green') || c === '#22C55E');
+            const detectedYellow = history.detectedColors.some(c => c.toLowerCase().includes('yellow') || c === '#FFFF00');
+
+            return onRed && stopped && detectedGreen && detectedYellow && detectedBlue;
+        },
+        // Start on the Red Square (Start Marker) which is at 0,0,0
+        startPosition: { x: 0, y: 0, z: 0 },
+        startRotation: 90,
+        environmentObjects: [] // Handled by isEllipseTrack logic in Environment.tsx
     },
 
 
