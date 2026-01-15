@@ -1,17 +1,18 @@
+
 import React, { useMemo } from 'react';
 import { Grid, Environment as DreiEnvironment, ContactShadows, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { CustomObject, RobotState } from '../types';
-import { ThreeEvent } from '@react-three/fiber'; // Import ThreeEvent here
+import { ThreeEvent } from '@react-three/fiber'; 
 
 interface EnvironmentProps {
     challengeId?: string;
     customObjects?: CustomObject[];
     selectedObjectId?: string | null;
     onObjectSelect?: (id: string) => void;
-    onPointerDown?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
-    onPointerMove?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
-    onPointerUp?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
+    onPointerDown?: (e: ThreeEvent<MouseEvent>) => void;
+    onPointerMove?: (e: ThreeEvent<MouseEvent>) => void;
+    onPointerUp?: (e: ThreeEvent<MouseEvent>) => void;
     robotState?: RobotState;
 }
 
@@ -19,12 +20,104 @@ const EllipseMarker = ({ centerX, centerZ, radiusX, radiusZ, angle, width, color
     const x = radiusX * Math.cos(angle);
     const z = radiusZ * Math.sin(angle);
     const nx = x / (radiusX * radiusX);
-    const nz = z / (radiusZ / radiusZ); // Changed from radiusZ * radiusZ to radiusZ / radiusZ for ellipse normal calculation
+    const nz = z / (radiusZ / radiusZ); 
     const rotation = Math.atan2(nx, -nz);
     return (
         <mesh name="challenge-marker" position={[centerX + x, 0.025, centerZ + z]} rotation={[-Math.PI / 2, 0, rotation]}>
             <planeGeometry args={[width, 0.45]} />
             <meshBasicMaterial color={color} />
+        </mesh>
+    );
+};
+
+// Snake Track Math helpers
+const getSnakePoint = (t: number) => {
+    const rMod = 1.0 + 0.2 * Math.sin(6 * t);
+    const x = 9 * rMod * Math.cos(t);
+    const z = -8 + 6 * rMod * Math.sin(t);
+    return { x, z, rMod };
+};
+
+const getSnakeDerivative = (t: number) => {
+    const A = 9;
+    const B = 6;
+    const r = 1.0 + 0.2 * Math.sin(6 * t);
+    const dr = 1.2 * Math.cos(6 * t);
+    
+    // x = A * r * cos(t)
+    // dx/dt = A * (dr * cos(t) - r * sin(t))
+    const dx = A * (dr * Math.cos(t) - r * Math.sin(t));
+    
+    // z = Z0 + B * r * sin(t)
+    // dz/dt = B * (dr * sin(t) + r * cos(t))
+    const dz = B * (dr * Math.sin(t) + r * Math.cos(t));
+    
+    return { dx, dz };
+};
+
+const SnakeMarker = ({ angle, width, color }: any) => {
+    const { x, z } = getSnakePoint(angle);
+    const { dx, dz } = getSnakeDerivative(angle);
+    // Tangent vector is (dx, dz). 
+    // Rotation should align with tangent or normal? Usually markers are perpendicular to path.
+    // Atan2(dx, dz) gives angle from Z axis? 
+    // rotation around Y axis in 3D (which is Z axis in 2D plane logic).
+    // Tangent angle: Math.atan2(dz, dx).
+    // We want the marker to be across the path, so perpendicular to tangent.
+    // Perpendicular angle: tangent_angle + PI/2.
+    const tangentAngle = Math.atan2(dz, dx);
+    // The plane geometry is drawn along local X. To cross the path, we rotate it.
+    // Actually, planeGeometry args=[width, length]. If width is the track width dimension, 
+    // we want it perpendicular to the path.
+    
+    return (
+        <mesh name="challenge-marker" position={[x, 0.026, z]} rotation={[-Math.PI / 2, 0, -tangentAngle]}>
+            <planeGeometry args={[width, 0.65]} />
+            <meshBasicMaterial color={color} />
+        </mesh>
+    );
+};
+
+const SnakeTrack = ({ width = 0.4, color = "black", segments = 256 }: any) => {
+    const geometry = useMemo(() => {
+        const vertices = [];
+        const indices = [];
+        const halfW = width / 2;
+
+        for (let i = 0; i <= segments; i++) {
+            const t = (i / segments) * Math.PI * 2;
+            const { x, z } = getSnakePoint(t);
+            const { dx, dz } = getSnakeDerivative(t);
+            
+            // Normalize tangent
+            const len = Math.sqrt(dx * dx + dz * dz);
+            const ndx = dx / len;
+            const ndz = dz / len;
+            
+            // Normal vector (rotate 90 deg: -z, x)
+            const nx = -ndz;
+            const nz = ndx;
+            
+            vertices.push(x + nx * halfW, 0, z + nz * halfW);
+            vertices.push(x - nx * halfW, 0, z - nz * halfW);
+            
+            if (i < segments) {
+                const base = i * 2;
+                indices.push(base, base + 1, base + 2);
+                indices.push(base + 1, base + 3, base + 2);
+            }
+        }
+        
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geo.setIndex(indices);
+        geo.computeVertexNormals();
+        return geo;
+    }, [width, segments]);
+
+    return (
+        <mesh name="challenge-path" geometry={geometry} position={[0, 0.02, 0]} receiveShadow>
+            <meshBasicMaterial color={color} side={THREE.DoubleSide} />
         </mesh>
     );
 };
@@ -74,13 +167,14 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
       const isRoomNav = challengeId === 'c1';
       const isLineTrack = ['c11', 'c10_lines'].includes(challengeId || '');
       const isEllipseTrack = challengeId === 'c12';
+      const isSnakeTrack = challengeId === 'c_snake_path';
       const isFrontWall = ['c10', 'c16', 'c19', 'c20'].includes(challengeId || '');
       const isLineFollow = ['c21'].includes(challengeId || '');
       const isSlope = challengeId === 'c3';
       const isAutoLevel = challengeId === 'c18';
       const isGrayRoad = ['c10', 'c10_lines', 'c11', 'c9'].includes(challengeId || '');
       const isComplexPath = ['c14', 'c15'].includes(challengeId || '');
-      return { isRoomNav, isLineTrack, isFrontWall, isLineFollow, isSlope, isAutoLevel, isEllipseTrack, isGrayRoad, isComplexPath };
+      return { isRoomNav, isLineTrack, isFrontWall, isLineFollow, isSlope, isAutoLevel, isEllipseTrack, isSnakeTrack, isGrayRoad, isComplexPath };
   }, [challengeId]);
 
   return (
@@ -147,26 +241,22 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                             const h = obj.height || 1.0;
                             const slopeL = Math.sqrt(section * section + h * h);
                             const slopeAngle = Math.atan2(h, section);
-                            const t = 0.05; // Surface thickness
+                            const t = 0.05; 
                             
                             return (
                                 <>
-                                    {/* Uphill surface */}
                                     <mesh rotation={[-slopeAngle, 0, 0]} position={[0, h/2, -section]}>
                                         <boxGeometry args={[obj.width, t, slopeL]} />
                                         <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
-                                    {/* Top flat surface */}
                                     <mesh position={[0, h, 0]}>
                                         <boxGeometry args={[obj.width, t, section]} />
                                         <meshStandardMaterial color={obj.color || "#475569"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
-                                    {/* Downhill surface */}
                                     <mesh rotation={[slopeAngle, 0, 0]} position={[0, h/2, section]}>
                                         <boxGeometry args={[obj.width, t, slopeL]} />
                                         <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
-                                    {/* Fill body under the flat surface */}
                                     <mesh position={[0, h/2, 0]}>
                                         <boxGeometry args={[obj.width, h, section]} />
                                         <meshStandardMaterial color={obj.color || "#1e293b"} transparent opacity={(obj.opacity ?? 1) * 0.4} />
@@ -177,7 +267,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                     </group>
                 )}
                 {obj.type === 'COLOR_LINE' && (
-                    <mesh name="custom-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} onClick={handleSelect}>
+                    <mesh name="custom-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]} onClick={handleSelect}>
                         <planeGeometry args={[obj.width, obj.length]} />
                         <meshBasicMaterial color={obj.color || '#FF0000'} transparent opacity={obj.opacity ?? 1} />
                     </mesh>
@@ -185,25 +275,30 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                 {obj.type === 'PATH' && (
                     <group name="custom-path" onClick={handleSelect}>
                         {(!obj.shape || obj.shape === 'STRAIGHT') && (
-                            <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width, obj.length]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}><planeGeometry args={[0.2, obj.length]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
-                            </>
+                            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
+                                <planeGeometry args={[obj.width, obj.length]} />
+                                <meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} />
+                            </mesh>
                         )}
                         {obj.shape === 'CORNER' && (
-                            <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width, obj.width]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[obj.width/4 - 0.05, 0.025, 0]}><planeGeometry args={[obj.width/2 + 0.1, 0.2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -obj.width/4 + 0.05]}><planeGeometry args={[0.2, obj.width/2 + 0.1]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
-                            </>
+                            <group position={[0, 0.02, 0]}>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[obj.width/4 - 0.05, 0, 0]}>
+                                    <planeGeometry args={[obj.width/2 + 0.1, obj.width]} />
+                                    <meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} />
+                                </mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.width/4 - 0.05, 0, -obj.width/4 + 0.05]}>
+                                    <planeGeometry args={[obj.width/2, obj.width/2 + 0.1]} />
+                                    <meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} />
+                                </mesh>
+                            </group>
                         )}
                         {obj.shape === 'CURVED' && (
-                            <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.02, 0]}><ringGeometry args={[obj.length/2 - obj.width/2, obj.length/2 + obj.width/2, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.025, 0]}><ringGeometry args={[obj.length/2 - 0.1, obj.length/2 + 0.1, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
-                            </>
+                            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.02, 0]}>
+                                <ringGeometry args={[obj.length/2 - obj.width/2, obj.length/2 + obj.width/2, 64, 1, 0, Math.PI/2]} />
+                                <meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} side={THREE.DoubleSide} />
+                            </mesh>
                         )}
-                        {isSelected && ( <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.03, 0]}><planeGeometry args={[obj.width + 0.2, (obj.shape === 'CORNER' ? obj.width : obj.length) + 0.2]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.3} /></mesh> )}
+                        {isSelected && ( <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.035, 0]}><planeGeometry args={[obj.width + 0.2, (obj.shape === 'CORNER' ? obj.width : obj.length) + 0.2]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.3} /></mesh> )}
                     </group>
                 )}
             </group>
@@ -268,6 +363,16 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
             <EllipseMarker centerX={0} centerZ={-8} radiusX={9} radiusZ={6} angle={Math.PI / 2} width={0.08} color="#0000FF" />
             <EllipseMarker centerX={0} centerZ={-8} radiusX={9} radiusZ={6} angle={Math.PI} width={0.08} color="#22C55E" />
             <EllipseMarker centerX={0} centerZ={-8} radiusX={9} radiusZ={6} angle={3 * Math.PI / 2} width={0.08} color="#FFFF00" />
+         </group>
+      )}
+
+      {config.isSnakeTrack && (
+         <group>
+            <SnakeTrack width={0.6} color="black" />
+            <SnakeMarker angle={0} width={0.08} color="#FF0000" />
+            <SnakeMarker angle={Math.PI / 2} width={0.08} color="#0000FF" />
+            <SnakeMarker angle={Math.PI} width={0.08} color="#22C55E" />
+            <SnakeMarker angle={3 * Math.PI / 2} width={0.08} color="#FFFF00" />
          </group>
       )}
     </>
