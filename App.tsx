@@ -1,5 +1,4 @@
-
-
+ 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -83,7 +82,15 @@ const getEnvironmentConfig = (challengeId?: string, customObjects: CustomObject[
     let walls: {minX: number, maxX: number, minZ: number, maxZ: number}[] = [];
     let complexZones: {x: number, z: number, width: number, length: number, rotation: number, color: number, shape?: PathShape, type: EditorTool}[] = [];
     if (['c10', 'c16', 'c19', 'c20'].includes(challengeId || '')) walls.push({ minX: -3, maxX: 3, minZ: -10.25, maxZ: -9.75 });
-    customObjects.forEach(obj => {
+    
+    // Sort customObjects to ensure COLOR_LINE comes before PATH for detection priority
+    const sortedObjects = [...customObjects].sort((a, b) => {
+        if (a.type === 'COLOR_LINE' && b.type !== 'COLOR_LINE') return -1;
+        if (a.type !== 'COLOR_LINE' && b.type === 'COLOR_LINE') return 1;
+        return 0;
+    });
+
+    sortedObjects.forEach(obj => {
         if (obj.type === 'WALL') { const hW = obj.width / 2; const hL = obj.length / 2; walls.push({ minX: obj.x - hW, maxX: obj.x + hW, minZ: obj.z - hL, maxZ: obj.z + hL }); }
         else if (obj.type === 'PATH') { const lineHex = obj.color || '#FFFF00'; const colorVal = parseInt(lineHex.replace('#', '0x'), 16); complexZones.push({ x: obj.x, z: obj.z, width: obj.width, length: obj.length, rotation: obj.rotation || 0, color: colorVal, shape: obj.shape || 'STRAIGHT', type: obj.type }); } 
         else if (obj.type === 'COLOR_LINE') { const hC = obj.color || '#FF0000'; complexZones.push({ x: obj.x, z: obj.z, width: obj.width, length: obj.length, rotation: obj.rotation || 0, color: parseInt(hC.replace('#', '0x'), 16), type: obj.type }); }
@@ -249,6 +256,36 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
                 else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['blue'], 0.1) || Math.abs(deg - 90) < markerThreshold) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
                 else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['green'], 0.1) || Math.abs(deg - 180) < markerThreshold) { sensorDetectedColor = "green"; sensorIntensity = 50; sensorRawDecimalColor = 0x22C55E; }
                 else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['yellow'], 0.1) || Math.abs(deg - 270) < markerThreshold) { sensorDetectedColor = "yellow"; sensorIntensity = 80; sensorRawDecimalColor = 0xFFFF00; }
+            }
+        } else if (challengeId === 'c_snake_path') {
+            // New logic for Snake Path
+            // Approximate t based on standard ellipse angle relative to center (0, -8)
+            const ex = cx - 0;
+            const ez = cz - (-8);
+            // Normalize by ellipse radii (9 and 6) to get correct parameter t
+            const t = Math.atan2(ez / 6, ex / 9); 
+            const positiveT = t < 0 ? t + 2 * Math.PI : t;
+            
+            // Calculate point on snake curve for this t
+            const rMod = 1.0 + 0.2 * Math.sin(6 * positiveT);
+            const targetX = 9 * rMod * Math.cos(positiveT);
+            const targetZ = -8 + 6 * rMod * Math.sin(positiveT);
+            
+            // Simple distance check
+            const dx = cx - targetX;
+            const dz = cz - targetZ;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            
+            if (dist <= 0.45) { // Increased tolerance for wider track (0.6 width -> 0.3 radius, + margin)
+                sensorDetectedColor = "black"; sensorIntensity = 5; sensorRawDecimalColor = 0x000000;
+                
+                const deg = (positiveT * 180 / Math.PI) % 360;
+                const markerThreshold = 6.0; // Slightly wider marker detection
+                
+                if (Math.abs(deg - 0) < markerThreshold || Math.abs(deg - 360) < markerThreshold) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
+                else if (Math.abs(deg - 90) < markerThreshold) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
+                else if (Math.abs(deg - 180) < markerThreshold) { sensorDetectedColor = "green"; sensorIntensity = 50; sensorRawDecimalColor = 0x22C55E; }
+                else if (Math.abs(deg - 270) < markerThreshold) { sensorDetectedColor = "yellow"; sensorIntensity = 80; sensorRawDecimalColor = 0xFFFF00; }
             }
         } else if (challengeId === 'c10') { 
             if (Math.abs(cx) <= 1.25 && cz <= 0 && cz >= -15) {
@@ -668,6 +705,24 @@ const App: React.FC = () => {
 
   const stageColors = useMemo(() => {
     const colors = new Set<string>();
+    
+    // Always add the ground color
+    colors.add('#FFFFFF'); 
+
+    // Add specific static environment colors based on challenge logic
+    // (Matches logic in Environment.tsx for "road-background", "challenge-path", etc.)
+    const cid = activeChallenge?.id || '';
+    
+    // Gray roads
+    if (['c10', 'c10_lines', 'c11', 'c9', 'c1', 'c14', 'c15', 'c18', 'c_winding_path'].includes(cid)) {
+        colors.add('#64748b'); 
+    }
+    
+    // Black circular track (c21) or Ellipse (c12/c_snake_path)
+    if (cid === 'c21' || cid === 'c12' || cid === 'c_snake_path') {
+        colors.add('#000000'); 
+    }
+
     const allObjects = [...(activeChallenge?.environmentObjects || []), ...customObjects];
     allObjects.forEach(obj => {
         if (obj.color) {
