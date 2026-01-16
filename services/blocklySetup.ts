@@ -1,4 +1,4 @@
- // Initialize Blockly Setup
+// Initialize Blockly Setup
 
 // --- CONSTANTS ---
 export const HAT_BLOCKS = [
@@ -585,7 +585,18 @@ export const initBlockly = () => {
   javascriptGenerator.forBlock['robot_drive_simple'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const power = direction === 'FORWARD' ? 100 : -100; return `await robot.setMotorPower(${power}, ${power});\n`; };
   javascriptGenerator.forBlock['robot_move'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const distance = block.getFieldValue('DISTANCE'); const distVal = direction === 'BACKWARD' ? -distance : distance; return `await robot.move(${distVal});\n`; };
   javascriptGenerator.forBlock['robot_move_speed'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const distance = block.getFieldValue('DISTANCE'); const speed = block.getFieldValue('SPEED'); const distVal = direction === 'BACKWARD' ? -distance : distance; return `await robot.setSpeed(${speed});\nawait robot.move(${distVal});\n`; };
-  javascriptGenerator.forBlock['robot_motor_on'] = function(block: any) { const motor = block.getFieldValue('MOTOR'); const dir = block.getFieldValue('DIR'); const power = block.getFieldValue('POWER'); const powerVal = dir === 'STOP' ? 0 : (dir === 'BACKWARD' ? -power : power); if (motor === 'LEFT') return `await robot.setMotorPower(${powerVal}, 0);\n`; if (motor === 'RIGHT') return `await robot.setMotorPower(0, ${powerVal});\n`; return `await robot.setMotorPower(${powerVal}, ${powerVal});\n`; };
+  
+  javascriptGenerator.forBlock['robot_motor_on'] = function(block: any) { 
+      const motor = block.getFieldValue('MOTOR'); 
+      const dir = block.getFieldValue('DIR'); 
+      const power = block.getFieldValue('POWER'); 
+      const powerVal = dir === 'STOP' ? 0 : (dir === 'BACKWARD' ? -power : power); 
+      
+      if (motor === 'LEFT') return `await robot.setLeftMotorPower(${powerVal});\n`; 
+      if (motor === 'RIGHT') return `await robot.setRightMotorPower(${powerVal});\n`; 
+      return `await robot.setMotorPower(${powerVal}, ${powerVal});\n`; 
+  };
+  
   javascriptGenerator.forBlock['robot_drive_until'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const speed = block.getFieldValue('SPEED'); const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false'; const motorPower = direction === 'BACKWARD' ? -100 : 100; return `await robot.setSpeed(${speed});\nawait robot.setMotorPower(${motorPower}, ${motorPower});\nwhile (!(${condition})) { await robot.wait(10); }\nawait robot.stop();\n`; };
   javascriptGenerator.forBlock['robot_turn_until'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const speed = block.getFieldValue('SPEED'); const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false'; const leftPower = direction === 'LEFT' ? -100 : 100; const rightPower = direction === 'LEFT' ? 100 : -100; return `await robot.setSpeed(${speed});\nawait robot.setMotorPower(${leftPower}, ${rightPower});\nwhile (!(${condition})) { await robot.wait(10); }\nawait robot.stop();\n`; };
   javascriptGenerator.forBlock['robot_stop'] = function() { return 'await robot.stop();\n'; };
@@ -656,7 +667,18 @@ export const initBlockly = () => {
   pythonGenerator.forBlock['robot_drive_simple'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const power = direction === 'FORWARD' ? 100 : -100; return `robot.set_motor_power(${power}, ${power})\n`; };
   pythonGenerator.forBlock['robot_move'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const distance = block.getFieldValue('DISTANCE'); const distVal = direction === 'BACKWARD' ? -distance : distance; return `robot.move(${distVal})\n`; };
   pythonGenerator.forBlock['robot_move_speed'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const distance = block.getFieldValue('DISTANCE'); const speed = block.getFieldValue('SPEED'); const distVal = direction === 'BACKWARD' ? -distance : distance; return `robot.set_speed(${speed})\nrobot.move(${distVal})\n`; };
-  pythonGenerator.forBlock['robot_motor_on'] = function(block: any) { const motor = block.getFieldValue('MOTOR'); const dir = block.getFieldValue('DIR'); const power = block.getFieldValue('POWER'); const powerVal = dir === 'STOP' ? 0 : (dir === 'BACKWARD' ? -power : power); if (motor === 'LEFT') return `robot.set_motor_power(${powerVal}, 0)\n`; if (motor === 'RIGHT') return `robot.set_motor_power(0, ${powerVal})\n`; return `robot.set_motor_power(${powerVal}, ${powerVal})\n`; };
+  
+  pythonGenerator.forBlock['robot_motor_on'] = function(block: any) { 
+      const motor = block.getFieldValue('MOTOR'); 
+      const dir = block.getFieldValue('DIR'); 
+      const power = block.getFieldValue('POWER'); 
+      const powerVal = dir === 'STOP' ? 0 : (dir === 'BACKWARD' ? -power : power); 
+      
+      if (motor === 'LEFT') return `robot.set_left_motor_power(${powerVal})\n`; 
+      if (motor === 'RIGHT') return `robot.set_right_motor_power(${powerVal})\n`; 
+      return `robot.set_motor_power(${powerVal}, ${powerVal})\n`; 
+  };
+  
   pythonGenerator.forBlock['robot_drive_until'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const speed = block.getFieldValue('SPEED'); const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False'; const motorPower = direction === 'BACKWARD' ? -100 : 100; return `robot.set_speed(${speed})\nrobot.set_motor_power(${motorPower}, ${motorPower})\nwhile not (${condition}):\n  robot.wait(0.01)\nrobot.stop()\n`; };
   pythonGenerator.forBlock['robot_turn_until'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const speed = block.getFieldValue('SPEED'); const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False'; const leftPower = direction === 'LEFT' ? -100 : 100; const rightPower = direction === 'LEFT' ? 100 : -100; return `robot.set_speed(${speed})\nrobot.set_motor_power(${leftPower}, ${rightPower})\nwhile not (${condition}):\n  robot.wait(0.01)\nrobot.stop()\n`; };
   pythonGenerator.forBlock['robot_stop'] = function() { return 'robot.stop()\n'; };
