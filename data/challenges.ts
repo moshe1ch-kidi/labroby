@@ -107,6 +107,30 @@ export const CHALLENGES: Challenge[] = [
         ]
     },
     {
+        id: 'c_radar_scan',
+        title: 'סריקת ראדר',
+        description: 'על הרובוט לזהות גליל ירוק , לאתר את מיקום הגליל בעזרת חיישן האולטרה סוניק ולנסוע אליו.',
+        difficulty: 'Medium',
+        check: (start, end, history) => {
+            // Target is at x: 3, z: 5
+            const dist = Math.sqrt(Math.pow(end.x - 3, 2) + Math.pow(end.z - 5, 2));
+            return dist < 1.0 && !end.isMoving; 
+        },
+        startPosition: { x: 0, y: 0, z: 0 },
+        startRotation: 180,
+        environmentObjects: [
+            // Floor 16x16
+            { id: 'floor', type: 'PATH', shape: 'STRAIGHT', x: 0, z: 0, width: 16, length: 16, color: '#000000' },
+            // Walls (16x16 box, centered at 0,0)
+            { id: 'w_n', type: 'WALL', x: 0, z: -8, width: 16.2, length: 0.2, color: '#EF4444' },
+            { id: 'w_s', type: 'WALL', x: 0, z: 8, width: 16.2, length: 0.2, color: '#EF4444' },
+            { id: 'w_e', type: 'WALL', x: 8, z: 0, width: 0.2, length: 16.2, color: '#EF4444' },
+            { id: 'w_w', type: 'WALL', x: -8, z: 0, width: 0.2, length: 16.2, color: '#EF4444' },
+            // Cylinder (Target) moved to a distance
+            { id: 'target_cylinder', type: 'WALL', x: 3, z: 5, width: 0.5, length: 0.5, color: '#22C55E' }
+        ]
+    },
+    {
         id: 'c1',
         title: 'Room Navigation - Wall Course',
         description: 'Go through the wall corridor and reach the green target area without touching obstacles.',
