@@ -172,13 +172,50 @@ export const initBlockly = () => {
     }
   }
 
+  // A fixed palette of 12 distinct colors for LEDs
+  const LED_STATIC_COLORS = [
+      '#EF4444', // Red
+      '#F97316', // Orange
+      '#EAB308', // Yellow
+      '#84CC16', // Lime
+      '#22C55E', // Green
+      '#14B8A6', // Teal
+      '#06B6D4', // Cyan
+      '#3B82F6', // Blue
+      '#A855F7', // Purple
+      '#EC4899', // Magenta
+      '#FFFFFF', // White
+      '#000000', // Black (Off)
+  ];
+
+  class FieldLedColor extends Blockly.FieldColour {
+    constructor(value?: string, validator?: Function) { super(value, validator); }
+    showEditor_() {
+        const pickerDiv = document.createElement('div');
+        pickerDiv.className = 'p-3 bg-white rounded-xl shadow-xl border-2 border-slate-100 flex flex-col gap-3 min-w-[160px]';
+        
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-4 gap-2'; // 4 columns x 3 rows = 12 items
+        
+        LED_STATIC_COLORS.forEach(c => {
+            const btn = document.createElement('button');
+            btn.className = 'w-8 h-8 rounded-lg border border-slate-200 transition-transform hover:scale-110 active:scale-95 shadow-sm';
+            btn.style.backgroundColor = c;
+            btn.onclick = () => { this.setValue(c); Blockly.DropDownDiv.hideIfOwner(this); };
+            grid.appendChild(btn);
+        });
+        pickerDiv.appendChild(grid);
+        
+        Blockly.DropDownDiv.getContentDiv().appendChild(pickerDiv);
+        Blockly.DropDownDiv.setColour('#ffffff', '#ffffff');
+        Blockly.DropDownDiv.showPositionedByField(this, () => {});
+    }
+  }
+
   class FieldDropperColor extends Blockly.FieldColour {
     constructor(value?: string, validator?: Function) { super(value, validator); }
     showEditor_() {
         // FIX: Explicitly cast the result of getStageColors to string[] to resolve type errors.
-        // The original error "Type 'unknown' is not assignable to type 'string'" on line 200 was likely misreported
-        // by the TypeScript compiler. The root cause is that `(window as any).getStageColors()` returns `any`,
-        // which can be treated as `unknown` under strict type settings, causing downstream type conflicts.
         const stageColors = (typeof (window as any).getStageColors === 'function' ? (window as any).getStageColors() : []) as string[];
         const uniqueStageColors = [...new Set(stageColors.map((c: string) => c.toLowerCase()))];
         
@@ -220,6 +257,7 @@ export const initBlockly = () => {
 
   Blockly.fieldRegistry.register('field_numpad', FieldNumpad);
   Blockly.fieldRegistry.register('field_dropper_color', FieldDropperColor);
+  Blockly.fieldRegistry.register('field_led_color', FieldLedColor);
 
   // --- DEFINE BLOCKS ---
 
@@ -379,7 +417,7 @@ export const initBlockly = () => {
 
   Blockly.Blocks['robot_led'] = {
     init: function() {
-      this.appendDummyInput().appendField("set").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"], ["both","BOTH"]]), "SIDE").appendField("LED to color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['red']), "COLOR"); // Default to canonical red
+      this.appendDummyInput().appendField("set").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"], ["both","BOTH"]]), "SIDE").appendField("LED to color").appendField(new FieldLedColor('#EF4444'), "COLOR"); // Default to red, using static 12-color picker
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('looks_blocks');
     }
   };
@@ -417,6 +455,16 @@ export const initBlockly = () => {
     init: function() {
       this.appendValueInput("CONDITION").setCheck("Boolean").appendField("wait until");
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('control_blocks');
+    }
+  };
+
+  Blockly.Blocks['control_repeat_until'] = {
+    init: function() {
+      this.appendValueInput("CONDITION").setCheck("Boolean").appendField("repeat until");
+      this.appendStatementInput("DO");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('control_blocks');
     }
   };
 
@@ -560,6 +608,11 @@ export const initBlockly = () => {
   javascriptGenerator.forBlock['robot_wait'] = function(block: any) { const seconds = block.getFieldValue('SECONDS'); return `await robot.wait(${seconds * 1000});\n`; };
   javascriptGenerator.forBlock['control_forever'] = function(block: any) { const branch = javascriptGenerator.statementToCode(block, 'DO'); return `while (true) {\n${branch}  await robot.wait(10);\n}\n`; };
   javascriptGenerator.forBlock['control_wait_until'] = function(block: any) { const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_ATOMIC) || 'false'; return `while (!(${condition})) {\n  await robot.wait(10);\n}\n`; };
+  javascriptGenerator.forBlock['control_repeat_until'] = function(block: any) { 
+      const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false'; 
+      const branch = javascriptGenerator.statementToCode(block, 'DO'); 
+      return `while (!(${condition})) {\n${branch}  await robot.wait(10);\n}\n`; 
+  };
   javascriptGenerator.forBlock['control_stop_program'] = function() { return 'await robot.stopProgram();\n'; };
   javascriptGenerator.forBlock['controls_repeat_ext'] = function(block: any) { const repeats = javascriptGenerator.valueToCode(block, 'TIMES', javascriptGenerator.ORDER_ASSIGNMENT) || '0'; const branch = javascriptGenerator.statementToCode(block, 'DO'); const gen = javascriptGenerator; const loopVar = gen.nameDB_ ? gen.nameDB_.getDistinctName('count', 'VARIABLE') : 'i'; return `for (let ${loopVar} = 0; ${loopVar} < ${repeats}; ${loopVar}++) {\n${branch}}\n`; };
   javascriptGenerator.forBlock['custom_if'] = function(block: any) { const condition = javascriptGenerator.valueToCode(block, 'IF0', javascriptGenerator.ORDER_NONE) || 'false'; const branchDo = javascriptGenerator.statementToCode(block, 'DO0'); return `if (${condition}) {\n${branchDo}}\n`; };
@@ -626,6 +679,11 @@ export const initBlockly = () => {
   pythonGenerator.forBlock['robot_wait'] = function(block: any) { const seconds = block.getFieldValue('SECONDS'); return `robot.wait(${seconds})\n`; };
   pythonGenerator.forBlock['control_forever'] = function(block: any) { const branch = pythonGenerator.statementToCode(block, 'DO'); return `while True:\n${branch || '  pass'}\n  robot.wait(0.01)\n`; };
   pythonGenerator.forBlock['control_wait_until'] = function(block: any) { const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_ATOMIC) || 'False'; return `while not (${condition}):\n  robot.wait(0.01)\n`; };
+  pythonGenerator.forBlock['control_repeat_until'] = function(block: any) { 
+      const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False'; 
+      const branch = pythonGenerator.statementToCode(block, 'DO'); 
+      return `while not (${condition}):\n${branch || '  pass'}\n  robot.wait(0.01)\n`; 
+  };
   pythonGenerator.forBlock['control_stop_program'] = function() { return 'robot.stop_program()\n'; };
   pythonGenerator.forBlock['controls_repeat_ext'] = function(block: any) { const repeats = pythonGenerator.valueToCode(block, 'TIMES', pythonGenerator.ORDER_NONE) || '0'; const branch = pythonGenerator.statementToCode(block, 'DO'); const loopVar = (this.nameDB_) ? this.nameDB_.getDistinctName('count', 'VARIABLE') : 'i'; return `for ${loopVar} in range(${repeats}):\n${branch || '  pass'}\n`; };
   pythonGenerator.forBlock['custom_if'] = function(block: any) { const condition = pythonGenerator.valueToCode(block, 'IF0', pythonGenerator.ORDER_NONE) || 'False'; const branchDo = pythonGenerator.statementToCode(block, 'DO0'); return `if ${condition}:\n${branchDo || '  pass'}\n`; };
@@ -734,6 +792,7 @@ export const toolbox = {
       contents: [
         { kind: "block", type: "robot_wait" },
         { kind: "block", type: "control_forever" },
+        { kind: "block", type: "control_repeat_until" },
         { kind: "block", type: "control_wait_until" },
         { kind: "block", type: "control_stop_program" },
         { kind: "block", type: "controls_repeat_ext", inputs: { TIMES: { shadow: { type: "math_number", fields: { NUM: 5 } } } } },
