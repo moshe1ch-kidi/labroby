@@ -84,6 +84,29 @@ export const CHALLENGES: Challenge[] = [
         ]
     },
     {
+        id: 'c_colored_cubes',
+        title: 'קוביות צבעוניות',
+        description: 'על הרובוט לזהות קוביות צבעוניות ולעקוף אותם , להיעצר על מלבן כחול הכחול בסוף.',
+        difficulty: 'Medium',
+        check: (start, end, history) => {
+            const reachedEnd = end.z < -23;
+            const stopped = !end.isMoving;
+            const touched = history.touchedWall;
+            const onBlue = history.detectedColors.some(c => c.toLowerCase().includes('blue') || c === '#3B82F6');
+            return reachedEnd && stopped && !touched && onBlue;
+        },
+        startPosition: { x: 0, y: 0, z: 0 },
+        startRotation: 180,
+        environmentObjects: [
+            { id: 'path_bg', type: 'PATH', shape: 'STRAIGHT', x: 0, z: -12.5, width: 5, length: 30, color: '#171717' }, 
+            { id: 'cube_green', type: 'WALL', x: 0, z: -5, width: 1, length: 1, color: '#22C55E' },
+            { id: 'cube_red', type: 'WALL', x: 0, z: -10, width: 1, length: 1, color: '#EF4444' },
+            { id: 'cube_blue_obst', type: 'WALL', x: 0, z: -15, width: 1, length: 1, color: '#3B82F6' },
+            { id: 'cube_yellow', type: 'WALL', x: 0, z: -20, width: 1, length: 1, color: '#EAB308' },
+            { id: 'finish_line_blue', type: 'COLOR_LINE', x: 0, z: -24, width: 5, length: 2, color: '#3B82F6' }
+        ]
+    },
+    {
         id: 'c1',
         title: 'Room Navigation - Wall Course',
         description: 'Go through the wall corridor and reach the green target area without touching obstacles.',
