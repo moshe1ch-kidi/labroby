@@ -1,4 +1,4 @@
- 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -523,6 +523,8 @@ const App: React.FC = () => {
       },
       wait: (ms: number) => new Promise((resolve, reject) => { const t = setTimeout(resolve, ms); controller.signal.addEventListener('abort', () => { clearTimeout(t); reject(new Error("Simulation aborted")); }, { once: true }); }),
       setMotorPower: async (left: number, right: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: left, motorRightSpeed: right }; },
+      setLeftMotorPower: async (power: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: power }; },
+      setRightMotorPower: async (power: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorRightSpeed: power }; },
       setSpeed: async (s: number) => { checkAbort(); robotRef.current.speed = s; },
       stop: async () => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 }; },
       setPen: async (down: boolean) => { 
