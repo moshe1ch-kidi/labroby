@@ -229,7 +229,11 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
             <group key={obj.id} position={[obj.x, 0, obj.z]} rotation={[0, obj.rotation || 0, 0]}>
                 {obj.type === 'WALL' && (
                     <mesh name="custom-wall" position={[0, 0.5, 0]} castShadow receiveShadow onClick={handleSelect}>
-                        <boxGeometry args={[obj.width, 1, obj.length]} />
+                        {obj.id === 'target_cylinder' ? (
+                            <cylinderGeometry args={[0.25, 0.25, 1, 32]} />
+                        ) : (
+                            <boxGeometry args={[obj.width, 1, obj.length]} />
+                        )}
                         <meshStandardMaterial color={obj.color || "#ef4444"} roughness={0.2} transparent opacity={obj.opacity ?? 1} />
                         {isSelected && ( <mesh scale={[1.02, 1.02, 1.02]}><boxGeometry args={[obj.width, 1, obj.length]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.5} /></mesh> )}
                     </mesh>
