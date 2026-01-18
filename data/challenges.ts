@@ -247,19 +247,27 @@ export const CHALLENGES: Challenge[] = [
     {
         id: 'c_maze_original',
         title: 'The Updated Code Maze',
-        description: 'Navigate the maze and reach the green finish line.',
+        description: 'Navigate the simple S-shaped maze. Drive up, turn right, drive down, turn right again to reach the green finish line.',
         difficulty: 'Hard',
-        check: (start, end, history) => end.x > 14 && end.z < 0 && !history.touchedWall,
-        startPosition: { x: -18.00, y: 0, z: 0.00 },
-        startRotation: 90,
+        check: (start, end, history) => end.x > 5 && end.z < -10 && !history.touchedWall,
+        startPosition: { x: -12.00, y: 0, z: 12.00 },
+        startRotation: 0,
         environmentObjects: [
-            { "id": "m_w_top", "type": "WALL", "x": 0, "z": -15, "width": 30, "length": 0.5, "color": "#374151" },
-            { "id": "m_w_bottom", "type": "WALL", "x": 0, "z": 15, "width": 30, "length": 0.5, "color": "#374151" },
-            { "id": "m_w_left_t", "type": "WALL", "x": -15, "z": -10, "width": 0.5, "length": 10, "color": "#374151" },
-            { "id": "m_w_left_b", "type": "WALL", "x": -15, "z": 10, "width": 0.5, "length": 10, "color": "#374151" },
-            { "id": "m_w_right_t", "type": "WALL", "x": 15, "z": -12.5, "width": 0.5, "length": 5, "color": "#374151" },
-            { "id": "m_w_right_b", "type": "WALL", "x": 15, "z": 5, "width": 0.5, "length": 20, "color": "#374151" },
-            { "id": "finish_line", "type": "COLOR_LINE", "x": 16, "z": -7.5, "width": 3, "length": 5, "color": "#22c55e" }
+            // Bounds (Outer Box 30x30)
+            { "id": "m_w_top", "type": "WALL", "x": 0, "z": -15, "width": 31, "length": 0.5, "color": "#374151" },
+            { "id": "m_w_bottom", "type": "WALL", "x": 0, "z": 15, "width": 31, "length": 0.5, "color": "#374151" },
+            { "id": "m_w_left", "type": "WALL", "x": -15, "z": 0, "width": 0.5, "length": 30, "color": "#374151" },
+            { "id": "m_w_right", "type": "WALL", "x": 15, "z": 0, "width": 0.5, "length": 30, "color": "#374151" },
+            
+            // Maze Internals (S-Shape)
+            // Wall 1: x=-5, Blocks direct path, Gap at TOP (z < -5)
+            { "id": "maze_w1", "type": "WALL", "x": -5, "z": 5, "width": 0.5, "length": 20, "color": "#ef4444" },
+            
+            // Wall 2: x=5, Gap at BOTTOM (z > 5)
+            { "id": "maze_w2", "type": "WALL", "x": 5, "z": -5, "width": 0.5, "length": 20, "color": "#3b82f6" },
+
+            // Finish Line (Top Right)
+            { "id": "finish_line", "type": "COLOR_LINE", "x": 10, "z": -12, "width": 10, "length": 4, "color": "#22c55e" }
         ]
     },
     {
