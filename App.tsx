@@ -258,29 +258,24 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
                 else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['yellow'], 0.1) || Math.abs(deg - 270) < markerThreshold) { sensorDetectedColor = "yellow"; sensorIntensity = 80; sensorRawDecimalColor = 0xFFFF00; }
             }
         } else if (challengeId === 'c_snake_path') {
-            // New logic for Snake Path
-            // Approximate t based on standard ellipse angle relative to center (0, -8)
             const ex = cx - 0;
             const ez = cz - (-8);
-            // Normalize by ellipse radii (9 and 6) to get correct parameter t
             const t = Math.atan2(ez / 6, ex / 9); 
             const positiveT = t < 0 ? t + 2 * Math.PI : t;
             
-            // Calculate point on snake curve for this t
             const rMod = 1.0 + 0.2 * Math.sin(6 * positiveT);
             const targetX = 9 * rMod * Math.cos(positiveT);
             const targetZ = -8 + 6 * rMod * Math.sin(positiveT);
             
-            // Simple distance check
             const dx = cx - targetX;
             const dz = cz - targetZ;
             const dist = Math.sqrt(dx * dx + dz * dz);
             
-            if (dist <= 0.45) { // Increased tolerance for wider track (0.6 width -> 0.3 radius, + margin)
+            if (dist <= 0.45) { 
                 sensorDetectedColor = "black"; sensorIntensity = 5; sensorRawDecimalColor = 0x000000;
                 
                 const deg = (positiveT * 180 / Math.PI) % 360;
-                const markerThreshold = 6.0; // Slightly wider marker detection
+                const markerThreshold = 6.0; 
                 
                 if (Math.abs(deg - 0) < markerThreshold || Math.abs(deg - 360) < markerThreshold) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
                 else if (Math.abs(deg - 90) < markerThreshold) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
@@ -344,7 +339,8 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     }
     
     let distance = 255;
-    const ultrasonicStartDist = 1.5;
+    // Updated ultrasonicStartDist to 1.1 to match the visual sensor's front position
+    const ultrasonicStartDist = 1.1; 
     const scanStep = 0.05;
     for (let d = 0; d < 40.0; d += scanStep) {
         const rayPos = getPointWorldPos(0, ultrasonicStartDist + d);
@@ -707,24 +703,14 @@ const App: React.FC = () => {
 
   const stageColors = useMemo(() => {
     const colors = new Set<string>();
-    
-    // Always add the ground color
     colors.add('#FFFFFF'); 
-
-    // Add specific static environment colors based on challenge logic
-    // (Matches logic in Environment.tsx for "road-background", "challenge-path", etc.)
     const cid = activeChallenge?.id || '';
-    
-    // Gray roads
     if (['c10', 'c10_lines', 'c11', 'c9', 'c1', 'c14', 'c15', 'c18', 'c_winding_path'].includes(cid)) {
         colors.add('#64748b'); 
     }
-    
-    // Black circular track (c21) or Ellipse (c12/c_snake_path)
     if (cid === 'c21' || cid === 'c12' || cid === 'c_snake_path') {
         colors.add('#000000'); 
     }
-
     const allObjects = [...(activeChallenge?.environmentObjects || []), ...customObjects];
     allObjects.forEach(obj => {
         if (obj.color) {
@@ -757,7 +743,6 @@ const App: React.FC = () => {
       minDistance: 1.2,
       maxDistance: 60,
     };
-
     if (editorTool === 'PAN') {
       props.enablePan = true;
       props.enableRotate = false;
@@ -770,7 +755,6 @@ const App: React.FC = () => {
       props.enablePan = false;
       props.enableRotate = false;
     }
-
     if (cameraMode === 'TOP') {
       props.enableRotate = false; 
       props.minPolarAngle = 0;    
@@ -791,7 +775,6 @@ const App: React.FC = () => {
         RIGHT: THREE.MOUSE.DOLLY 
       };
     }
-
     return props;
   }, [editorTool, cameraMode]);
 
@@ -814,7 +797,6 @@ const App: React.FC = () => {
     }
   }, [cameraMode, controlsRef]);
 
-
   const openPythonView = () => {
     if (blocklyEditorRef.current) {
       setIsPythonModalOpen(true);
@@ -822,7 +804,6 @@ const App: React.FC = () => {
   };
 
   const showBlocklyNumpad = useCallback((initialValue: string | number, onConfirm: (newValue: number) => void, position: DOMRect) => {
-    // Convert DOMRect to a plain object to avoid issues with live objects in React state.
     const plainPosition = {
         top: position.top,
         bottom: position.bottom,
@@ -831,7 +812,6 @@ const App: React.FC = () => {
         width: position.width,
         height: position.height,
     };
-    // FIX: Replaced `String(initialValue)` with `initialValue.toString()` to avoid potential scope conflicts with the global `String` object, resolving a "not callable" TypeScript error.
     setNumpadConfig({ isOpen: true, value: parseFloat(initialValue.toString()), onConfirm, position: plainPosition });
   }, []);
 
@@ -843,383 +823,88 @@ const App: React.FC = () => {
           <span className="font-bold text-sm">{toast.message}</span>
         </div>
       )}
-      
       <header className="bg-slate-900 text-white p-3 flex justify-between items-center shadow-lg z-10 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-1.5 rounded-lg shadow-inner">
-            <Code2 className="w-5 h-5 text-white" />
-          </div>
+          <div className="bg-blue-600 p-1.5 rounded-lg shadow-inner"><Code2 className="w-5 h-5 text-white" /></div>
           <h1 className="text-lg font-bold hidden sm:block tracking-tight text-slate-100">Virtual Robotics Lab</h1>
         </div>
-        
         <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-sm">
-          <button 
-            onClick={handleRun} 
-            disabled={isRunning || startBlockCount === 0} 
-            className={`flex items-center justify-center w-11 h-11 rounded-xl font-bold transition-all transform active:scale-95 ${isRunning || startBlockCount === 0 ? 'bg-slate-700/50 text-slate-600' : 'bg-green-600 text-white hover:bg-green-500'}`}
-            title="Run Program"
-          >
-            <Flag size={20} fill={(isRunning || startBlockCount === 0) ? "none" : "currentColor"} />
-          </button>
-          
-          <button 
-            onClick={handleReset} 
-            className="flex items-center justify-center w-11 h-11 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-all transform active:scale-95 shadow-md active:shadow-none"
-            title="Reset"
-          >
-            <RotateCcw size={22} strokeWidth={2.5} />
-          </button>
-          
+          <button onClick={handleRun} disabled={isRunning || startBlockCount === 0} className={`flex items-center justify-center w-11 h-11 rounded-xl font-bold transition-all transform active:scale-95 ${isRunning || startBlockCount === 0 ? 'bg-slate-700/50 text-slate-600' : 'bg-green-600 text-white hover:bg-green-500'}`} title="Run Program"><Flag size={20} fill={(isRunning || startBlockCount === 0) ? "none" : "currentColor"} /></button>
+          <button onClick={handleReset} className="flex items-center justify-center w-11 h-11 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-all transform active:scale-95 shadow-md active:shadow-none" title="Reset"><RotateCcw size={22} strokeWidth={2.5} /></button>
           <div className="w-px h-6 bg-slate-700 mx-1"></div>
-          
-          <button 
-            onClick={() => setIsRulerActive(!isRulerActive)} 
-            className={`flex items-center justify-center w-11 h-11 rounded-xl font-bold transition-all transform active:scale-95 ${isRulerActive ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}
-            title="Ruler Tool"
-          >
-            <Ruler size={20} />
-          </button>
-          
+          <button onClick={() => setIsRulerActive(!isRulerActive)} className={`flex items-center justify-center w-11 h-11 rounded-xl font-bold transition-all transform active:scale-95 ${isRulerActive ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`} title="Ruler Tool"><Ruler size={20} /></button>
           <div className="w-px h-6 bg-slate-700 mx-1"></div>
-          
-          <button 
-            onClick={() => setProjectModal({ isOpen: true, mode: 'save' })}
-            className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95"
-            title="Save Project"
-          >
-            <Save size={20} />
-          </button>
-
-          <button 
-            onClick={() => setProjectModal({ isOpen: true, mode: 'load' })}
-            className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95"
-            title="Open Project"
-          >
-            <FolderOpen size={20} />
-          </button>
-          
+          <button onClick={() => setProjectModal({ isOpen: true, mode: 'save' })} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Save Project"><Save size={20} /></button>
+          <button onClick={() => setProjectModal({ isOpen: true, mode: 'load' })} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Open Project"><FolderOpen size={20} /></button>
           <div className="w-px h-6 bg-slate-700 mx-1"></div>
-
-          <button 
-            onClick={openPythonView}
-            className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95"
-            title="Python Code"
-          >
-            <Terminal size={20} />
-          </button>
+          <button onClick={openPythonView} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Python Code"><Terminal size={20} /></button>
         </div>
-        
-        <button 
-          onClick={() => setShowChallenges(true)} 
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${activeChallenge ? 'bg-yellow-500 text-slate-900 hover:bg-yellow-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
-        >
-          <Trophy size={16} /> 
-          {activeChallenge ? activeChallenge.title : "Challenges"}
-        </button>
+        <button onClick={() => setShowChallenges(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${activeChallenge ? 'bg-yellow-500 text-slate-900 hover:bg-yellow-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}><Trophy size={16} /> {activeChallenge ? activeChallenge.title : "Challenges"}</button>
       </header>
-      
       <main className="flex flex-1 overflow-hidden relative">
         <div className="w-1/2 relative flex flex-col bg-white text-left text-sm border-r border-slate-200">
           <div className="bg-slate-50 border-b p-2 flex justify-between items-center shrink-0">
-            <div className="flex items-center gap-2">
-              <Code2 size={18} className="text-slate-400" />
-              <span className="font-bold text-slate-600 uppercase tracking-tight">Workspace</span>
-            </div>
+            <div className="flex items-center gap-2"><Code2 size={18} className="text-slate-400" /><span className="font-bold text-slate-600 uppercase tracking-tight">Workspace</span></div>
           </div>
           <div className="flex-1 relative">
-            <BlocklyEditor 
-              ref={blocklyEditorRef} 
-              onCodeChange={useCallback((code, count) => { setGeneratedCode(code); setStartBlockCount(count); }, [])} 
-              visibleVariables={visibleVariables} 
-              onToggleVariable={useCallback((n) => setVisibleVariables(v => { const next = new Set(v); if (next.has(n)) next.delete(n); else next.add(n); return next; }), [])} 
-              onShowNumpad={showBlocklyNumpad}
-            />
+            <BlocklyEditor ref={blocklyEditorRef} onCodeChange={useCallback((code, count) => { setGeneratedCode(code); setStartBlockCount(count); }, [])} visibleVariables={visibleVariables} onToggleVariable={useCallback((n) => setVisibleVariables(v => { const next = new Set(v); if (next.has(n)) next.delete(n); else next.add(n); return next; }), [])} onShowNumpad={showBlocklyNumpad} />
           </div>
         </div>
-        
         <div className="w-1/2 relative bg-slate-900 overflow-hidden">
-          <div className="absolute top-4 left-4 z-50 flex flex-col gap-2 pointer-events-none">
-            {Array.from(visibleVariables).map((varName) => {
-              const value = monitoredValues[varName] ?? 0;
-              return (
-                <div key={varName} className="bg-[#FF8C1A] text-white rounded-lg px-3 py-1 flex items-center gap-3 text-sm font-bold shadow-lg border-2 border-white/20 pointer-events-auto">
-                  <span>{varName}</span>
-                  <span className="bg-white/30 rounded px-2 py-0.5 min-w-[4rem] text-center font-mono">
-                    {typeof value === 'number' ? value.toFixed(2) : String(value)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
+          <div className="absolute top-4 left-4 z-50 flex flex-col gap-2 pointer-events-none">{Array.from(visibleVariables).map((varName) => { const value = monitoredValues[varName] ?? 0; return (<div key={varName} className="bg-[#FF8C1A] text-white rounded-lg px-3 py-1 flex items-center gap-3 text-sm font-bold shadow-lg border-2 border-white/20 pointer-events-auto"><span>{varName}</span><span className="bg-white/30 rounded px-2 py-0.5 min-w-[4rem] text-center font-mono">{typeof value === 'number' ? value.toFixed(2) : String(value)}</span></div>); })}</div>
           <div className="absolute top-4 right-4 z-50 flex flex-col gap-3">
             <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 p-1 flex flex-col overflow-hidden">
-              <button 
-                onClick={() => { setCameraMode('HOME'); }} 
-                className="p-3 text-blue-600 hover:bg-slate-50 transition-all rounded-xl active:scale-95" 
-                title="Reset Camera"
-              >
-                <Home size={22} />
-              </button>
-              
+              <button onClick={() => { setCameraMode('HOME'); }} className="p-3 text-blue-600 hover:bg-slate-50 transition-all rounded-xl active:scale-95" title="Reset Camera"><Home size={22} /></button>
               <div className="h-px bg-slate-100 mx-2 my-0.5" />
-              
-              <button 
-                onClick={() => setCameraMode(prev => prev === 'TOP' ? 'HOME' : 'TOP')} 
-                className={`p-3 transition-all rounded-xl active:scale-95 ${cameraMode === 'TOP' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} 
-                title="Top View"
-              >
-                <Eye size={22} />
-              </button>
-
-              <button 
-                onClick={() => setCameraMode(prev => prev === 'FOLLOW' ? 'HOME' : 'FOLLOW')} 
-                className={`p-3 transition-all rounded-xl active:scale-95 ${cameraMode === 'FOLLOW' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} 
-                title="Follow Camera"
-              >
-                <Target size={22} />
-              </button>
-              
+              <button onClick={() => setCameraMode(prev => prev === 'TOP' ? 'HOME' : 'TOP')} className={`p-3 transition-all rounded-xl active:scale-95 ${cameraMode === 'TOP' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Top View"><Eye size={22} /></button>
+              <button onClick={() => setCameraMode(prev => prev === 'FOLLOW' ? 'HOME' : 'FOLLOW')} className={`p-3 transition-all rounded-xl active:scale-95 ${cameraMode === 'FOLLOW' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Follow Camera"><Target size={22} /></button>
               <div className="h-px bg-slate-100 mx-2 my-0.5" />
-
-              <button
-                onClick={() => {
-                  controlsRef.current?.dollyIn(0.9);
-                  controlsRef.current?.update();
-                }}
-                className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95"
-                title="Zoom In"
-              >
-                <ZoomIn size={22} />
-              </button>
-
-              <button
-                onClick={() => {
-                  controlsRef.current?.dollyOut(0.9);
-                  controlsRef.current?.update();
-                }}
-                className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95"
-                title="Zoom Out"
-              >
-                <ZoomOut size={22} />
-              </button>
-
+              <button onClick={() => { controlsRef.current?.dollyIn(0.9); controlsRef.current?.update(); }} className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95" title="Zoom In"><ZoomIn size={22} /></button>
+              <button onClick={() => { controlsRef.current?.dollyOut(0.9); controlsRef.current?.update(); }} className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95" title="Zoom Out"><ZoomOut size={22} /></button>
               <div className="h-px bg-slate-100 mx-2 my-0.5" />
-              
-              <button 
-                onClick={() => setEditorTool(prev => prev === 'PAN' ? 'NONE' : 'PAN')} 
-                className={`p-3 transition-all rounded-xl active:scale-95 ${editorTool === 'PAN' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} 
-                title="Pan Tool (Left Mouse)"
-              >
-                <Hand size={22} />
-              </button>
-              
-              <button 
-                onClick={() => setEditorTool('NONE')} 
-                className={`p-3 transition-all rounded-xl active:scale-95 ${editorTool === 'NONE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} 
-                title="Rotate Tool (Left Mouse)"
-              >
-                <Move size={22} />
-              </button>
-              
-              <button 
-                onClick={() => setEditorTool(prev => prev === 'ROBOT_MOVE' ? 'NONE' : 'ROBOT_MOVE')} 
-                className={`p-3 transition-all rounded-xl active:scale-95 ${editorTool === 'ROBOT_MOVE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} 
-                title="Move Robot Position"
-              >
-                <Bot size={22} />
-              </button>
+              <button onClick={() => setEditorTool(prev => prev === 'PAN' ? 'NONE' : 'PAN')} className={`p-3 transition-all rounded-xl active:scale-95 ${editorTool === 'PAN' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Pan Tool (Left Mouse)"><Hand size={22} /></button>
+              <button onClick={() => setEditorTool('NONE')} className={`p-3 transition-all rounded-xl active:scale-95 ${editorTool === 'NONE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Rotate Tool (Left Mouse)"><Move size={22} /></button>
+              <button onClick={() => setEditorTool(prev => prev === 'ROBOT_MOVE' ? 'NONE' : 'ROBOT_MOVE')} className={`p-3 transition-all rounded-xl active:scale-95 ${editorTool === 'ROBOT_MOVE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Move Robot Position"><Bot size={22} /></button>
             </div>
           </div>
-          
-          <SensorDashboard 
-            distance={sensorReadings.distance} 
-            isTouching={sensorReadings.isTouching} 
-            gyroAngle={sensorReadings.gyro} 
-            tiltAngle={sensorReadings.tilt} 
-            detectedColor={sensorReadings.color} 
-            lightIntensity={sensorReadings.intensity} 
-          />
-          
-          <Canvas 
-            shadows 
-            camera={{ position: [10, 10, 10], fov: 45 }}
-          >
-            <SimulationEnvironment 
-              challengeId={activeChallenge?.id} 
-              customObjects={customObjects} 
-              robotState={robotState} 
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-            />
-            {completedDrawings.map((path) => (
-                <Line key={path.id} points={path.points} color={path.color} lineWidth={4} />
-            ))}
-            {activeDrawing && activeDrawing.points.length > 1 && (
-                <Line key={activeDrawing.id} points={activeDrawing.points} color={activeDrawing.color} lineWidth={4} />
-            )}
+          <SensorDashboard distance={sensorReadings.distance} isTouching={sensorReadings.isTouching} gyroAngle={sensorReadings.gyro} tiltAngle={sensorReadings.tilt} detectedColor={sensorReadings.color} lightIntensity={sensorReadings.intensity} />
+          <Canvas shadows camera={{ position: [10, 10, 10], fov: 45 }}>
+            <SimulationEnvironment challengeId={activeChallenge?.id} customObjects={customObjects} robotState={robotState} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} />
+            {completedDrawings.map((path) => (<Line key={path.id} points={path.points} color={path.color} lineWidth={4} />))}
+            {activeDrawing && activeDrawing.points.length > 1 && (<Line key={activeDrawing.id} points={activeDrawing.points} color={activeDrawing.color} lineWidth={4} />)}
             <Robot3D state={robotState} isPlacementMode={editorTool === 'ROBOT_MOVE'} />
-            <OrbitControls 
-              ref={controlsRef} 
-              makeDefault 
-              {...orbitControlsProps}
-            />
+            <OrbitControls ref={controlsRef} makeDefault {...orbitControlsProps} />
             <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />
             {isRulerActive && <RulerTool />}
           </Canvas>
         </div>
       </main>
-      
       {isPythonModalOpen && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col border border-slate-700">
-            <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-              <h2 className="text-xl font-bold text-slate-100 flex items-center gap-3">
-                <FileCode className="text-blue-400" /> Python Code Output
-              </h2>
-              <button 
-                onClick={() => setIsPythonModalOpen(false)} 
-                className="p-2 hover:bg-slate-800 rounded-full text-slate-500 transition-colors"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto p-6 font-mono text-sm">
-              <pre className="text-blue-300 whitespace-pre-wrap">
-                {blocklyEditorRef.current?.getPythonCode()}
-              </pre>
-            </div>
-            <div className="p-4 border-t border-slate-800 flex justify-end">
-              <button 
-                onClick={() => {
-                  const code = blocklyEditorRef.current?.getPythonCode();
-                  if (code) navigator.clipboard.writeText(code);
-                  showToast("Code copied to clipboard!", "success");
-                }}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95"
-              >
-                Copy Code
-              </button>
-            </div>
+            <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50"><h2 className="text-xl font-bold text-slate-100 flex items-center gap-3"><FileCode className="text-blue-400" /> Python Code Output</h2><button onClick={() => setIsPythonModalOpen(false)} className="p-2 hover:bg-slate-800 rounded-full text-slate-500 transition-colors"><X size={24} /></button></div>
+            <div className="flex-1 overflow-auto p-6 font-mono text-sm"><pre className="text-blue-300 whitespace-pre-wrap">{blocklyEditorRef.current?.getPythonCode()}</pre></div>
+            <div className="p-4 border-t border-slate-800 flex justify-end"><button onClick={() => { const code = blocklyEditorRef.current?.getPythonCode(); if (code) navigator.clipboard.writeText(code); showToast("Code copied to clipboard!", "success"); }} className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95">Copy Code</button></div>
           </div>
         </div>
       )}
-
       {projectModal.isOpen && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-slate-200">
-            <div className="p-6 border-b flex justify-between items-center bg-slate-50">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                {projectModal.mode === 'save' ? <Save size={20} className="text-blue-600"/> : <FolderOpen size={20} className="text-orange-600"/>}
-                {projectModal.mode === 'save' ? 'Save Project' : 'Load Project'}
-              </h2>
-              <button onClick={() => setProjectModal({...projectModal, isOpen: false})} className="p-2 hover:bg-slate-200 rounded-full text-slate-400"><X size={24}/></button>
-            </div>
-            <div className="p-8 flex flex-col gap-6">
-              {projectModal.mode === 'save' ? (
-                <>
-                  <p className="text-slate-500 text-sm">Download your workspace as a `.roby` file to save your progress locally.</p>
-                  <button 
-                    onClick={() => {
-                      const xml = blocklyEditorRef.current?.saveWorkspace();
-                      if (xml) {
-                        const blob = new Blob([xml], {type: 'text/xml'});
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'robot-project.roby';
-                        a.click();
-                        showToast("Project saved successfully!", "success");
-                      }
-                      setProjectModal({...projectModal, isOpen: false});
-                    }}
-                    className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg active:scale-95 transition-all"
-                  >
-                    Download Project (.roby file)
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="text-slate-500 text-sm">Choose a `.roby` or `.xml` file from your computer to restore a workspace.</p>
-                  <input 
-                    type="file" 
-                    accept=".roby,.xml" 
-                    className="hidden" 
-                    id="project-upload"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (re) => {
-                          const content = re.target?.result as string;
-                          blocklyEditorRef.current?.loadWorkspace(content);
-                          showToast("Project loaded successfully!", "success");
-                          setProjectModal({...projectModal, isOpen: false});
-                        };
-                        reader.readAsText(file);
-                      }
-                    }}
-                  />
-                  <label 
-                    htmlFor="project-upload"
-                    className="w-full py-3 bg-orange-500 hover:bg-orange-400 text-white rounded-xl font-bold shadow-lg text-center cursor-pointer active:scale-95 transition-all"
-                  >
-                    Select File to Load
-                  </label>
-                </>
-              )}
-            </div>
+            <div className="p-6 border-b flex justify-between items-center bg-slate-50"><h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">{projectModal.mode === 'save' ? <Save size={20} className="text-blue-600"/> : <FolderOpen size={20} className="text-orange-600"/>}{projectModal.mode === 'save' ? 'Save Project' : 'Load Project'}</h2><button onClick={() => setProjectModal({...projectModal, isOpen: false})} className="p-2 hover:bg-slate-200 rounded-full text-slate-400"><X size={24}/></button></div>
+            <div className="p-8 flex flex-col gap-6">{projectModal.mode === 'save' ? (<><p className="text-slate-500 text-sm">Download your workspace as a `.roby` file to save your progress locally.</p><button onClick={() => { const xml = blocklyEditorRef.current?.saveWorkspace(); if (xml) { const blob = new Blob([xml], {type: 'text/xml'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'robot-project.roby'; a.click(); showToast("Project saved successfully!", "success"); } setProjectModal({...projectModal, isOpen: false}); }} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg active:scale-95 transition-all">Download Project (.roby file)</button></>) : (<><p className="text-slate-500 text-sm">Choose a `.roby` or `.xml` file from your computer to restore a workspace.</p><input type="file" accept=".roby,.xml" className="hidden" id="project-upload" onChange={(e) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (re) => { const content = re.target?.result as string; blocklyEditorRef.current?.loadWorkspace(content); showToast("Project loaded successfully!", "success"); setProjectModal({...projectModal, isOpen: false}); }; reader.readAsText(file); } }} /><label htmlFor="project-upload" className="w-full py-3 bg-orange-500 hover:bg-orange-400 text-white rounded-xl font-bold shadow-lg text-center cursor-pointer active:scale-95 transition-all">Select File to Load</label></>)}</div>
           </div>
         </div>
       )}
-
-      <Numpad 
-        isOpen={numpadConfig.isOpen} 
-        initialValue={numpadConfig.value} 
-        onConfirm={(val) => { numpadConfig.onConfirm(val); setNumpadConfig(p => ({ ...p, isOpen: false })); }} 
-        onClose={() => setNumpadConfig(p => ({ ...p, isOpen: false }))} 
-        position={numpadConfig.position}
-      />
-      
+      <Numpad isOpen={numpadConfig.isOpen} initialValue={numpadConfig.value} onConfirm={(val) => { numpadConfig.onConfirm(val); setNumpadConfig(p => ({ ...p, isOpen: false })); }} onClose={() => setNumpadConfig(p => ({ ...p, isOpen: false }))} position={numpadConfig.position} />
       {showChallenges && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border-4 border-slate-200">
-            <div className="p-6 border-b flex justify-between items-center bg-slate-50">
-              <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-                <Trophy className="text-yellow-500" /> Coding Challenges
-              </h2>
-              <button 
-                onClick={() => setShowChallenges(false)} 
-                className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors"
-              >
-                <X size={28} />
-              </button>
-            </div>
+            <div className="p-6 border-b flex justify-between items-center bg-slate-50"><h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3"><Trophy className="text-yellow-500" /> Coding Challenges</h2><button onClick={() => setShowChallenges(false)} className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors"><X size={28} /></button></div>
             <div className="flex-1 overflow-y-auto p-6 bg-slate-100">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <button 
-                  onClick={() => { setActiveChallenge(null); setShowChallenges(false); }} 
-                  className={`p-5 rounded-3xl border-4 text-left transition-all hover:scale-[1.02] flex flex-col gap-3 group relative overflow-hidden ${activeChallenge === null ? 'border-blue-500 bg-white shadow-xl' : 'border-white bg-white hover:border-blue-300 shadow-md'}`}
-                >
-                  <h3 className={`font-bold text-lg z-10 transition-colors ${activeChallenge === null ? 'text-blue-600' : 'text-slate-800 group-hover:text-blue-600'}`}>
-                    Free Drive (No Mission)
-                  </h3>
-                  <p className="text-sm text-slate-500 line-clamp-3 z-10">An open environment for free practice without predefined walls or tracks.</p>
-                </button>
-
-                {CHALLENGES.map((challenge) => (
-                  <button 
-                    key={challenge.id} 
-                    onClick={() => { setActiveChallenge(challenge); setShowChallenges(false); }} 
-                    className={`p-5 rounded-3xl border-4 text-left transition-all hover:scale-[1.02] flex flex-col gap-3 group relative overflow-hidden ${activeChallenge?.id === challenge.id ? 'border-yellow-500 bg-white shadow-xl' : 'border-white bg-white hover:border-blue-300 shadow-md'}`}
-                  >
-                    <h3 className={`font-bold text-lg z-10 transition-colors ${activeChallenge?.id === challenge.id ? 'text-yellow-600' : 'text-slate-800 group-hover:text-blue-600'}`}>
-                      {challenge.title}
-                    </h3>
-                    <p className="text-sm text-slate-500 line-clamp-3 z-10">{challenge.description}</p>
-                  </button>
-                ))}
+                <button onClick={() => { setActiveChallenge(null); setShowChallenges(false); }} className={`p-5 rounded-3xl border-4 text-left transition-all hover:scale-[1.02] flex flex-col gap-3 group relative overflow-hidden ${activeChallenge === null ? 'border-blue-500 bg-white shadow-xl' : 'border-white bg-white hover:border-blue-300 shadow-md'}`}><h3 className={`font-bold text-lg z-10 transition-colors ${activeChallenge === null ? 'text-blue-600' : 'text-slate-800 group-hover:text-blue-600'}`}>Free Drive (No Mission)</h3><p className="text-sm text-slate-500 line-clamp-3 z-10">An open environment for free practice without predefined walls or tracks.</p></button>
+                {CHALLENGES.map((challenge) => (<button key={challenge.id} onClick={() => { setActiveChallenge(challenge); setShowChallenges(false); }} className={`p-5 rounded-3xl border-4 text-left transition-all hover:scale-[1.02] flex flex-col gap-3 group relative overflow-hidden ${activeChallenge?.id === challenge.id ? 'border-yellow-500 bg-white shadow-xl' : 'border-white bg-white hover:border-blue-300 shadow-md'}`}><h3 className={`font-bold text-lg z-10 transition-colors ${activeChallenge?.id === challenge.id ? 'text-yellow-600' : 'text-slate-800 group-hover:text-blue-600'}`}>{challenge.title}</h3><p className="text-sm text-slate-500 line-clamp-3 z-10">{challenge.description}</p></button>))}
               </div>
             </div>
           </div>
