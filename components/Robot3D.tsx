@@ -1,4 +1,4 @@
- 
+
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Group, Vector3 } from 'three';
@@ -92,19 +92,15 @@ const RobotPen = ({ position, isDown, color }: { position: [number, number, numb
 };
 
 const TouchSensor = ({ position, pressed }: { position: [number, number, number], pressed: boolean }) => {
-    // When not pressed, the plunger group is at its default Z.
-    // When pressed, it moves back slightly along Z.
     const plungerPos = pressed ? -0.1 : 0; 
 
     return (
         <group position={position} userData={{ isRobotPart: true }}>
-            {/* Magenta connector piece, moved back to accommodate the new white box */}
             <mesh position={[0, 0.2, -0.4]} userData={{ isRobotPart: true }}>
                 <boxGeometry args={[0.4, 0.1, 0.4]} />
                 <meshStandardMaterial color={THEME.magenta} />
             </mesh>
             
-            {/* White casing - this is now the main body of the sensor */}
             <group position={[0, -0.1, 0]} userData={{ isRobotPart: true }}>
                 <mesh castShadow userData={{ isRobotPart: true }}>
                     <boxGeometry args={[0.45, 0.4, 0.4]} />
@@ -112,10 +108,7 @@ const TouchSensor = ({ position, pressed }: { position: [number, number, number]
                 </mesh>
             </group>
             
-            {/* Red Plunger (the "tip") that protrudes from the white box */}
-            {/* The entire group moves back when pressed */}
             <group position={[0, -0.1, plungerPos]} userData={{ isRobotPart: true }}>
-                {/* The red tip itself, positioned to stick out from the white casing */}
                 <mesh position={[0, 0, 0.3]} castShadow>
                     <boxGeometry args={[0.25, 0.25, 0.25]} />
                     <meshStandardMaterial color="#CC0000" />
@@ -144,14 +137,41 @@ const ColorSensor = ({ position }: { position: [number, number, number] }) => {
     );
 };
 
+const UltrasonicSensor = ({ position }: { position: [number, number, number] }) => {
+    return (
+        <group position={position} userData={{ isRobotPart: true }}>
+            {/* Main white casing */}
+            <mesh castShadow userData={{ isRobotPart: true }}>
+                <boxGeometry args={[0.8, 0.4, 0.3]} />
+                <meshStandardMaterial color={THEME.white} roughness={0.2} />
+            </mesh>
+            {/* Two "eyes" (Transducers) */}
+            {[-0.22, 0.22].map((x, i) => (
+                <group key={i} position={[x, 0, 0.15]} rotation={[Math.PI/2, 0, 0]}>
+                    <mesh userData={{ isRobotPart: true }}>
+                        <cylinderGeometry args={[0.15, 0.15, 0.05, 32]} />
+                        <meshStandardMaterial color={THEME.darkGrey} />
+                    </mesh>
+                    <mesh position={[0, 0.026, 0]} userData={{ isRobotPart: true }}>
+                        <cylinderGeometry args={[0.1, 0.1, 0.01, 32]} />
+                        <meshStandardMaterial color="#000" />
+                    </mesh>
+                </group>
+            ))}
+            {/* Top connector piece */}
+            <mesh position={[0, 0.2, -0.1]} userData={{ isRobotPart: true }}>
+                <boxGeometry args={[0.4, 0.1, 0.2]} />
+                <meshStandardMaterial color={THEME.magenta} />
+            </mesh>
+        </group>
+    );
+};
+
 const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
   const groupRef = useRef<Group>(null);
   
   useFrame(() => {
     if (groupRef.current) {
-      // Set absolute position. Wheels are at 0 internally but group is shifted up by 0.6.
-      // So if state.y is 0, wheels touch 0.
-      // Add a small visual offset (0.02) to prevent clipping with the ground/ramps.
       groupRef.current.position.y = state.y + 0.02; 
       groupRef.current.position.x = state.x;
       groupRef.current.position.z = state.z;
@@ -163,7 +183,6 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
 
   return (
     <group ref={groupRef} dispose={null} userData={{ isRobotPart: true }}>
-      {/* Visual center is shifted up by wheel radius (0.6) so ground contact is at y=0 */}
       <group position={[0, 0.6, 0]} userData={{ isRobotPart: true }}>
           {isPlacementMode && (
               <group position={[0, -0.6, 0]} userData={{ isRobotPart: true }}>
@@ -174,7 +193,10 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
 
           <group position={[0, 0.5, 0]} userData={{ isRobotPart: true }}>
               <mesh position={[0, -0.4, 0]} castShadow userData={{ isRobotPart: true }}><boxGeometry args={[1.5, 0.2, 2.2]} /><meshStandardMaterial color={THEME.white} /></mesh>
-              <mesh position={[0, 0, 0]} castShadow userData={{ isRobotPart: true }}><boxGeometry args={[1.45, 0.6, 2.15]} /><meshStandardMaterial color={THEME.yellow} /></mesh>
+              <mesh position={[0, 0, 0]} castShadow userData={{ isRobotPart: true }}>
+                  <boxGeometry args={[1.45, 0.6, 2.15]} />
+                  <meshStandardMaterial color={THEME.yellow} />
+              </mesh>
               <mesh position={[0, 0.4, 0]} castShadow userData={{ isRobotPart: true }}><boxGeometry args={[1.5, 0.2, 2.2]} /><meshStandardMaterial color={THEME.white} /></mesh>
               <mesh position={[0, 0.51, 0.2]} rotation={[-Math.PI/2, 0, 0]} userData={{ isRobotPart: true }}><planeGeometry args={[0.8, 0.6]} /><meshStandardMaterial color="#111" /></mesh>
               <mesh position={[0, 0.51, -0.5]} rotation={[-Math.PI/2, 0, 0]} userData={{ isRobotPart: true }}><circleGeometry args={[0.15, 32]} /><meshStandardMaterial color={THEME.cyan} /></mesh>
@@ -189,16 +211,20 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
           
           <LegoLight position={[-0.6, 1.0, 0.9]} color={state.ledRightColor} />
           <LegoLight position={[0.6, 1.0, 0.9]} color={state.ledLeftColor} />
+          
+          {/* Sensors Positioned at the front */}
           <ColorSensor position={[0, -0.1, 0.9]} />
+          
+          {/* Ultrasonic Sensor - Mounted on the front face of the yellow body */}
+          <UltrasonicSensor position={[0, 0.5, 1.075]} />
 
-          {/* ADDED: Larger, correctly positioned connecting beam for Touch Sensor */}
+          {/* Touch Sensor - Connected via beam */}
           <mesh position={[0, -0.2, 1.4]} castShadow userData={{ isRobotPart: true }}>
               <boxGeometry args={[0.4, 0.2, 0.6]} />
               <meshStandardMaterial color={THEME.darkGrey} />
           </mesh>
-
-          {/* שינוי מיקום חיישן המגע קדימה */}
           <TouchSensor position={[0, -0.2, 1.825]} pressed={state.isTouching} /> 
+
           <RobotPen position={[0, 0.1, -0.6]} isDown={state.penDown} color={state.penColor} />
           <group position={[0.6, 1.1, -0.5]} userData={{ isRobotPart: true }}>
               <mesh userData={{ isRobotPart: true }}><boxGeometry args={[0.4, 0.2, 0.4]} /><meshStandardMaterial color={THEME.white} /></mesh>
