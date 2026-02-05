@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { ThreeElements } from '@react-three/fiber';
 
 export type CameraMode = 'HOME' | 'TOP' | 'FOLLOW';
 export type EditorTool = 'NONE' | 'ROTATE' | 'PAN' | 'WALL' | 'RAMP' | 'COLOR_LINE' | 'PATH' | 'ROBOT_MOVE';
@@ -22,6 +23,12 @@ export interface CustomObject {
 export interface DrawingSegment {
     start: [number, number, number];
     end: [number, number, number];
+    color: string;
+}
+
+export interface ContinuousDrawing {
+    id: string;
+    points: [number, number, number][];
     color: string;
 }
 
@@ -52,11 +59,17 @@ export interface SimulationHistory {
     totalRotation: number;
 }
 
+// Global augmentation to register Three.js intrinsic elements for JSX
 declare global {
+  namespace JSX {
+    interface IntrinsicElements extends ThreeElements {}
+  }
+
   interface Window {
     showBlocklyNumpad: (
       initialValue: string | number, 
-      onConfirm: (newValue: number) => void
+      onConfirm: (newValue: number) => void,
+      position: DOMRect
     ) => void;
 
     getStageColors: () => string[];
