@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Blocks Guide - Documentation</title>
+    <style>
+        :root {
+            --drive: #4C97FF; --events: #FFBF00; --control: #FFAB19;
+            --sensors: #4CBFE6; --logic: #59C059; --leds: #9966FF;
+            --pen: #0FBD8C;
+            --bg: #f4f7f9;
+        }
+        body { font-family: 'Segoe UI', system-ui; background-color: var(--bg); margin: 0; padding: 0; color: #333; }
+        .header { background: white; padding: 40px 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .header h1 { margin: 0; color: #2c3e50; font-size: 2.5rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px 50px; }
+        .category-section { margin-bottom: 50px; }
+        .category-header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; padding-bottom: 10px; border-bottom: 3px solid #eee; }
+        .dot { width: 20px; height: 20px; border-radius: 50%; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.03); border-top: 6px solid #ccc; transition: 0.3s; display: flex; flex-direction: column; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .card img { max-width: 100%; height: auto; margin-bottom: 15px; align-self: center; background: #fdfdfd; padding: 5px; border-radius: 8px; }
+        .card h3 { margin: 10px 0; font-size: 1.1rem; color: #2c3e50; direction: ltr; text-align: left; font-family: monospace; background: #f8f9fa; padding: 5px 10px; border-radius: 5px; }
+        .card p { font-size: 0.9rem; line-height: 1.5; color: #666; }
+        
+        /* Category Specifics */
+        .c-drive { border-top-color: var(--drive); }
+        .c-events { border-top-color: var(--events); }
+        .c-control { border-top-color: var(--control); }
+        .c-sensors { border-top-color: var(--sensors); }
+        .c-logic { border-top-color: var(--logic); }
+        .c-leds { border-top-color: var(--leds); }
+        .c-pen { border-top-color: var(--pen); }
+
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>📚 Robot Knowledge Center</h1>
+    <p>Discover what each block does and learn how to build the perfect code!</p>
+</div>
+
+<div class="container">
+
+    <!-- Drive Category -->
+    <section class="category-section">
+        <div class="category-header">
+            <div class="dot" style="background: var(--drive);"></div>
+            <h2 style="color: var(--drive);">Movement Blocks (Drive)</h2>
+        </div>
+        <div class="grid">
+            <div class="card c-drive">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_forward.svg" alt="drive forward">
+                <h3>drive forward</h3>
+                <p>Starts moving the robot forward continuously without a distance limit.</p>
+            </div>
+            <div class="card c-drive">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_forward_distance.svg" alt="drive distance">
+                <h3>drive forward distance</h3>
+                <p>Moves the robot forward for a specific distance (in cm) and then stops.</p>
+            </div>
+            <div class="card c-drive">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_forward_distance_speed.svg" alt="drive distance speed">
+                <h3>drive distance at speed</h3>
+                <p>Moves for a defined distance while setting the motor power as a percentage.</p>
+            </div>
+            <div class="card c-drive">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_until_speed.svg" alt="drive until">
+                <h3>drive until at speed</h3>
+                <p>Moves at a defined speed until an external condition (sensor) is met.</p>
+            </div>
+            <div class="card c-drive">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_turn_dgree_speed.svg" alt="turn degree speed">
+                <h3>turn degree at speed</h3>
+                <p>Turns the robot to a precise angle at the selected speed.</p>
+            </div>
+            <div class="card c-drive">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_turn_until_speed.svg" alt="turn until speed">
+                <h3>turn until at speed</h3>
+                <p>Turns at a set speed until a condition is met (e.g., until a line is detected).</p>
+            </div>
+            <div class="card c-drive">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_setmotor.svg" alt="set motor">
+                <h3>set motor power</h3>
+                <p>Sets separate power levels for each motor (Left/Right) for full manual control.</p>
+            </div>
+            <div class="card c-drive">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_heading_dgree.svg" alt="set heading">
+                <h3>set heading to degree</h3>
+                <p>Resets or sets the internal compass heading to a specific degree value.</p>
+            </div>
+            <div class="card c-drive">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_speed.svg" alt="set speed">
+                <h3>set default speed</h3>
+                <p>Sets the constant working speed for all subsequent movement actions.</p>
+            </div>
+            <div class="card c-drive">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_stop.svg" alt="stop moving">
+                <h3>stop moving</h3>
+                <p>Immediately brakes and stops all robot movements.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- LEDs Category -->
+    <section class="category-section">
+        <div class="category-header">
+            <div class="dot" style="background: var(--leds);"></div>
+            <h2 style="color: var(--leds);">Lighting (LEDs)</h2>
+        </div>
+        <div class="grid">
+            <div class="card c-leds">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/led_setcolor.svg" alt="set led color">
+                <h3>set led color</h3>
+                <p>Sets the color of the robot's LED light based on your selection.</p>
+            </div>
+            <div class="card c-leds">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/led_detectedcolor.svg" alt="led detect color">
+                <h3>led detected color</h3>
+                <p>Changes the LED color to match the color currently detected by the sensor.</p>
+            </div>
+            <div class="card c-leds">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/led_turnoff.svg" alt="turn off led">
+                <h3>turn off led</h3>
+                <p>Turns off the robot's LED light.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pen Category -->
+    <section class="category-section">
+        <div class="category-header">
+            <div class="dot" style="background: var(--pen);"></div>
+            <h2 style="color: var(--pen);">Pen and Drawing (Pen)</h2>
+        </div>
+        <div class="grid">
+            <div class="card c-pen">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/pen_down.svg" alt="pen down">
+                <h3>pen down</h3>
+                <p>Lowers the pen to the track – the robot will start drawing as it moves.</p>
+            </div>
+            <div class="card c-pen">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/pen_up.svg" alt="pen up">
+                <h3>pen up</h3>
+                <p>Raises the pen – the robot will continue moving without leaving a trail.</p>
+            </div>
+            <div class="card c-pen">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/pen_setcolor.svg" alt="set pen color">
+                <h3>set pen color</h3>
+                <p>Sets the color of the line the robot draws on the surface.</p>
+            </div>
+            <div class="card c-pen">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/pen_clear.svg" alt="clear pen">
+                <h3>clear all drawings</h3>
+                <p>Erases all the lines that have been drawn on the surface so far.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Control Category -->
+    <section class="category-section">
+        <div class="category-header">
+            <div class="dot" style="background: var(--control);"></div>
+            <h2 style="color: var(--control);">Control Blocks</h2>
+        </div>
+        <div class="grid">
+            <div class="card c-control">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/control_forever.svg" alt="forever">
+                <h3>forever</h3>
+                <p>A loop that runs the code inside it over and over again indefinitely.</p>
+            </div>
+            <div class="card c-control">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/control_if.svg" alt="if">
+                <h3>if then</h3>
+                <p>Executes an action only if a specific condition is met.</p>
+            </div>
+            <div class="card c-control">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/control_ifelse.svg" alt="if else">
+                <h3>if then else</h3>
+                <p>Executes action A if the condition is met, and action B if it is not.</p>
+            </div>
+            <div class="card c-control">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/control_repeat_until.svg" alt="repeat until">
+                <h3>repeat until</h3>
+                <p>Repeats a block of code until a specific stopping condition is met.</p>
+            </div>
+            <div class="card c-control">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/control_wait.svg" alt="wait">
+                <h3>wait (seconds)</h3>
+                <p>Pauses the program for a set number of seconds before moving to the next block.</p>
+            </div>
+            <div class="card c-control">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/control_waituntil.svg" alt="wait until">
+                <h3>wait until</h3>
+                <p>Pauses the program execution at this point until a specific condition becomes true.</p>
+            </div>
+            <div class="card c-control">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/control_stopprogram.svg" alt="stop program">
+                <h3>stop program</h3>
+                <p>Immediately ends the execution of the entire program.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sensors Category -->
+    <section class="category-section">
+        <div class="category-header">
+            <div class="dot" style="background: var(--sensors);"></div>
+            <h2 style="color: var(--sensors);">Sensors</h2>
+        </div>
+        <div class="grid">
+            <div class="card c-sensors">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/sensor_distance.svg" alt="distance sensor">
+                <h3>distance from obstacle</h3>
+                <p>Returns the exact distance to the nearest obstacle in centimeters.</p>
+            </div>
+            <div class="card c-sensors">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/sensor_gyro.svg" alt="gyro sensor">
+                <h3>gyro angle</h3>
+                <p>Displays the current turning angle of the robot relative to its starting point.</p>
+            </div>
+            <div class="card c-sensors">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/sensor_touchpressed.svg" alt="touch pressed">
+                <h3>touch sensor pressed?</h3>
+                <p>Checks if the touch sensor is currently being pressed (returns true or false).</p>
+            </div>
+            <div class="card c-sensors">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/sensor_touchingcolor.svg" alt="touching color">
+                <h3>touching color?</h3>
+                <p>Checks if the sensor is over a specific color selected on the surface.</p>
+            </div>
+            <div class="card c-sensors">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/sensor_wheel.svg" alt="wheel sensor">
+                <h3>wheel circumference</h3>
+                <p>Technical data used for precise movement calculations based on wheel size.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Logic Category -->
+    <section class="category-section">
+        <div class="category-header">
+            <div class="dot" style="background: var(--logic);"></div>
+            <h2 style="color: var(--logic);">Logic and Math</h2>
+        </div>
+        <div class="grid">
+            <div class="card c-logic">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/logic_and.svg" alt="logic and">
+                <h3>logic and / or</h3>
+                <p>Allows combining multiple conditions (e.g., move if there is a black line AND no obstacle).</p>
+            </div>
+            <div class="card c-logic">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/logic_compare.svg" alt="logic compare">
+                <h3>comparison</h3>
+                <p>Compares values: greater than, less than, or equal to.</p>
+            </div>
+            <div class="card c-logic">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/logic_math.svg" alt="logic math">
+                <h3>math operators</h3>
+                <p>Performs arithmetic operations like addition, subtraction, multiplication, and division.</p>
+            </div>
+            <div class="card c-logic">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/logic_not.svg" alt="logic not">
+                <h3>logic not</h3>
+                <p>Inverts the result of a condition (if it was true, it becomes false).</p>
+            </div>
+            <div class="card c-logic">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/logic_intrger.svg" alt="logic integer">
+                <h3>integer of</h3>
+                <p>Rounds a decimal number to the nearest whole integer.</p>
+            </div>
+            <div class="card c-logic">
+                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/logic_true.svg" alt="logic true">
+                <h3>true / false</h3>
+                <p>Fixed logical values representing "True" or "False".</p>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+</body>
+</html>
