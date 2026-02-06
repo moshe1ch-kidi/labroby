@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -83,7 +82,6 @@ const getEnvironmentConfig = (challengeId?: string, customObjects: CustomObject[
     let complexZones: {x: number, z: number, width: number, length: number, rotation: number, color: number, shape?: PathShape, type: EditorTool}[] = [];
     if (['c10', 'c16', 'c19', 'c20'].includes(challengeId || '')) walls.push({ minX: -3, maxX: 3, minZ: -10.25, maxZ: -9.75 });
     
-    // Sort customObjects to ensure COLOR_LINE comes before PATH for detection priority
     const sortedObjects = [...customObjects].sort((a, b) => {
         if (a.type === 'COLOR_LINE' && b.type !== 'COLOR_LINE') return -1;
         if (a.type !== 'COLOR_LINE' && b.type === 'COLOR_LINE') return 1;
@@ -262,21 +260,16 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
             const ez = cz - (-8);
             const t = Math.atan2(ez / 6, ex / 9); 
             const positiveT = t < 0 ? t + 2 * Math.PI : t;
-            
             const rMod = 1.0 + 0.2 * Math.sin(6 * positiveT);
             const targetX = 9 * rMod * Math.cos(positiveT);
             const targetZ = -8 + 6 * rMod * Math.sin(positiveT);
-            
             const dx = cx - targetX;
             const dz = cz - targetZ;
             const dist = Math.sqrt(dx * dx + dz * dz);
-            
             if (dist <= 0.45) { 
                 sensorDetectedColor = "black"; sensorIntensity = 5; sensorRawDecimalColor = 0x000000;
-                
                 const deg = (positiveT * 180 / Math.PI) % 360;
                 const markerThreshold = 6.0; 
-                
                 if (Math.abs(deg - 0) < markerThreshold || Math.abs(deg - 360) < markerThreshold) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
                 else if (Math.abs(deg - 90) < markerThreshold) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
                 else if (Math.abs(deg - 180) < markerThreshold) { sensorDetectedColor = "green"; sensorIntensity = 50; sensorRawDecimalColor = 0x22C55E; }
@@ -339,7 +332,6 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     }
     
     let distance = 255;
-    // Updated ultrasonicStartDist to 1.1 to match the visual sensor's front position
     const ultrasonicStartDist = 1.1; 
     const scanStep = 0.05;
     for (let d = 0; d < 40.0; d += scanStep) {
@@ -838,7 +830,7 @@ const App: React.FC = () => {
           <button onClick={() => setProjectModal({ isOpen: true, mode: 'load' })} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Open Project"><FolderOpen size={20} /></button>
           <div className="w-px h-6 bg-slate-700 mx-1"></div>
           <button onClick={openPythonView} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Python Code"><Terminal size={20} /></button>
-          <button onClick={() => window.open('HELP/helpmenu.html', '_blank')} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Help Documentation"><HelpCircle size={20} /></button>
+          <button onClick={() => window.open('help/helpmenu.html', '_blank')} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Help Documentation"><HelpCircle size={20} /></button>
         </div>
         <button onClick={() => setShowChallenges(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${activeChallenge ? 'bg-yellow-500 text-slate-900 hover:bg-yellow-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}><Trophy size={16} /> {activeChallenge ? activeChallenge.title : "Challenges"}</button>
       </header>
