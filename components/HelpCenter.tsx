@@ -113,13 +113,13 @@ const HelpCenter: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Center Visual - Using the official robotsensor.svg from GitHub */}
+                {/* Center Visual - Using the official robotsensor.svg from GitHub with cache busting */}
                 <div className="flex flex-col gap-8 py-4 items-center">
                     <div className="relative group w-full">
                         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-3 py-0.5 rounded-full font-bold z-10">HARDWARE DIAGRAM</div>
                         <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex items-center justify-center min-h-[350px]">
                             <img 
-                                src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/robotsensor.svg" 
+                                src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/robotsensor.svg?v=1.1" 
                                 alt="Robot Sensor Diagram" 
                                 className="w-full h-auto max-w-sm drop-shadow-lg"
                                 onError={(e) => {
