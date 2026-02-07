@@ -1,10 +1,117 @@
+
 import React, { useState } from 'react';
-import { BookOpen, Trophy, ArrowLeft, Zap, Cpu, Hand, Palette, Eye, Compass, Info, Lightbulb } from 'lucide-react';
+// Added PlusCircle to the lucide-react imports to fix missing icon errors
+import { BookOpen, Trophy, ArrowLeft, Zap, Cpu, Hand, Palette, Eye, Compass, Info, Lightbulb, X, Activity, Target, Settings, PlusCircle } from 'lucide-react';
 
 type HelpPage = 'MENU' | 'BLOCKS' | 'CHALLENGES' | 'STRUCTURE';
 
+interface HardwareDetail {
+    id: string;
+    title: string;
+    icon: React.ReactNode;
+    color: string;
+    howItWorks: string;
+    technicalData: string[];
+    programmingTip: string;
+}
+
+const HARDWARE_DETAILS: Record<string, HardwareDetail> = {
+    motors: {
+        id: 'motors',
+        title: 'Drive Motors',
+        icon: <Zap size={32} />,
+        color: 'blue',
+        howItWorks: 'The robot uses differential steering with two independent motors. By varying the power to each wheel, the robot can move forward, backward, or rotate on its axis.',
+        technicalData: [
+            'Power Range: -100% to 100%',
+            'Max Speed: Approx 20 cm/s',
+            'Independent Left/Right control'
+        ],
+        programmingTip: 'To turn right in place, set Left Motor to 50 and Right Motor to -50.'
+    },
+    touch: {
+        id: 'touch',
+        title: 'Touch Sensor',
+        icon: <Hand size={32} />,
+        color: 'pink',
+        howItWorks: 'A physical bumper connected to a microswitch. When the red tip hits a wall, the circuit closes and sends a "True" signal to the brain.',
+        technicalData: [
+            'Type: Digital (On/Off)',
+            'Trigger: 0.1cm compression',
+            'Location: Front bumper'
+        ],
+        programmingTip: 'Always use a "wait until touch sensor pressed" block for the most reliable wall detection.'
+    },
+    gyro: {
+        id: 'gyro',
+        title: 'Gyro Sensor',
+        icon: <Compass size={32} />,
+        color: 'orange',
+        howItWorks: 'Uses MEMS technology to measure rotational velocity. The brain integrates this data to keep track of the exact heading and pitch (tilt) of the robot.',
+        technicalData: [
+            'Heading: 0° - 359° (Continuous)',
+            'Tilt (Pitch): -90° to +90°',
+            'Precision: 0.1 degrees'
+        ],
+        programmingTip: 'Use the Heading to maintain a perfectly straight line even if the robot bumps into something.'
+    },
+    ultrasonic: {
+        id: 'ultrasonic',
+        title: 'Ultrasonic Sensor',
+        icon: <Eye size={32} />,
+        color: 'indigo',
+        howItWorks: 'Works like a bat\'s radar. It emits a high-frequency sound pulse and measures the time it takes for the echo to bounce back from an object.',
+        technicalData: [
+            'Range: 3cm to 250cm',
+            'Beam Angle: Approx 15°',
+            'Detection Frequency: 40kHz'
+        ],
+        programmingTip: 'The sensor can detect walls from a distance. Use it to slow down before hitting a wall for smoother movement.'
+    },
+    color: {
+        id: 'color',
+        title: 'Color Sensor',
+        icon: <Palette size={32} />,
+        color: 'yellow',
+        howItWorks: 'Projects a small beam of light onto the floor and uses a photodiode to measure the reflected wavelengths. It can identify specific colors and measure overall brightness.',
+        technicalData: [
+            'Recognized Colors: 10 standard colors',
+            'Intensity Range: 0% (Dark) to 100% (Bright)',
+            'Refresh Rate: 50Hz'
+        ],
+        programmingTip: 'Use "Light Intensity" for line following on gray surfaces where "Color" might not be distinct enough.'
+    },
+    leds: {
+        id: 'leds',
+        title: 'Status LEDs',
+        icon: <Lightbulb size={32} />,
+        color: 'purple',
+        howItWorks: 'Two programmable RGB LEDs located on the top deck. They provide immediate visual feedback about the program state or sensor triggers.',
+        technicalData: [
+            'Type: RGB (Millions of colors)',
+            'Location: Top left & Top right',
+            'Status: Programmable via code'
+        ],
+        programmingTip: 'Set the LED to Red when an obstacle is detected and Green when the path is clear to help debug your logic.'
+    },
+    brain: {
+        id: 'brain',
+        title: 'Central Brain',
+        icon: <Cpu size={32} />,
+        color: 'emerald',
+        howItWorks: 'The core processing unit that interprets your Blockly commands. It processes sensor inputs and calculates motor power 60 times every second.',
+        technicalData: [
+            'Processor: 32-bit High Speed',
+            'Execution Rate: 60Hz (Simulated)',
+            'Variable Memory: Infinite (Simulated)'
+        ],
+        programmingTip: 'The brain can run multiple event blocks (hat blocks) at once. Use "Broadcast" to sync complex behaviors.'
+    }
+};
+
 const HelpCenter: React.FC = () => {
     const [currentPage, setCurrentPage] = useState<HelpPage>('MENU');
+    const [selectedHardware, setSelectedHardware] = useState<HardwareDetail | null>(null);
 
     const renderMenu = () => (
         <div className="max-w-5xl mx-auto p-8 pt-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -59,6 +166,67 @@ const HelpCenter: React.FC = () => {
         </div>
     );
 
+    const renderHardwareModal = () => {
+        if (!selectedHardware) return null;
+        return (
+            <div className="fixed inset-0 z-[3000000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in duration-300 flex flex-col border-4 border-emerald-500">
+                    <div className={`p-8 bg-${selectedHardware.color}-50 flex justify-between items-center border-b border-emerald-100`}>
+                        <div className="flex items-center gap-4">
+                            <div className={`w-16 h-16 bg-white shadow-md rounded-2xl flex items-center justify-center text-${selectedHardware.color}-500`}>
+                                {selectedHardware.icon}
+                            </div>
+                            <h2 className="text-3xl font-black text-slate-900">{selectedHardware.title}</h2>
+                        </div>
+                        <button onClick={() => setSelectedHardware(null)} className="p-3 hover:bg-white rounded-full text-slate-400 hover:text-slate-600 transition-all shadow-sm active:scale-90">
+                            <X size={24} strokeWidth={3} />
+                        </button>
+                    </div>
+                    
+                    <div className="p-10 space-y-8 overflow-y-auto max-h-[70vh]">
+                        <div>
+                            <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <Activity size={16} /> How it works
+                            </h3>
+                            <p className="text-slate-600 leading-relaxed text-lg">{selectedHardware.howItWorks}</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <Settings size={16} /> Technical Specs
+                                </h3>
+                                <ul className="space-y-3">
+                                    {selectedHardware.technicalData.map((data, i) => (
+                                        <li key={i} className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                            {data}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100">
+                                <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <Target size={16} /> Pro Tip
+                                </h3>
+                                <p className="text-emerald-800 text-sm font-bold leading-relaxed">
+                                    {selectedHardware.programmingTip}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-center">
+                        <button onClick={() => setSelectedHardware(null)} className="px-10 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all active:scale-95 shadow-lg">
+                            Got it!
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     const renderStructure = () => (
         <div className="max-w-7xl mx-auto p-8 pt-16 animate-in fade-in duration-300 h-full overflow-y-auto pb-40">
             <button onClick={() => setCurrentPage('MENU')} className="flex items-center gap-2 text-emerald-600 font-bold mb-8 hover:bg-emerald-50 px-4 py-2 rounded-xl transition-all">
@@ -70,56 +238,65 @@ const HelpCenter: React.FC = () => {
                     <span className="bg-emerald-600 text-white p-2 rounded-2xl"><Cpu size={32} /></span>
                     Robot Hardware & Structure
                 </h1>
-                <p className="text-slate-500 mt-2 text-lg">Hardware technical manual for the virtual robot.</p>
+                <p className="text-slate-500 mt-2 text-lg">Hardware technical manual for the virtual robot. <span className="font-bold text-emerald-600 underline underline-offset-4">Click any card to expand info.</span></p>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Left Side Info */}
                 <div className="space-y-6">
-                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 flex flex-col gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center">
-                                <Zap size={20} />
+                    <button onClick={() => setSelectedHardware(HARDWARE_DETAILS.motors)} className="w-full text-left bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 hover:border-emerald-400 hover:shadow-md transition-all group flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Zap size={20} />
+                                </div>
+                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Drive Motors</h2>
                             </div>
-                            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Drive Motors</h2>
+                            <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <p className="text-slate-600 text-xs leading-relaxed">
                             Independent Left and Right motors allow for differential steering. Power ranges from -100% to 100%.
                         </p>
-                    </div>
+                    </button>
 
-                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 flex flex-col gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-pink-50 text-pink-500 rounded-xl flex items-center justify-center">
-                                <Hand size={20} />
+                    <button onClick={() => setSelectedHardware(HARDWARE_DETAILS.touch)} className="w-full text-left bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 hover:border-emerald-400 hover:shadow-md transition-all group flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-pink-50 text-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Hand size={20} />
+                                </div>
+                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Touch Sensor</h2>
                             </div>
-                            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Touch Sensor</h2>
+                            <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <p className="text-slate-600 text-xs leading-relaxed">
                             A red physical bumper at the very front tip. Returns <b>true</b> when pressed against a wall.
                         </p>
-                    </div>
+                    </button>
                     
-                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 flex flex-col gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center">
-                                <Compass size={20} />
+                    <button onClick={() => setSelectedHardware(HARDWARE_DETAILS.gyro)} className="w-full text-left bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 hover:border-emerald-400 hover:shadow-md transition-all group flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Compass size={20} />
+                                </div>
+                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Gyro Sensor</h2>
                             </div>
-                            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Gyro Sensor</h2>
+                            <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <p className="text-slate-600 text-xs leading-relaxed">
                             <b>Located on the back-top part</b> (blue circle). It measures rotation angles and chassis tilt (pitch).
                         </p>
-                    </div>
+                    </button>
                 </div>
 
-                {/* Center Visual - Using the official robotsensor.svg from GitHub with cache busting */}
+                {/* Center Visual */}
                 <div className="flex flex-col gap-8 py-4 items-center">
                     <div className="relative group w-full">
                         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-3 py-0.5 rounded-full font-bold z-10">HARDWARE DIAGRAM</div>
                         <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex items-center justify-center min-h-[350px]">
                             <img 
-                                src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/robotsensor.svg?v=1.1" 
+                                src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/robotsensor.svg?v=1.2" 
                                 alt="Robot Sensor Diagram" 
                                 className="w-full h-auto max-w-sm drop-shadow-lg"
                                 onError={(e) => {
@@ -138,56 +315,68 @@ const HelpCenter: React.FC = () => {
 
                 {/* Right Side Info */}
                 <div className="space-y-6">
-                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 flex flex-col gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center">
-                                <Eye size={20} />
+                    <button onClick={() => setSelectedHardware(HARDWARE_DETAILS.ultrasonic)} className="w-full text-left bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 hover:border-emerald-400 hover:shadow-md transition-all group flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Eye size={20} />
+                                </div>
+                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Ultrasonic Sensor</h2>
                             </div>
-                            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Ultrasonic Sensor</h2>
+                            <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <p className="text-slate-600 text-xs leading-relaxed">
                             The "eyes" on the front face. Measures distance to objects in centimeters by bouncing sound waves.
                         </p>
-                    </div>
+                    </button>
 
-                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 flex flex-col gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-yellow-50 text-yellow-600 rounded-xl flex items-center justify-center">
-                                <Palette size={20} />
+                    <button onClick={() => setSelectedHardware(HARDWARE_DETAILS.color)} className="w-full text-left bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 hover:border-emerald-400 hover:shadow-md transition-all group flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-yellow-50 text-yellow-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Palette size={20} />
+                                </div>
+                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Color Sensor</h2>
                             </div>
-                            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Color Sensor</h2>
+                            <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <p className="text-slate-600 text-xs leading-relaxed">
                             Pointed downwards under the front. It identifies floor colors and surface brightness for line-following.
                         </p>
-                    </div>
+                    </button>
 
-                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 flex flex-col gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-purple-50 text-purple-500 rounded-xl flex items-center justify-center">
-                                <Lightbulb size={20} />
+                    <button onClick={() => setSelectedHardware(HARDWARE_DETAILS.leds)} className="w-full text-left bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 hover:border-emerald-400 hover:shadow-md transition-all group flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-purple-50 text-purple-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Lightbulb size={20} />
+                                </div>
+                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Status LEDs</h2>
                             </div>
-                            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Status LEDs</h2>
+                            <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <p className="text-slate-600 text-xs leading-relaxed">
                             Two programmable LED lights on the top deck. Can be used for signaling or debugging logic states.
                         </p>
-                    </div>
+                    </button>
 
-                    {/* Central Brain - Changed to 'regular' white background style as requested */}
-                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 flex flex-col gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center">
-                                <Cpu size={20} />
+                    <button onClick={() => setSelectedHardware(HARDWARE_DETAILS.brain)} className="w-full text-left bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 hover:border-emerald-400 hover:shadow-md transition-all group flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Cpu size={20} />
+                                </div>
+                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Central Brain</h2>
                             </div>
-                            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Central Brain</h2>
+                            <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <p className="text-slate-600 text-[10px] leading-relaxed">
                             The core processor that integrates all sensor data and executes your Blockly programs in real-time.
                         </p>
-                    </div>
+                    </button>
                 </div>
             </div>
+            {renderHardwareModal()}
         </div>
     );
 
