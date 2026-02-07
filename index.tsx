@@ -1,7 +1,7 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import MissionEditor from './components/MissionEditor';
+import HelpCenter from './components/HelpCenter';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -18,8 +18,8 @@ const RootComponent = () => {
     }, []);
 
     // Simple Router
-    if (route === '#editor') {
-        return <MissionEditor />;
+    if (route.startsWith('#help')) {
+        return <HelpCenter />;
     }
 
     return <App />;
