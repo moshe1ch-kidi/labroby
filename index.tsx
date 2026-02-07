@@ -1,7 +1,7 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import MissionEditor from './components/MissionEditor';
+import MissionEditor from './components/MissionEditor.tsx';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
