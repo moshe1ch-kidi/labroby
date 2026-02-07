@@ -2,8 +2,6 @@
 import React, { useState } from 'react';
 import { Html, Line } from '@react-three/drei';
 import { Vector3 } from 'three';
-// Import global type extensions for React Three Fiber JSX elements
-import '../types';
 
 const RulerTool: React.FC = () => {
     const [start, setStart] = useState<Vector3 | null>(null);

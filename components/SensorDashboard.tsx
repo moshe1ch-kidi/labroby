@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { Wifi, HandMetal, Compass, Palette } from 'lucide-react';
+import * as THREE from 'three'; // Import Three.js
 
 interface SensorDashboardProps {
   distance: number;
@@ -11,13 +11,27 @@ interface SensorDashboardProps {
   lightIntensity?: number;
 }
 
+// Canonical map for common color names to their representative hex values (aligned with Blockly icons)
+const CANONICAL_COLOR_MAP: Record<string, string> = {
+    'red': '#EF4444',
+    'green': '#22C55E',
+    'blue': '#3B82F6',
+    'yellow': '#EAB308',
+    'orange': '#F97316',
+    'purple': '#A855F7',
+    'cyan': '#06B6D4',
+    'magenta': '#EC4899',
+    'black': '#000000',
+    'white': '#FFFFFF',
+};
+
 const SensorDashboard: React.FC<SensorDashboardProps> = ({ 
   distance, 
   isTouching, 
   gyroAngle, 
   tiltAngle = 0,
   detectedColor,
-  lightIntensity = 100
+  lightIntensity = 100,
 }) => {
   
   // Helper to get color code for display
@@ -26,20 +40,21 @@ const SensorDashboard: React.FC<SensorDashboardProps> = ({
     if (colorInput.startsWith('#')) return colorInput;
 
     const normalized = colorInput.toLowerCase();
-    switch(normalized) {
-      case 'red': return '#ef4444';
-      case 'blue': return '#3b82f6';
-      case 'green': return '#22c55e';
-      case 'yellow': return '#facc15';
-      case 'magenta': return '#d946ef';
-      case 'black': return '#1f2937';
-      case 'white': return '#ffffff';
-      default: return '#e5e7eb';
+    // Use the canonical map for display
+    const mappedColor = CANONICAL_COLOR_MAP[normalized];
+    if (mappedColor) return mappedColor;
+
+    // Fallback for raw hex if not a recognized name
+    try {
+        new THREE.Color(colorInput); // Validate if it's a valid hex string
+        return colorInput;
+    } catch {
+        return '#e5e7eb'; // Default light gray for unknown/invalid
     }
   };
 
   return (
-    <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-lg border border-slate-200 flex items-center justify-around z-10">
+    <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-lg border flex items-center justify-around z-10 transition-all border-slate-200">
       
       {/* Ultrasonic / Distance */}
       <div className="flex flex-col items-center gap-1 min-w-[80px]">
@@ -90,8 +105,11 @@ const SensorDashboard: React.FC<SensorDashboardProps> = ({
       <div className="w-px h-10 bg-slate-300"></div>
 
       {/* Color Sensor */}
-      <div className="flex flex-col items-center gap-1 min-w-[140px] p-1 rounded-lg">
-        <div className="flex items-center gap-2 mb-1 text-slate-500">
+      <div 
+        className="flex flex-col items-center gap-1 min-w-[140px] relative p-1 rounded-lg"
+        title="Detected Color"
+      >
+        <div className="flex items-center gap-2 text-slate-500 mb-1">
             <Palette size={18} />
             <span className="text-xs font-bold uppercase tracking-wider">Detected Color</span>
         </div>
@@ -111,6 +129,7 @@ const SensorDashboard: React.FC<SensorDashboardProps> = ({
             </div>
         </div>
       </div>
+
     </div>
   );
 };
