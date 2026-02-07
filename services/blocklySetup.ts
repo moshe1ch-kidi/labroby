@@ -1,3 +1,4 @@
+
 // Initialize Blockly Setup
 
 // --- CONSTANTS ---
@@ -172,50 +173,9 @@ export const initBlockly = () => {
     }
   }
 
-  // A fixed palette of 12 distinct colors for LEDs
-  const LED_STATIC_COLORS = [
-      '#EF4444', // Red
-      '#F97316', // Orange
-      '#EAB308', // Yellow
-      '#84CC16', // Lime
-      '#22C55E', // Green
-      '#14B8A6', // Teal
-      '#06B6D4', // Cyan
-      '#3B82F6', // Blue
-      '#A855F7', // Purple
-      '#EC4899', // Magenta
-      '#FFFFFF', // White
-      '#000000', // Black (Off)
-  ];
-
-  class FieldLedColor extends Blockly.FieldColour {
-    constructor(value?: string, validator?: Function) { super(value, validator); }
-    showEditor_() {
-        const pickerDiv = document.createElement('div');
-        pickerDiv.className = 'p-3 bg-white rounded-xl shadow-xl border-2 border-slate-100 flex flex-col gap-3 min-w-[160px]';
-        
-        const grid = document.createElement('div');
-        grid.className = 'grid grid-cols-4 gap-2'; // 4 columns x 3 rows = 12 items
-        
-        LED_STATIC_COLORS.forEach(c => {
-            const btn = document.createElement('button');
-            btn.className = 'w-8 h-8 rounded-lg border border-slate-200 transition-transform hover:scale-110 active:scale-95 shadow-sm';
-            btn.style.backgroundColor = c;
-            btn.onclick = () => { this.setValue(c); Blockly.DropDownDiv.hideIfOwner(this); };
-            grid.appendChild(btn);
-        });
-        pickerDiv.appendChild(grid);
-        
-        Blockly.DropDownDiv.getContentDiv().appendChild(pickerDiv);
-        Blockly.DropDownDiv.setColour('#ffffff', '#ffffff');
-        Blockly.DropDownDiv.showPositionedByField(this, () => {});
-    }
-  }
-
   class FieldDropperColor extends Blockly.FieldColour {
     constructor(value?: string, validator?: Function) { super(value, validator); }
     showEditor_() {
-        // FIX: Explicitly cast the result of getStageColors to string[] to resolve type errors.
         const stageColors = (typeof (window as any).getStageColors === 'function' ? (window as any).getStageColors() : []) as string[];
         const uniqueStageColors = [...new Set(stageColors.map((c: string) => c.toLowerCase()))];
         
@@ -257,7 +217,6 @@ export const initBlockly = () => {
 
   Blockly.fieldRegistry.register('field_numpad', FieldNumpad);
   Blockly.fieldRegistry.register('field_dropper_color', FieldDropperColor);
-  Blockly.fieldRegistry.register('field_led_color', FieldLedColor);
 
   // --- DEFINE BLOCKS ---
 
@@ -291,7 +250,7 @@ export const initBlockly = () => {
 
   Blockly.Blocks['event_when_color'] = {
       init: function() {
-          this.appendDummyInput().appendField("when color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['yellow']), "COLOR").appendField("detected"); // Default to canonical yellow
+          this.appendDummyInput().appendField("when color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['yellow']), "COLOR").appendField("detected"); 
           this.appendStatementInput("DO"); this.setStyle('events_blocks');
       }
   };
@@ -365,9 +324,9 @@ export const initBlockly = () => {
           .appendField(new Blockly.FieldDropdown([["right","RIGHT"], ["left","LEFT"]]), "DIRECTION")
           .appendField("by")
           .appendField(new FieldNumpad(90), "ANGLE")
-          .appendField("degrees at speed") // Added text for speed
-          .appendField(new FieldNumpad(100, 0, 100), "SPEED") // Added speed input
-          .appendField("%"); // Added percentage text
+          .appendField("degrees at speed") 
+          .appendField(new FieldNumpad(100, 0, 100), "SPEED") 
+          .appendField("%"); 
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks');
     }
   };
@@ -403,7 +362,7 @@ export const initBlockly = () => {
 
   Blockly.Blocks['robot_pen_set_color'] = {
       init: function() {
-          this.appendDummyInput().appendField("set pen color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['black']), "COLOR"); // Default to canonical black
+          this.appendDummyInput().appendField("set pen color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['black']), "COLOR"); 
           this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('pen_blocks');
       }
   };
@@ -417,7 +376,7 @@ export const initBlockly = () => {
 
   Blockly.Blocks['robot_led'] = {
     init: function() {
-      this.appendDummyInput().appendField("set").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"], ["both","BOTH"]]), "SIDE").appendField("LED to color").appendField(new FieldLedColor('#EF4444'), "COLOR"); // Default to red, using static 12-color picker
+      this.appendDummyInput().appendField("set").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"], ["both","BOTH"]]), "SIDE").appendField("LED to color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['red']), "COLOR"); 
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('looks_blocks');
     }
   };
@@ -455,16 +414,6 @@ export const initBlockly = () => {
     init: function() {
       this.appendValueInput("CONDITION").setCheck("Boolean").appendField("wait until");
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('control_blocks');
-    }
-  };
-
-  Blockly.Blocks['control_repeat_until'] = {
-    init: function() {
-      this.appendValueInput("CONDITION").setCheck("Boolean").appendField("repeat until");
-      this.appendStatementInput("DO");
-      this.setPreviousStatement(true, null);
-      this.setNextStatement(true, null);
-      this.setStyle('control_blocks');
     }
   };
 
@@ -554,7 +503,7 @@ export const initBlockly = () => {
 
   Blockly.Blocks['sensor_touching_color'] = {
     init: function() {
-      this.appendDummyInput().appendField("touching color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['yellow']), "COLOR").appendField("?"); // Default to canonical yellow
+      this.appendDummyInput().appendField("touching color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['yellow']), "COLOR").appendField("?"); 
       this.setOutput(true, "Boolean"); this.setStyle('sensors_blocks');
     }
   };
@@ -587,23 +536,23 @@ export const initBlockly = () => {
   javascriptGenerator.forBlock['robot_move_speed'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const distance = block.getFieldValue('DISTANCE'); const speed = block.getFieldValue('SPEED'); const distVal = direction === 'BACKWARD' ? -distance : distance; return `await robot.setSpeed(${speed});\nawait robot.move(${distVal});\n`; };
   
   javascriptGenerator.forBlock['robot_motor_on'] = function(block: any) { 
-      const motor = block.getFieldValue('MOTOR'); 
-      const dir = block.getFieldValue('DIR'); 
-      const power = block.getFieldValue('POWER'); 
-      const powerVal = dir === 'STOP' ? 0 : (dir === 'BACKWARD' ? -power : power); 
-      
-      if (motor === 'LEFT') return `await robot.setLeftMotorPower(${powerVal});\n`; 
-      if (motor === 'RIGHT') return `await robot.setRightMotorPower(${powerVal});\n`; 
-      return `await robot.setMotorPower(${powerVal}, ${powerVal});\n`; 
+    const motor = block.getFieldValue('MOTOR'); 
+    const dir = block.getFieldValue('DIR'); 
+    const power = block.getFieldValue('POWER'); 
+    const powerVal = dir === 'STOP' ? 0 : (dir === 'BACKWARD' ? -power : power); 
+    
+    if (motor === 'LEFT') return `await robot.setLeftMotorPower(${powerVal});\n`; 
+    if (motor === 'RIGHT') return `await robot.setRightMotorPower(${powerVal});\n`; 
+    return `await robot.setMotorPower(${powerVal}, ${powerVal});\n`; 
   };
-  
+
   javascriptGenerator.forBlock['robot_drive_until'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const speed = block.getFieldValue('SPEED'); const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false'; const motorPower = direction === 'BACKWARD' ? -100 : 100; return `await robot.setSpeed(${speed});\nawait robot.setMotorPower(${motorPower}, ${motorPower});\nwhile (!(${condition})) { await robot.wait(10); }\nawait robot.stop();\n`; };
   javascriptGenerator.forBlock['robot_turn_until'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const speed = block.getFieldValue('SPEED'); const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false'; const leftPower = direction === 'LEFT' ? -100 : 100; const rightPower = direction === 'LEFT' ? 100 : -100; return `await robot.setSpeed(${speed});\nawait robot.setMotorPower(${leftPower}, ${rightPower});\nwhile (!(${condition})) { await robot.wait(10); }\nawait robot.stop();\n`; };
   javascriptGenerator.forBlock['robot_stop'] = function() { return 'await robot.stop();\n'; };
   javascriptGenerator.forBlock['robot_turn'] = function(block: any) { 
     const direction = block.getFieldValue('DIRECTION'); 
     const angle = block.getFieldValue('ANGLE'); 
-    const speed = block.getFieldValue('SPEED'); // Get the new speed field value
+    const speed = block.getFieldValue('SPEED'); 
     const angVal = direction === 'LEFT' ? angle : -angle; 
     return `await robot.setSpeed(${speed});\nawait robot.turn(${angVal});\n`; 
   };
@@ -619,11 +568,6 @@ export const initBlockly = () => {
   javascriptGenerator.forBlock['robot_wait'] = function(block: any) { const seconds = block.getFieldValue('SECONDS'); return `await robot.wait(${seconds * 1000});\n`; };
   javascriptGenerator.forBlock['control_forever'] = function(block: any) { const branch = javascriptGenerator.statementToCode(block, 'DO'); return `while (true) {\n${branch}  await robot.wait(10);\n}\n`; };
   javascriptGenerator.forBlock['control_wait_until'] = function(block: any) { const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_ATOMIC) || 'false'; return `while (!(${condition})) {\n  await robot.wait(10);\n}\n`; };
-  javascriptGenerator.forBlock['control_repeat_until'] = function(block: any) { 
-      const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false'; 
-      const branch = javascriptGenerator.statementToCode(block, 'DO'); 
-      return `while (!(${condition})) {\n${branch}  await robot.wait(10);\n}\n`; 
-  };
   javascriptGenerator.forBlock['control_stop_program'] = function() { return 'await robot.stopProgram();\n'; };
   javascriptGenerator.forBlock['controls_repeat_ext'] = function(block: any) { const repeats = javascriptGenerator.valueToCode(block, 'TIMES', javascriptGenerator.ORDER_ASSIGNMENT) || '0'; const branch = javascriptGenerator.statementToCode(block, 'DO'); const gen = javascriptGenerator; const loopVar = gen.nameDB_ ? gen.nameDB_.getDistinctName('count', 'VARIABLE') : 'i'; return `for (let ${loopVar} = 0; ${loopVar} < ${repeats}; ${loopVar}++) {\n${branch}}\n`; };
   javascriptGenerator.forBlock['custom_if'] = function(block: any) { const condition = javascriptGenerator.valueToCode(block, 'IF0', javascriptGenerator.ORDER_NONE) || 'false'; const branchDo = javascriptGenerator.statementToCode(block, 'DO0'); return `if (${condition}) {\n${branchDo}}\n`; };
@@ -669,23 +613,23 @@ export const initBlockly = () => {
   pythonGenerator.forBlock['robot_move_speed'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const distance = block.getFieldValue('DISTANCE'); const speed = block.getFieldValue('SPEED'); const distVal = direction === 'BACKWARD' ? -distance : distance; return `robot.set_speed(${speed})\nrobot.move(${distVal})\n`; };
   
   pythonGenerator.forBlock['robot_motor_on'] = function(block: any) { 
-      const motor = block.getFieldValue('MOTOR'); 
-      const dir = block.getFieldValue('DIR'); 
-      const power = block.getFieldValue('POWER'); 
-      const powerVal = dir === 'STOP' ? 0 : (dir === 'BACKWARD' ? -power : power); 
-      
-      if (motor === 'LEFT') return `robot.set_left_motor_power(${powerVal})\n`; 
-      if (motor === 'RIGHT') return `robot.set_right_motor_power(${powerVal})\n`; 
-      return `robot.set_motor_power(${powerVal}, ${powerVal})\n`; 
+    const motor = block.getFieldValue('MOTOR'); 
+    const dir = block.getFieldValue('DIR'); 
+    const power = block.getFieldValue('POWER'); 
+    const powerVal = dir === 'STOP' ? 0 : (dir === 'BACKWARD' ? -power : power); 
+    
+    if (motor === 'LEFT') return `robot.set_left_motor_power(${powerVal})\n`; 
+    if (motor === 'RIGHT') return `robot.set_right_motor_power(${powerVal})\n`; 
+    return `robot.set_motor_power(${powerVal}, ${powerVal})\n`; 
   };
-  
+
   pythonGenerator.forBlock['robot_drive_until'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const speed = block.getFieldValue('SPEED'); const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False'; const motorPower = direction === 'BACKWARD' ? -100 : 100; return `robot.set_speed(${speed})\nrobot.set_motor_power(${motorPower}, ${motorPower})\nwhile not (${condition}):\n  robot.wait(0.01)\nrobot.stop()\n`; };
   pythonGenerator.forBlock['robot_turn_until'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const speed = block.getFieldValue('SPEED'); const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False'; const leftPower = direction === 'LEFT' ? -100 : 100; const rightPower = direction === 'LEFT' ? 100 : -100; return `robot.set_speed(${speed})\nrobot.set_motor_power(${leftPower}, ${rightPower})\nwhile not (${condition}):\n  robot.wait(0.01)\nrobot.stop()\n`; };
   pythonGenerator.forBlock['robot_stop'] = function() { return 'robot.stop()\n'; };
   pythonGenerator.forBlock['robot_turn'] = function(block: any) { 
     const direction = block.getFieldValue('DIRECTION'); 
     const angle = block.getFieldValue('ANGLE'); 
-    const speed = block.getFieldValue('SPEED'); // Get the new speed field value
+    const speed = block.getFieldValue('SPEED'); 
     const angVal = direction === 'LEFT' ? angle : -angle; 
     return `robot.set_speed(${speed})\nrobot.turn(${angVal})\n`; 
   };
@@ -701,11 +645,6 @@ export const initBlockly = () => {
   pythonGenerator.forBlock['robot_wait'] = function(block: any) { const seconds = block.getFieldValue('SECONDS'); return `robot.wait(${seconds})\n`; };
   pythonGenerator.forBlock['control_forever'] = function(block: any) { const branch = pythonGenerator.statementToCode(block, 'DO'); return `while True:\n${branch || '  pass'}\n  robot.wait(0.01)\n`; };
   pythonGenerator.forBlock['control_wait_until'] = function(block: any) { const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_ATOMIC) || 'False'; return `while not (${condition}):\n  robot.wait(0.01)\n`; };
-  pythonGenerator.forBlock['control_repeat_until'] = function(block: any) { 
-      const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False'; 
-      const branch = pythonGenerator.statementToCode(block, 'DO'); 
-      return `while not (${condition}):\n${branch || '  pass'}\n  robot.wait(0.01)\n`; 
-  };
   pythonGenerator.forBlock['control_stop_program'] = function() { return 'robot.stop_program()\n'; };
   pythonGenerator.forBlock['controls_repeat_ext'] = function(block: any) { const repeats = pythonGenerator.valueToCode(block, 'TIMES', pythonGenerator.ORDER_NONE) || '0'; const branch = pythonGenerator.statementToCode(block, 'DO'); const loopVar = (this.nameDB_) ? this.nameDB_.getDistinctName('count', 'VARIABLE') : 'i'; return `for ${loopVar} in range(${repeats}):\n${branch || '  pass'}\n`; };
   pythonGenerator.forBlock['custom_if'] = function(block: any) { const condition = pythonGenerator.valueToCode(block, 'IF0', pythonGenerator.ORDER_NONE) || 'False'; const branchDo = pythonGenerator.statementToCode(block, 'DO0'); return `if ${condition}:\n${branchDo || '  pass'}\n`; };
@@ -814,7 +753,6 @@ export const toolbox = {
       contents: [
         { kind: "block", type: "robot_wait" },
         { kind: "block", type: "control_forever" },
-        { kind: "block", type: "control_repeat_until" },
         { kind: "block", type: "control_wait_until" },
         { kind: "block", type: "control_stop_program" },
         { kind: "block", type: "controls_repeat_ext", inputs: { TIMES: { shadow: { type: "math_number", fields: { NUM: 5 } } } } },
