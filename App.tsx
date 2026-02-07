@@ -11,6 +11,7 @@ import Numpad from './components/Numpad';
 import SensorDashboard from './components/SensorDashboard';
 import RulerTool from './components/RulerTool';
 import CameraManager from './components/CameraManager';
+import HelpCenter from './components/HelpCenter';
 import { CHALLENGES, Challenge } from './data/challenges';
 import { ThreeEvent } from '@react-three/fiber';
 
@@ -372,6 +373,7 @@ const App: React.FC = () => {
   const [cameraMode, setCameraMode] = useState<CameraMode>('HOME');
   const [editorTool, setEditorTool] = useState<EditorTool>('NONE');
   const [showChallenges, setShowChallenges] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null); 
   const [challengeSuccess, setChallengeSuccess] = useState(false);
   const [projectModal, setProjectModal] = useState<{isOpen: boolean, mode: 'save' | 'load'}>({isOpen: false, mode: 'save'});
@@ -830,7 +832,13 @@ const App: React.FC = () => {
           <button onClick={() => setProjectModal({ isOpen: true, mode: 'load' })} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Open Project"><FolderOpen size={20} /></button>
           <div className="w-px h-6 bg-slate-700 mx-1"></div>
           <button onClick={openPythonView} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Python Code"><Terminal size={20} /></button>
-          <button onClick={() => window.open('help/helpmenu.html', '_blank')} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Help Documentation"><HelpCircle size={20} /></button>
+          <button 
+            onClick={() => setShowHelp(true)} 
+            className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" 
+            title="Help Documentation"
+          >
+            <HelpCircle size={20} />
+          </button>
         </div>
         <button onClick={() => setShowChallenges(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${activeChallenge ? 'bg-yellow-500 text-slate-900 hover:bg-yellow-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}><Trophy size={16} /> {activeChallenge ? activeChallenge.title : "Challenges"}</button>
       </header>
@@ -901,6 +909,19 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+      {showHelp && (
+        <div className="fixed inset-0 z-[2000000] bg-white overflow-hidden animate-in fade-in duration-300">
+            <div className="absolute top-4 right-6 z-[2000001]">
+                <button 
+                    onClick={() => setShowHelp(false)} 
+                    className="p-3 bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-all shadow-xl active:scale-90"
+                >
+                    <X size={28} />
+                </button>
+            </div>
+            <HelpCenter />
         </div>
       )}
     </div>
