@@ -1,7 +1,7 @@
- import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
-import { RotateCcw, Code2, Ruler, Trophy, X, Flag, Save, FolderOpen, Check, AlertCircle, Info, Terminal, Star, Home, Eye, Move, Hand, Bot, Target, FileCode, ZoomIn, ZoomOut, HelpCircle } from 'lucide-react';
+import { RotateCcw, Code2, Ruler, Trophy, X, Flag, Save, FolderOpen, Check, AlertCircle, Info, Terminal, Star, Home, Eye, Move, Hand, Bot, Target, FileCode, ZoomIn, ZoomOut, Hammer, HelpCircle } from 'lucide-react';
 import * as THREE from 'three';
 import BlocklyEditor, { BlocklyEditorHandle } from './components/BlocklyEditor';
 import Robot3D from './components/Robot3D';
@@ -82,14 +82,7 @@ const getEnvironmentConfig = (challengeId?: string, customObjects: CustomObject[
     let walls: {minX: number, maxX: number, minZ: number, maxZ: number}[] = [];
     let complexZones: {x: number, z: number, width: number, length: number, rotation: number, color: number, shape?: PathShape, type: EditorTool}[] = [];
     if (['c10', 'c16', 'c19', 'c20'].includes(challengeId || '')) walls.push({ minX: -3, maxX: 3, minZ: -10.25, maxZ: -9.75 });
-    
-    const sortedObjects = [...customObjects].sort((a, b) => {
-        if (a.type === 'COLOR_LINE' && b.type !== 'COLOR_LINE') return -1;
-        if (a.type !== 'COLOR_LINE' && b.type === 'COLOR_LINE') return 1;
-        return 0;
-    });
-
-    sortedObjects.forEach(obj => {
+    customObjects.forEach(obj => {
         if (obj.type === 'WALL') { const hW = obj.width / 2; const hL = obj.length / 2; walls.push({ minX: obj.x - hW, maxX: obj.x + hW, minZ: obj.z - hL, maxZ: obj.z + hL }); }
         else if (obj.type === 'PATH') { const lineHex = obj.color || '#FFFF00'; const colorVal = parseInt(lineHex.replace('#', '0x'), 16); complexZones.push({ x: obj.x, z: obj.z, width: obj.width, length: obj.length, rotation: obj.rotation || 0, color: colorVal, shape: obj.shape || 'STRAIGHT', type: obj.type }); } 
         else if (obj.type === 'COLOR_LINE') { const hC = obj.color || '#FF0000'; complexZones.push({ x: obj.x, z: obj.z, width: obj.width, length: obj.length, rotation: obj.rotation || 0, color: parseInt(hC.replace('#', '0x'), 16), type: obj.type }); }
@@ -138,7 +131,22 @@ const getSurfaceHeightAt = (qx: number, qz: number, challengeId?: string, custom
     return maxHeight;
 };
 
-const calculateSensorReadings = (x: number, z: number, rotation: number, challengeId?: string, customObjects: CustomObject[] = []) => {
+interface SvgConfig {
+    width: number;
+    height: number;
+    pixelData: Uint8ClampedArray;
+    worldWidth: number;
+    worldHeight: number;
+}
+
+const calculateSensorReadings = (
+    x: number, 
+    z: number, 
+    rotation: number, 
+    challengeId?: string, 
+    customObjects: CustomObject[] = [],
+    svgConfig?: SvgConfig
+) => {
     const rad = (rotation * Math.PI) / 180; 
     const sin = Math.sin(rad); 
     const cos = Math.cos(rad);
@@ -174,119 +182,150 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     let sensorIntensity = 100;
     let sensorRawDecimalColor = 0xFFFFFF;
 
-    for (const zZone of env.complexZones) {
-        const dx = cx - zZone.x; 
-        const dz = cz - zZone.z;
-        const cR = Math.cos(-zZone.rotation); 
-        const sR = Math.sin(-zZone.rotation);
-        const lX = dx * cR - dz * sR; 
-        const lZ = dx * sR + dz * cR;
-        let onZone = false; 
+    // SVG Sensor Logic
+    if (svgConfig) {
+        const halfW = svgConfig.worldWidth / 2;
+        const halfH = svgConfig.worldHeight / 2;
         
-        const xTolerance = zZone.width / 2 + 0.1; 
-        const zTolerance = zZone.length / 2 + 0.1; 
-
-        if (zZone.type === 'RAMP') {
-          const hW_ramp = zZone.width / 2;
-          const hL_ramp = zZone.length / 2;
-          if (Math.abs(lX) <= (hW_ramp + 0.1) && Math.abs(lZ) <= (hL_ramp + 0.1)) {
-            onZone = true;
-          }
+        if (cx >= -halfW && cx <= halfW && cz >= -halfH && cz <= halfH) {
+             const u = (cx + halfW) / svgConfig.worldWidth;
+             const v = (cz + halfH) / svgConfig.worldHeight;
+             const px = Math.floor(u * svgConfig.width);
+             const py = Math.floor(v * svgConfig.height);
+             
+             const index = (py * svgConfig.width + px) * 4;
+             if (index >= 0 && index < svgConfig.pixelData.length) {
+                 const r = svgConfig.pixelData[index];
+                 const g = svgConfig.pixelData[index + 1];
+                 const b = svgConfig.pixelData[index + 2];
+                 const a = svgConfig.pixelData[index + 3];
+                 
+                 // If transparent, it is 'white' (ground)
+                 if (a < 50) {
+                     sensorDetectedColor = "white";
+                 } else {
+                     const hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+                     sensorRawDecimalColor = (r << 16) + (g << 8) + b;
+                     
+                     if (isColorClose(hex, CANONICAL_COLOR_MAP['red'])) { sensorDetectedColor = "red"; }
+                     else if (isColorClose(hex, CANONICAL_COLOR_MAP['blue'])) { sensorDetectedColor = "blue"; }
+                     else if (isColorClose(hex, CANONICAL_COLOR_MAP['green'])) { sensorDetectedColor = "green"; }
+                     else if (isColorClose(hex, CANONICAL_COLOR_MAP['yellow'])) { sensorDetectedColor = "yellow"; }
+                     else if (isColorClose(hex, CANONICAL_COLOR_MAP['black'])) { sensorDetectedColor = "black"; }
+                     else { sensorDetectedColor = hex; }
+                 }
+             }
         }
-        else if (zZone.shape === 'STRAIGHT' || !zZone.shape) {
-            if (Math.abs(lX) <= xTolerance && Math.abs(lZ) <= zTolerance) onZone = true;
-        } else if (zZone.shape === 'CORNER') {
-            const halfCornerWidth = zZone.width / 2;
-            if (
-                (Math.abs(lX) <= (xTolerance) && lZ >= -0.1 && lZ <= (halfCornerWidth + 0.1)) ||
-                (Math.abs(lZ) <= (zTolerance) && lX >= -0.1 && lX <= (halfCornerWidth + 0.1))
-            ) {
-                onZone = true;
-            }
-        } else if (zZone.shape === 'CURVED') {
-            const midRadius = zZone.length / 2;
-            const shiftedLX = lX + midRadius;
-            const distFromArcCenter = Math.sqrt(Math.pow(shiftedLX, 2) + Math.pow(lZ, 2)); 
-            const angle = Math.atan2(lZ, shiftedLX);
-
-            const halfPathWidth = zZone.width / 2;
-            if (
-                Math.abs(distFromArcCenter - midRadius) <= (halfPathWidth + 0.1) &&
-                angle >= -0.1 && angle <= Math.PI/2 + 0.1
-            ) {
-                onZone = true;
-            }
-        }
-
-        if (onZone) {
-            sensorRawDecimalColor = zZone.color; 
-            const hexStr = "#" + sensorRawDecimalColor.toString(16).padStart(6, '0').toUpperCase();
+    } else {
+        // Standard Object Sensor Logic
+        for (const zZone of env.complexZones) {
+            const dx = cx - zZone.x; 
+            const dz = cz - zZone.z;
+            const cR = Math.cos(-zZone.rotation); 
+            const sR = Math.sin(-zZone.rotation);
+            const lX = dx * cR - dz * sR; 
+            const lZ = dx * sR + dz * cR;
+            let onZone = false; 
             
-            if (isColorClose(hexStr, CANONICAL_COLOR_MAP['red'])) { sensorDetectedColor = "red"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['blue'])) { sensorDetectedColor = "blue"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['green'])) { sensorDetectedColor = "green"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['yellow'])) { sensorDetectedColor = "yellow"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['orange'])) { sensorDetectedColor = "orange"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['purple'])) { sensorDetectedColor = "purple"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['cyan'])) { sensorDetectedColor = "cyan"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['magenta'])) { sensorDetectedColor = "magenta"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['black'])) { sensorDetectedColor = "black"; }
-            else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['white'])) { sensorDetectedColor = "white"; }
-            else { 
-              sensorDetectedColor = hexStr;
-            }
-            break; 
-        }
-    }
+            const xTolerance = zZone.width / 2 + 0.1; 
+            const zTolerance = zZone.length / 2 + 0.1; 
 
-    if (sensorDetectedColor === "white") {
-        if (challengeId === 'c21') { 
-            const dist = Math.sqrt(Math.pow(cx - (-6), 2) + Math.pow(cz - 0, 2));
-            if (Math.abs(dist - 6.0) <= 0.25) { sensorDetectedColor = "black"; sensorIntensity = 5; sensorRawDecimalColor = 0x000000; }
-        } else if (challengeId === 'c12') { 
-            const ex = cx - 0; const ez = cz - (-8);
-            const normDist = Math.sqrt(Math.pow(ex/9, 2) + Math.pow(ez/6, 2));
-            if (Math.abs(normDist - 1.0) <= 0.04) {
-                sensorDetectedColor = "black"; sensorIntensity = 5; sensorRawDecimalColor = 0x000000;
-                const angle = Math.atan2(ez, ex); 
-                const deg = (angle * 180 / Math.PI + 360) % 360;
-                const markerThreshold = 4.0;
-                if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['red'], 0.1) || Math.abs(deg - 0) < markerThreshold || Math.abs(deg - 360) < markerThreshold) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
-                else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['blue'], 0.1) || Math.abs(deg - 90) < markerThreshold) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
-                else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['green'], 0.1) || Math.abs(deg - 180) < markerThreshold) { sensorDetectedColor = "green"; sensorIntensity = 50; sensorRawDecimalColor = 0x22C55E; }
-                else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['yellow'], 0.1) || Math.abs(deg - 270) < markerThreshold) { sensorDetectedColor = "yellow"; sensorIntensity = 80; sensorRawDecimalColor = 0xFFFF00; }
+            if (zZone.type === 'RAMP') {
+              const hW_ramp = zZone.width / 2;
+              const hL_ramp = zZone.length / 2;
+              if (Math.abs(lX) <= (hW_ramp + 0.1) && Math.abs(lZ) <= (hL_ramp + 0.1)) {
+                onZone = true;
+              }
             }
-        } else if (challengeId === 'c_snake_path') {
-            const ex = cx - 0;
-            const ez = cz - (-8);
-            const t = Math.atan2(ez / 6, ex / 9); 
-            const positiveT = t < 0 ? t + 2 * Math.PI : t;
-            const rMod = 1.0 + 0.2 * Math.sin(6 * positiveT);
-            const targetX = 9 * rMod * Math.cos(positiveT);
-            const targetZ = -8 + 6 * rMod * Math.sin(positiveT);
-            const dx = cx - targetX;
-            const dz = cz - targetZ;
-            const dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist <= 0.45) { 
-                sensorDetectedColor = "black"; sensorIntensity = 5; sensorRawDecimalColor = 0x000000;
-                const deg = (positiveT * 180 / Math.PI) % 360;
-                const markerThreshold = 6.0; 
-                if (Math.abs(deg - 0) < markerThreshold || Math.abs(deg - 360) < markerThreshold) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
-                else if (Math.abs(deg - 90) < markerThreshold) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
-                else if (Math.abs(deg - 180) < markerThreshold) { sensorDetectedColor = "green"; sensorIntensity = 50; sensorRawDecimalColor = 0x22C55E; }
-                else if (Math.abs(deg - 270) < markerThreshold) { sensorDetectedColor = "yellow"; sensorIntensity = 80; sensorRawDecimalColor = 0xFFFF00; }
+            else if (zZone.shape === 'STRAIGHT' || !zZone.shape) {
+                if (Math.abs(lX) <= xTolerance && Math.abs(lZ) <= zTolerance) onZone = true;
+            } else if (zZone.shape === 'CORNER') {
+                const halfCornerWidth = zZone.width / 2;
+                if (
+                    (Math.abs(lX) <= (xTolerance) && lZ >= -0.1 && lZ <= (halfCornerWidth + 0.1)) ||
+                    (Math.abs(lZ) <= (zTolerance) && lX >= -0.1 && lX <= (halfCornerWidth + 0.1))
+                ) {
+                    onZone = true;
+                }
+            } else if (zZone.shape === 'CURVED') {
+                const midRadius = zZone.length / 2;
+                const shiftedLX = lX + midRadius;
+                const distFromArcCenter = Math.sqrt(Math.pow(shiftedLX, 2) + Math.pow(lZ, 2)); 
+                const angle = Math.atan2(lZ, shiftedLX);
+
+                const halfPathWidth = zZone.width / 2;
+                if (
+                    Math.abs(distFromArcCenter - midRadius) <= (halfPathWidth + 0.1) &&
+                    angle >= -0.1 && angle <= Math.PI/2 + 0.1
+                ) {
+                    onZone = true;
+                }
+            } else if (zZone.shape === 'CURVED_RIGHT') {
+                const midRadius = zZone.length / 2;
+                const shiftedLX = lX - midRadius;
+                const distFromArcCenter = Math.sqrt(Math.pow(shiftedLX, 2) + Math.pow(lZ, 2)); 
+                const angle = Math.atan2(lZ, shiftedLX);
+
+                const halfPathWidth = zZone.width / 2;
+                if (
+                    Math.abs(distFromArcCenter - midRadius) <= (halfPathWidth + 0.1) &&
+                    angle >= Math.PI/2 - 0.1 && angle <= Math.PI + 0.1
+                ) {
+                    onZone = true;
+                }
             }
-        } else if (challengeId === 'c10') { 
-            if (Math.abs(cx) <= 1.25 && cz <= 0 && cz >= -15) {
-                sensorDetectedColor = "#64748b"; sensorIntensity = 40; sensorRawDecimalColor = 0x64748b;
+
+            if (onZone) {
+                sensorRawDecimalColor = zZone.color; 
+                const hexStr = "#" + sensorRawDecimalColor.toString(16).padStart(6, '0').toUpperCase();
+                
+                if (isColorClose(hexStr, CANONICAL_COLOR_MAP['red'])) { sensorDetectedColor = "red"; }
+                else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['blue'])) { sensorDetectedColor = "blue"; }
+                else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['green'])) { sensorDetectedColor = "green"; }
+                else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['yellow'])) { sensorDetectedColor = "yellow"; }
+                else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['orange'])) { sensorDetectedColor = "orange"; }
+                else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['purple'])) { sensorDetectedColor = "purple"; }
+                else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['cyan'])) { sensorDetectedColor = "cyan"; }
+                else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['magenta'])) { sensorDetectedColor = "magenta"; }
+                else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['black'])) { sensorDetectedColor = "black"; }
+                else if (isColorClose(hexStr, CANONICAL_COLOR_MAP['white'])) { sensorDetectedColor = "white"; }
+                else { 
+                  sensorDetectedColor = hexStr;
+                }
+                break; 
             }
-        } else if (challengeId === 'c18') {
-            if (Math.abs(cx) <= 2.1 && cz <= -17.25 && cz >= -17.75) {
-                sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000;
+        }
+
+        // Hardcoded Logic for standard challenges (fallback or overrides)
+        if (sensorDetectedColor === "white") {
+            if (challengeId === 'c21') { 
+                const dist = Math.sqrt(Math.pow(cx - (-6), 2) + Math.pow(cz - 0, 2));
+                if (Math.abs(dist - 6.0) <= 0.25) { sensorDetectedColor = "black"; sensorIntensity = 5; sensorRawDecimalColor = 0x000000; }
+            } else if (challengeId === 'c12') { 
+                const ex = cx - 0; const ez = cz - (-8);
+                const normDist = Math.sqrt(Math.pow(ex/9, 2) + Math.pow(ez/6, 2));
+                if (Math.abs(normDist - 1.0) <= 0.04) {
+                    sensorDetectedColor = "black"; sensorIntensity = 5; sensorRawDecimalColor = 0x000000;
+                    const angle = Math.atan2(ez, ex); 
+                    const deg = (angle * 180 / Math.PI + 360) % 360;
+                    const markerThreshold = 4.0;
+                    if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['red'], 0.1) || Math.abs(deg - 0) < markerThreshold || Math.abs(deg - 360) < markerThreshold) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
+                    else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['blue'], 0.1) || Math.abs(deg - 90) < markerThreshold) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
+                    else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['green'], 0.1) || Math.abs(deg - 180) < markerThreshold) { sensorDetectedColor = "green"; sensorIntensity = 50; sensorRawDecimalColor = 0x22C55E; }
+                    else if (isColorClose(sensorDetectedColor, CANONICAL_COLOR_MAP['yellow'], 0.1) || Math.abs(deg - 270) < markerThreshold) { sensorDetectedColor = "yellow"; sensorIntensity = 80; sensorRawDecimalColor = 0xFFFF00; }
+                }
+            } else if (challengeId === 'c10') { 
+                if (Math.abs(cx) <= 1.25 && cz <= 0 && cz >= -15) {
+                    sensorDetectedColor = "#64748b"; sensorIntensity = 40; sensorRawDecimalColor = 0x64748b;
+                }
+            } else if (challengeId === 'c18') {
+                if (Math.abs(cx) <= 2.1 && cz <= -17.25 && cz >= -17.75) {
+                    sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000;
+                }
+            } else if (challengeId === 'c15' || challengeId === 'c14') {
+                if (Math.abs(cx) <= 1.5 && cz <= -9.5 && cz >= -12.5) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
+                else if (Math.abs(cx) <= -3.5 && cz >= -6.5) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
             }
-        } else if (challengeId === 'c15' || challengeId === 'c14') {
-            if (Math.abs(cx) <= 1.5 && cz <= -9.5 && cz >= -12.5) { sensorDetectedColor = "blue"; sensorIntensity = 30; sensorRawDecimalColor = 0x0000FF; }
-            else if (Math.abs(cx) <= -3.5 && cz >= -6.5) { sensorDetectedColor = "red"; sensorIntensity = 40; sensorRawDecimalColor = 0xFF0000; }
         }
     }
 
@@ -333,7 +372,7 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     }
     
     let distance = 255;
-    const ultrasonicStartDist = 1.1; 
+    const ultrasonicStartDist = 1.5;
     const scanStep = 0.05;
     for (let d = 0; d < 40.0; d += scanStep) {
         const rayPos = getPointWorldPos(0, ultrasonicStartDist + d);
@@ -386,6 +425,8 @@ const App: React.FC = () => {
   const executionId = useRef(0);
   const [numpadConfig, setNumpadConfig] = useState<{isOpen: boolean, value: number, onConfirm: (val: number) => void, position: PlainDOMRect | null}>({ isOpen: false, value: 0, onConfirm: () => {}, position: null });
   const [toast, setToast] = useState<{message: string, type: 'success' | 'info' | 'error'} | null>(null);
+  const [svgPixelData, setSvgPixelData] = useState<Uint8ClampedArray | null>(null);
+  const [svgConfig, setSvgConfig] = useState<SvgConfig | undefined>(undefined);
   
   const [activeDrawing, setActiveDrawing] = useState<ContinuousDrawing | null>(null);
   const [completedDrawings, setCompletedDrawings] = useState<ContinuousDrawing[]>([]);
@@ -399,6 +440,40 @@ const App: React.FC = () => {
 
   const showToast = useCallback((message: string, type: 'success' | 'info' | 'error' = 'success') => { setToast({ message, type }); setTimeout(() => setToast(null), 4000); }, []);
 
+  // SVG Loader Effect
+  useEffect(() => {
+    if (activeChallenge?.svgMap) {
+        const { svgString, worldWidth, worldHeight } = activeChallenge.svgMap;
+        const img = new Image();
+        const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(svgBlob);
+        
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 960; // Fixed resolution for analysis
+            canvas.height = 720;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                setSvgPixelData(data);
+                setSvgConfig({
+                    width: canvas.width,
+                    height: canvas.height,
+                    pixelData: data,
+                    worldWidth,
+                    worldHeight
+                });
+            }
+            URL.revokeObjectURL(url);
+        };
+        img.src = url;
+    } else {
+        setSvgPixelData(null);
+        setSvgConfig(undefined);
+    }
+  }, [activeChallenge]);
+
   const handleReset = useCallback(() => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     executionId.current++; 
@@ -408,7 +483,7 @@ const App: React.FC = () => {
     const startZ = activeChallenge?.startPosition?.z ?? 0; 
     const startRot = activeChallenge?.startRotation ?? 180;
     
-    const sd_initial = calculateSensorReadings(startX, startZ, startRot, activeChallenge?.id, envObjs); 
+    const sd_initial = calculateSensorReadings(startX, startZ, startRot, activeChallenge?.id, envObjs, activeChallenge?.svgMap ? svgConfig : undefined); 
     const d = { ...robotRef.current, x: startX, y: sd_initial.y, z: startZ, rotation: startRot, motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', ledRightColor: 'black', tilt: sd_initial.tilt, roll: sd_initial.roll, penDown: false, isTouching: false };
     robotRef.current = d; 
     setRobotState(d); 
@@ -421,7 +496,7 @@ const App: React.FC = () => {
     historyRef.current = { maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 }; 
     listenersRef.current = { messages: {}, colors: [], obstacles: [], distances: [], variables: {} };
     if (controlsRef.current) { controlsRef.current.reset(); setCameraMode('HOME'); }
-  }, [activeChallenge]);
+  }, [activeChallenge, svgConfig]);
 
   useEffect(() => { handleReset(); }, [activeChallenge, handleReset]);
 
@@ -430,23 +505,23 @@ const App: React.FC = () => {
     if (editorTool === 'ROBOT_MOVE') {
       isPlacingRobot.current = true;
       const point = e.point;
-      const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
+      const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig);
       const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll };
       robotRef.current = next;
       setRobotState(next);
     }
-  }, [editorTool, activeChallenge, customObjects]);
+  }, [editorTool, activeChallenge, customObjects, svgConfig]);
 
   const handlePointerMove = useCallback((e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (isPlacingRobot.current && editorTool === 'ROBOT_MOVE') {
       const point = e.point;
-      const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects);
+      const sd = calculateSensorReadings(point.x, point.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig);
       const next = { ...robotRef.current, x: point.x, z: point.z, y: sd.y, tilt: sd.tilt, roll: sd.roll };
       robotRef.current = next;
       setRobotState(next);
     }
-  }, [editorTool, activeChallenge, customObjects]);
+  }, [editorTool, activeChallenge, customObjects, svgConfig]);
 
   const handlePointerUp = useCallback((e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
@@ -513,8 +588,6 @@ const App: React.FC = () => {
       },
       wait: (ms: number) => new Promise((resolve, reject) => { const t = setTimeout(resolve, ms); controller.signal.addEventListener('abort', () => { clearTimeout(t); reject(new Error("Simulation aborted")); }, { once: true }); }),
       setMotorPower: async (left: number, right: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: left, motorRightSpeed: right }; },
-      setLeftMotorPower: async (power: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: power }; },
-      setRightMotorPower: async (power: number) => { checkAbort(); robotRef.current = { ...robotRef.current, motorRightSpeed: power }; },
       setSpeed: async (s: number) => { checkAbort(); robotRef.current.speed = s; },
       stop: async () => { checkAbort(); robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 }; },
       setPen: async (down: boolean) => { 
@@ -537,13 +610,13 @@ const App: React.FC = () => {
         setActiveDrawing(null);
         activeDrawingRef.current = null;
       },
-      getDistance: async () => { checkAbort(); return calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects).distance; },
-      getTouch: async () => { checkAbort(); return calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects).isTouching; },
-      getGyro: async (mode: 'ANGLE' | 'TILT') => { checkAbort(); const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects); return mode === 'TILT' ? sd.tilt : sd.gyro; },
-      getColor: async () => { checkAbort(); return calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects).color; },
+      getDistance: async () => { checkAbort(); return calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig).distance; },
+      getTouch: async () => { checkAbort(); return calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig).isTouching; },
+      getGyro: async (mode: 'ANGLE' | 'TILT') => { checkAbort(); const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig); return mode === 'TILT' ? sd.tilt : sd.gyro; },
+      getColor: async () => { checkAbort(); return calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig).color; },
       isTouchingColor: async (hex: string) => { 
         checkAbort(); 
-        const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects); 
+        const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig); 
         let detectedColorToCompare = sd.color;
         return isColorClose(detectedColorToCompare, hex); 
       },
@@ -563,7 +636,7 @@ const App: React.FC = () => {
     } catch (e: any) { 
         if (e.message !== "Simulation aborted") { console.error(e); setIsRunning(false); } 
     }
-  }, [isRunning, generatedCode, activeChallenge, customObjects]);
+  }, [isRunning, generatedCode, activeChallenge, customObjects, svgConfig]);
 
   useEffect(() => {
     let interval: any; 
@@ -579,7 +652,7 @@ const App: React.FC = () => {
         const rV = (pR - pL) * BASE_TURN_SPEED * f;
         
         let fV_adjusted = fV_raw;
-        const sd_current_for_tilt = calculateSensorReadings(current.x, current.z, current.rotation, activeChallenge?.id, customObjects);
+        const sd_current_for_tilt = calculateSensorReadings(current.x, current.z, current.rotation, activeChallenge?.id, customObjects, svgConfig);
         const currentTilt = sd_current_for_tilt.tilt;
 
         if (Math.abs(currentTilt) > 3) {
@@ -600,12 +673,12 @@ const App: React.FC = () => {
         const nx_potential = current.x + Math.sin(nr_potential * Math.PI / 180) * fV_adjusted; 
         const nz_potential = current.z + Math.cos(nr_potential * Math.PI / 180) * fV_adjusted; 
         
-        const sd_predicted = calculateSensorReadings(nx_potential, nz_potential, nr_potential, activeChallenge?.id, customObjects);
+        const sd_predicted = calculateSensorReadings(nx_potential, nz_potential, nr_potential, activeChallenge?.id, customObjects, svgConfig);
         
         const finalX = sd_predicted.physicalHit ? current.x : nx_potential; 
         const finalZ = sd_predicted.physicalHit ? current.z : nz_potential;
         
-        const sd_final = calculateSensorReadings(finalX, finalZ, nr_potential, activeChallenge?.id, customObjects);
+        const sd_final = calculateSensorReadings(finalX, finalZ, nr_potential, activeChallenge?.id, customObjects, svgConfig);
 
         const next = { 
           ...current, 
@@ -693,18 +766,10 @@ const App: React.FC = () => {
           activeDrawingRef.current = null;
       }
     };
-  }, [isRunning, customObjects, activeChallenge, challengeSuccess, showToast]);
+  }, [isRunning, customObjects, activeChallenge, challengeSuccess, showToast, svgConfig]);
 
   const stageColors = useMemo(() => {
     const colors = new Set<string>();
-    colors.add('#FFFFFF'); 
-    const cid = activeChallenge?.id || '';
-    if (['c10', 'c10_lines', 'c11', 'c9', 'c1', 'c14', 'c15', 'c18', 'c_winding_path'].includes(cid)) {
-        colors.add('#64748b'); 
-    }
-    if (cid === 'c21' || cid === 'c12' || cid === 'c_snake_path') {
-        colors.add('#000000'); 
-    }
     const allObjects = [...(activeChallenge?.environmentObjects || []), ...customObjects];
     allObjects.forEach(obj => {
         if (obj.color) {
@@ -721,7 +786,7 @@ const App: React.FC = () => {
       }
   }, [stageColors]);
 
-  const sensorReadings = useMemo(() => calculateSensorReadings(robotState.x, robotState.z, robotState.rotation, activeChallenge?.id, customObjects), [robotState.x, robotState.z, robotState.rotation, activeChallenge, customObjects]);
+  const sensorReadings = useMemo(() => calculateSensorReadings(robotState.x, robotState.z, robotState.rotation, activeChallenge?.id, customObjects, svgConfig), [robotState.x, robotState.z, robotState.rotation, activeChallenge, customObjects, svgConfig]);
 
   const orbitControlsProps = useMemo(() => {
     let props: any = {
@@ -737,6 +802,7 @@ const App: React.FC = () => {
       minDistance: 1.2,
       maxDistance: 60,
     };
+
     if (editorTool === 'PAN') {
       props.enablePan = true;
       props.enableRotate = false;
@@ -749,6 +815,7 @@ const App: React.FC = () => {
       props.enablePan = false;
       props.enableRotate = false;
     }
+
     if (cameraMode === 'TOP') {
       props.enableRotate = false; 
       props.minPolarAngle = 0;    
@@ -769,6 +836,7 @@ const App: React.FC = () => {
         RIGHT: THREE.MOUSE.DOLLY 
       };
     }
+
     return props;
   }, [editorTool, cameraMode]);
 
@@ -790,6 +858,7 @@ const App: React.FC = () => {
       controlsRef.current.update();
     }
   }, [cameraMode, controlsRef]);
+
 
   const openPythonView = () => {
     if (blocklyEditorRef.current) {
@@ -817,111 +886,400 @@ const App: React.FC = () => {
           <span className="font-bold text-sm">{toast.message}</span>
         </div>
       )}
+      
       <header className="bg-slate-900 text-white p-3 flex justify-between items-center shadow-lg z-10 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-1.5 rounded-lg shadow-inner"><Code2 className="w-5 h-5 text-white" /></div>
+          <div className="bg-blue-600 p-1.5 rounded-lg shadow-inner">
+            <Code2 className="w-5 h-5 text-white" />
+          </div>
           <h1 className="text-lg font-bold hidden sm:block tracking-tight text-slate-100">Virtual Robotics Lab</h1>
         </div>
+        
         <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-sm">
-          <button onClick={handleRun} disabled={isRunning || startBlockCount === 0} className={`flex items-center justify-center w-11 h-11 rounded-xl font-bold transition-all transform active:scale-95 ${isRunning || startBlockCount === 0 ? 'bg-slate-700/50 text-slate-600' : 'bg-green-600 text-white hover:bg-green-500'}`} title="Run Program"><Flag size={20} fill={(isRunning || startBlockCount === 0) ? "none" : "currentColor"} /></button>
-          <button onClick={handleReset} className="flex items-center justify-center w-11 h-11 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-all transform active:scale-95 shadow-md active:shadow-none" title="Reset"><RotateCcw size={22} strokeWidth={2.5} /></button>
-          <div className="w-px h-6 bg-slate-700 mx-1"></div>
-          <button onClick={() => setIsRulerActive(!isRulerActive)} className={`flex items-center justify-center w-11 h-11 rounded-xl font-bold transition-all transform active:scale-95 ${isRulerActive ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`} title="Ruler Tool"><Ruler size={20} /></button>
-          <div className="w-px h-6 bg-slate-700 mx-1"></div>
-          <button onClick={() => setProjectModal({ isOpen: true, mode: 'save' })} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Save Project"><Save size={20} /></button>
-          <button onClick={() => setProjectModal({ isOpen: true, mode: 'load' })} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Open Project"><FolderOpen size={20} /></button>
-          <div className="w-px h-6 bg-slate-700 mx-1"></div>
-          <button onClick={openPythonView} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Python Code"><Terminal size={20} /></button>
           <button 
-            onClick={() => setShowHelp(true)} 
-            className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" 
-            title="Help Documentation"
+            onClick={handleRun} 
+            disabled={isRunning || startBlockCount === 0} 
+            className={`flex items-center justify-center w-11 h-11 rounded-xl font-bold transition-all transform active:scale-95 ${isRunning || startBlockCount === 0 ? 'bg-slate-700/50 text-slate-600' : 'bg-green-600 text-white hover:bg-green-500'}`}
+            title="Run Program"
           >
-            <HelpCircle size={20} />
+            <Flag size={20} fill={(isRunning || startBlockCount === 0) ? "none" : "currentColor"} />
+          </button>
+          
+          <button 
+            onClick={handleReset} 
+            className="flex items-center justify-center w-11 h-11 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-all transform active:scale-95 shadow-md active:shadow-none"
+            title="Reset"
+          >
+            <RotateCcw size={22} strokeWidth={2.5} />
+          </button>
+          
+          <div className="w-px h-6 bg-slate-700 mx-1"></div>
+          
+          <button 
+            onClick={() => setIsRulerActive(!isRulerActive)} 
+            className={`flex items-center justify-center w-11 h-11 rounded-xl font-bold transition-all transform active:scale-95 ${isRulerActive ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}
+            title="Ruler Tool"
+          >
+            <Ruler size={20} />
+          </button>
+          
+          <div className="w-px h-6 bg-slate-700 mx-1"></div>
+          
+          <button 
+            onClick={() => setProjectModal({ isOpen: true, mode: 'save' })}
+            className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95"
+            title="Save Project"
+          >
+            <Save size={20} />
+          </button>
+
+          <button 
+            onClick={() => setProjectModal({ isOpen: true, mode: 'load' })}
+            className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95"
+            title="Open Project"
+          >
+            <FolderOpen size={20} />
+          </button>
+          
+          <div className="w-px h-6 bg-slate-700 mx-1"></div>
+
+          <button 
+            onClick={openPythonView}
+            className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95"
+            title="Python Code"
+          >
+            <Terminal size={20} />
           </button>
         </div>
-        <button onClick={() => setShowChallenges(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${activeChallenge ? 'bg-yellow-500 text-slate-900 hover:bg-yellow-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}><Trophy size={16} /> {activeChallenge ? activeChallenge.title : "Challenges"}</button>
+        
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setShowHelp(true)} 
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl text-sm font-bold transition-all active:scale-95"
+            title="Open Help"
+          >
+            <HelpCircle size={16} />
+            Help
+          </button>
+          
+          <button 
+            onClick={() => setShowChallenges(true)} 
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${activeChallenge ? 'bg-yellow-500 text-slate-900 hover:bg-yellow-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+          >
+            <Trophy size={16} /> 
+            {activeChallenge ? activeChallenge.title : "Challenges"}
+          </button>
+        </div>
       </header>
+      
       <main className="flex flex-1 overflow-hidden relative">
         <div className="w-1/2 relative flex flex-col bg-white text-left text-sm border-r border-slate-200">
           <div className="bg-slate-50 border-b p-2 flex justify-between items-center shrink-0">
-            <div className="flex items-center gap-2"><Code2 size={18} className="text-slate-400" /><span className="font-bold text-slate-600 uppercase tracking-tight">Workspace</span></div>
-          </div>
-          <div className="flex-1 relative">
-            <BlocklyEditor ref={blocklyEditorRef} onCodeChange={useCallback((code, count) => { setGeneratedCode(code); setStartBlockCount(count); }, [])} visibleVariables={visibleVariables} onToggleVariable={useCallback((n) => setVisibleVariables(v => { const next = new Set(v); if (next.has(n)) next.delete(n); else next.add(n); return next; }), [])} onShowNumpad={showBlocklyNumpad} />
-          </div>
-        </div>
-        <div className="w-1/2 relative bg-slate-900 overflow-hidden">
-          <div className="absolute top-4 left-4 z-50 flex flex-col gap-2 pointer-events-none">{Array.from(visibleVariables).map((varName) => { const value = monitoredValues[varName] ?? 0; return (<div key={varName} className="bg-[#FF8C1A] text-white rounded-lg px-3 py-1 flex items-center gap-3 text-sm font-bold shadow-lg border-2 border-white/20 pointer-events-auto"><span>{varName}</span><span className="bg-white/30 rounded px-2 py-0.5 min-w-[4rem] text-center font-mono">{typeof value === 'number' ? value.toFixed(2) : String(value)}</span></div>); })}</div>
-          <div className="absolute top-4 right-4 z-50 flex flex-col gap-3">
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 p-1 flex flex-col overflow-hidden">
-              <button onClick={() => { setCameraMode('HOME'); }} className="p-3 text-blue-600 hover:bg-slate-50 transition-all rounded-xl active:scale-95" title="Reset Camera"><Home size={22} /></button>
-              <div className="h-px bg-slate-100 mx-2 my-0.5" />
-              <button onClick={() => setCameraMode(prev => prev === 'TOP' ? 'HOME' : 'TOP')} className={`p-3 transition-all rounded-xl active:scale-95 ${cameraMode === 'TOP' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Top View"><Eye size={22} /></button>
-              <button onClick={() => setCameraMode(prev => prev === 'FOLLOW' ? 'HOME' : 'FOLLOW')} className={`p-3 transition-all rounded-xl active:scale-95 ${cameraMode === 'FOLLOW' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Follow Camera"><Target size={22} /></button>
-              <div className="h-px bg-slate-100 mx-2 my-0.5" />
-              <button onClick={() => { controlsRef.current?.dollyIn(0.9); controlsRef.current?.update(); }} className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95" title="Zoom In"><ZoomIn size={22} /></button>
-              <button onClick={() => { controlsRef.current?.dollyOut(0.9); controlsRef.current?.update(); }} className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95" title="Zoom Out"><ZoomOut size={22} /></button>
-              <div className="h-px bg-slate-100 mx-2 my-0.5" />
-              <button onClick={() => setEditorTool(prev => prev === 'PAN' ? 'NONE' : 'PAN')} className={`p-3 transition-all rounded-xl active:scale-95 ${editorTool === 'PAN' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Pan Tool (Left Mouse)"><Hand size={22} /></button>
-              <button onClick={() => setEditorTool('NONE')} className={`p-3 transition-all rounded-xl active:scale-95 ${editorTool === 'NONE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Rotate Tool (Left Mouse)"><Move size={22} /></button>
-              <button onClick={() => setEditorTool(prev => prev === 'ROBOT_MOVE' ? 'NONE' : 'ROBOT_MOVE')} className={`p-3 transition-all rounded-xl active:scale-95 ${editorTool === 'ROBOT_MOVE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Move Robot Position"><Bot size={22} /></button>
+            <div className="flex items-center gap-2">
+              <Code2 size={18} className="text-slate-400" />
+              <span className="font-bold text-slate-600 uppercase tracking-tight">Workspace</span>
             </div>
           </div>
-          <SensorDashboard distance={sensorReadings.distance} isTouching={sensorReadings.isTouching} gyroAngle={sensorReadings.gyro} tiltAngle={sensorReadings.tilt} detectedColor={sensorReadings.color} lightIntensity={sensorReadings.intensity} />
-          <Canvas shadows camera={{ position: [10, 10, 10], fov: 45 }}>
-            <SimulationEnvironment challengeId={activeChallenge?.id} customObjects={customObjects} robotState={robotState} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} />
-            {completedDrawings.map((path) => (<Line key={path.id} points={path.points} color={path.color} lineWidth={4} />))}
-            {activeDrawing && activeDrawing.points.length > 1 && (<Line key={activeDrawing.id} points={activeDrawing.points} color={activeDrawing.color} lineWidth={4} />)}
+          <div className="flex-1 relative">
+            <BlocklyEditor 
+              ref={blocklyEditorRef} 
+              onCodeChange={useCallback((code, count) => { setGeneratedCode(code); setStartBlockCount(count); }, [])} 
+              visibleVariables={visibleVariables} 
+              onToggleVariable={useCallback((n) => setVisibleVariables(v => { const next = new Set(v); if (next.has(n)) next.delete(n); else next.add(n); return next; }), [])} 
+              onShowNumpad={showBlocklyNumpad}
+            />
+          </div>
+        </div>
+        
+        <div className="w-1/2 relative bg-slate-900 overflow-hidden">
+          <div className="absolute top-4 left-4 z-50 flex flex-col gap-2 pointer-events-none">
+            {Array.from(visibleVariables).map((varName) => {
+              const value = monitoredValues[varName] ?? 0;
+              return (
+                <div key={varName} className="bg-[#FF8C1A] text-white rounded-lg px-3 py-1 flex items-center gap-3 text-sm font-bold shadow-lg border-2 border-white/20 pointer-events-auto">
+                  <span>{varName}</span>
+                  <span className="bg-white/30 rounded px-2 py-0.5 min-w-[4rem] text-center font-mono">
+                    {typeof value === 'number' ? value.toFixed(2) : String(value)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="absolute top-4 right-4 z-50 flex flex-col gap-3">
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 p-1 flex flex-col overflow-hidden">
+              <button 
+                onClick={() => { setCameraMode('HOME'); }} 
+                className="p-3 text-blue-600 hover:bg-slate-50 transition-all rounded-xl active:scale-95" 
+                title="Reset Camera"
+              >
+                <Home size={22} />
+              </button>
+              
+              <div className="h-px bg-slate-100 mx-2 my-0.5" />
+              
+              <button 
+                onClick={() => setCameraMode(prev => prev === 'TOP' ? 'HOME' : 'TOP')} 
+                className={`p-3 transition-all rounded-xl active:scale-95 ${cameraMode === 'TOP' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} 
+                title="Top View"
+              >
+                <Eye size={22} />
+              </button>
+
+              <button 
+                onClick={() => setCameraMode(prev => prev === 'FOLLOW' ? 'HOME' : 'FOLLOW')} 
+                className={`p-3 transition-all rounded-xl active:scale-95 ${cameraMode === 'FOLLOW' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} 
+                title="Follow Camera"
+              >
+                <Target size={22} />
+              </button>
+              
+              <div className="h-px bg-slate-100 mx-2 my-0.5" />
+
+              <button
+                onClick={() => {
+                  controlsRef.current?.dollyIn(0.9);
+                  controlsRef.current?.update();
+                }}
+                className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95"
+                title="Zoom In"
+              >
+                <ZoomIn size={22} />
+              </button>
+
+              <button
+                onClick={() => {
+                  controlsRef.current?.dollyOut(0.9);
+                  controlsRef.current?.update();
+                }}
+                className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95"
+                title="Zoom Out"
+              >
+                <ZoomOut size={22} />
+              </button>
+
+              <div className="h-px bg-slate-100 mx-2 my-0.5" />
+              
+              <button 
+                onClick={() => setEditorTool(prev => prev === 'PAN' ? 'NONE' : 'PAN')} 
+                className={`p-3 transition-all rounded-xl active:scale-95 ${editorTool === 'PAN' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} 
+                title="Pan Tool (Left Mouse)"
+              >
+                <Hand size={22} />
+              </button>
+              
+              <button 
+                onClick={() => setEditorTool('NONE')} 
+                className={`p-3 transition-all rounded-xl active:scale-95 ${editorTool === 'NONE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} 
+                title="Rotate Tool (Left Mouse)"
+              >
+                <Move size={22} />
+              </button>
+              
+              <button 
+                onClick={() => setEditorTool(prev => prev === 'ROBOT_MOVE' ? 'NONE' : 'ROBOT_MOVE')} 
+                className={`p-3 transition-all rounded-xl active:scale-95 ${editorTool === 'ROBOT_MOVE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} 
+                title="Move Robot Position"
+              >
+                <Bot size={22} />
+              </button>
+            </div>
+          </div>
+          
+          <SensorDashboard 
+            distance={sensorReadings.distance} 
+            isTouching={sensorReadings.isTouching} 
+            gyroAngle={sensorReadings.gyro} 
+            tiltAngle={sensorReadings.tilt} 
+            detectedColor={sensorReadings.color} 
+            lightIntensity={sensorReadings.intensity} 
+          />
+          
+          <Canvas 
+            shadows 
+            camera={{ position: [10, 10, 10], fov: 45 }}
+          >
+            <SimulationEnvironment 
+              challengeId={activeChallenge?.id} 
+              customObjects={customObjects} 
+              robotState={robotState} 
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              svgMap={activeChallenge?.svgMap}
+            />
+            {completedDrawings.map((path) => (
+                <Line key={path.id} points={path.points} color={path.color} lineWidth={4} />
+            ))}
+            {activeDrawing && activeDrawing.points.length > 1 && (
+                <Line key={activeDrawing.id} points={activeDrawing.points} color={activeDrawing.color} lineWidth={4} />
+            )}
             <Robot3D state={robotState} isPlacementMode={editorTool === 'ROBOT_MOVE'} />
-            <OrbitControls ref={controlsRef} makeDefault {...orbitControlsProps} />
+            <OrbitControls 
+              ref={controlsRef} 
+              makeDefault 
+              {...orbitControlsProps}
+            />
             <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />
             {isRulerActive && <RulerTool />}
           </Canvas>
         </div>
       </main>
+      
       {isPythonModalOpen && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col border border-slate-700">
-            <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50"><h2 className="text-xl font-bold text-slate-100 flex items-center gap-3"><FileCode className="text-blue-400" /> Python Code Output</h2><button onClick={() => setIsPythonModalOpen(false)} className="p-2 hover:bg-slate-800 rounded-full text-slate-500 transition-colors"><X size={24} /></button></div>
-            <div className="flex-1 overflow-auto p-6 font-mono text-sm"><pre className="text-blue-300 whitespace-pre-wrap">{blocklyEditorRef.current?.getPythonCode()}</pre></div>
-            <div className="p-4 border-t border-slate-800 flex justify-end"><button onClick={() => { const code = blocklyEditorRef.current?.getPythonCode(); if (code) navigator.clipboard.writeText(code); showToast("Code copied to clipboard!", "success"); }} className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95">Copy Code</button></div>
+            <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+              <h2 className="text-xl font-bold text-slate-100 flex items-center gap-3">
+                <FileCode className="text-blue-400" /> Python Code Output
+              </h2>
+              <button 
+                onClick={() => setIsPythonModalOpen(false)} 
+                className="p-2 hover:bg-slate-800 rounded-full text-slate-500 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-6 font-mono text-sm">
+              <pre className="text-blue-300 whitespace-pre-wrap">
+                {blocklyEditorRef.current?.getPythonCode()}
+              </pre>
+            </div>
+            <div className="p-4 border-t border-slate-800 flex justify-end">
+              <button 
+                onClick={() => {
+                  const code = blocklyEditorRef.current?.getPythonCode();
+                  if (code) navigator.clipboard.writeText(code);
+                  showToast("Code copied to clipboard!", "success");
+                }}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95"
+              >
+                Copy Code
+              </button>
+            </div>
           </div>
         </div>
       )}
+
       {projectModal.isOpen && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-slate-200">
-            <div className="p-6 border-b flex justify-between items-center bg-slate-50"><h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">{projectModal.mode === 'save' ? <Save size={20} className="text-blue-600"/> : <FolderOpen size={20} className="text-orange-600"/>}{projectModal.mode === 'save' ? 'Save Project' : 'Load Project'}</h2><button onClick={() => setProjectModal({...projectModal, isOpen: false})} className="p-2 hover:bg-slate-200 rounded-full text-slate-400"><X size={24}/></button></div>
-            <div className="p-8 flex flex-col gap-6">{projectModal.mode === 'save' ? (<><p className="text-slate-500 text-sm">Download your workspace as a `.roby` file to save your progress locally.</p><button onClick={() => { const xml = blocklyEditorRef.current?.saveWorkspace(); if (xml) { const blob = new Blob([xml], {type: 'text/xml'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'robot-project.roby'; a.click(); showToast("Project saved successfully!", "success"); } setProjectModal({...projectModal, isOpen: false}); }} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg active:scale-95 transition-all">Download Project (.roby file)</button></>) : (<><p className="text-slate-500 text-sm">Choose a `.roby` or `.xml` file from your computer to restore a workspace.</p><input type="file" accept=".roby,.xml" className="hidden" id="project-upload" onChange={(e) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (re) => { const content = re.target?.result as string; blocklyEditorRef.current?.loadWorkspace(content); showToast("Project loaded successfully!", "success"); setProjectModal({...projectModal, isOpen: false}); }; reader.readAsText(file); } }} /><label htmlFor="project-upload" className="w-full py-3 bg-orange-500 hover:bg-orange-400 text-white rounded-xl font-bold shadow-lg text-center cursor-pointer active:scale-95 transition-all">Select File to Load</label></>)}</div>
+            <div className="p-6 border-b flex justify-between items-center bg-slate-50">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                {projectModal.mode === 'save' ? <Save size={20} className="text-blue-600"/> : <FolderOpen size={20} className="text-orange-600"/>}
+                {projectModal.mode === 'save' ? 'Save Project' : 'Load Project'}
+              </h2>
+              <button onClick={() => setProjectModal({...projectModal, isOpen: false})} className="p-2 hover:bg-slate-200 rounded-full text-slate-400"><X size={24}/></button>
+            </div>
+            <div className="p-8 flex flex-col gap-6">
+              {projectModal.mode === 'save' ? (
+                <>
+                  <p className="text-slate-500 text-sm">Download your workspace as a `.roby` file to save your progress locally.</p>
+                  <button 
+                    onClick={() => {
+                      const xml = blocklyEditorRef.current?.saveWorkspace();
+                      if (xml) {
+                        const blob = new Blob([xml], {type: 'text/xml'});
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'robot-project.roby';
+                        a.click();
+                        showToast("Project saved successfully!", "success");
+                      }
+                      setProjectModal({...projectModal, isOpen: false});
+                    }}
+                    className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg active:scale-95 transition-all"
+                  >
+                    Download Project (.roby file)
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-slate-500 text-sm">Choose a `.roby` or `.xml` file from your computer to restore a workspace.</p>
+                  <input 
+                    type="file" 
+                    accept=".roby,.xml" 
+                    className="hidden" 
+                    id="project-upload"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (re) => {
+                          const content = re.target?.result as string;
+                          blocklyEditorRef.current?.loadWorkspace(content);
+                          showToast("Project loaded successfully!", "success");
+                          setProjectModal({...projectModal, isOpen: false});
+                        };
+                        reader.readAsText(file);
+                      }
+                    }}
+                  />
+                  <label 
+                    htmlFor="project-upload"
+                    className="w-full py-3 bg-orange-500 hover:bg-orange-400 text-white rounded-xl font-bold shadow-lg text-center cursor-pointer active:scale-95 transition-all"
+                  >
+                    Select File to Load
+                  </label>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
-      <Numpad isOpen={numpadConfig.isOpen} initialValue={numpadConfig.value} onConfirm={(val) => { numpadConfig.onConfirm(val); setNumpadConfig(p => ({ ...p, isOpen: false })); }} onClose={() => setNumpadConfig(p => ({ ...p, isOpen: false }))} position={numpadConfig.position} />
+
+      <Numpad 
+        isOpen={numpadConfig.isOpen} 
+        initialValue={numpadConfig.value} 
+        onConfirm={(val) => { numpadConfig.onConfirm(val); setNumpadConfig(p => ({ ...p, isOpen: false })); }} 
+        onClose={() => setNumpadConfig(p => ({ ...p, isOpen: false }))} 
+        position={numpadConfig.position}
+      />
+      
+      {showHelp && <HelpCenter onClose={() => setShowHelp(false)} />}
+      
       {showChallenges && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border-4 border-slate-200">
-            <div className="p-6 border-b flex justify-between items-center bg-slate-50"><h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3"><Trophy className="text-yellow-500" /> Coding Challenges</h2><button onClick={() => setShowChallenges(false)} className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors"><X size={28} /></button></div>
+            <div className="p-6 border-b flex justify-between items-center bg-slate-50">
+              <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                <Trophy className="text-yellow-500" /> Coding Challenges
+              </h2>
+              <button 
+                onClick={() => setShowChallenges(false)} 
+                className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors"
+              >
+                <X size={28} />
+              </button>
+            </div>
             <div className="flex-1 overflow-y-auto p-6 bg-slate-100">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <button onClick={() => { setActiveChallenge(null); setShowChallenges(false); }} className={`p-5 rounded-3xl border-4 text-left transition-all hover:scale-[1.02] flex flex-col gap-3 group relative overflow-hidden ${activeChallenge === null ? 'border-blue-500 bg-white shadow-xl' : 'border-white bg-white hover:border-blue-300 shadow-md'}`}><h3 className={`font-bold text-lg z-10 transition-colors ${activeChallenge === null ? 'text-blue-600' : 'text-slate-800 group-hover:text-blue-600'}`}>Free Drive (No Mission)</h3><p className="text-sm text-slate-500 line-clamp-3 z-10">An open environment for free practice without predefined walls or tracks.</p></button>
-                {CHALLENGES.map((challenge) => (<button key={challenge.id} onClick={() => { setActiveChallenge(challenge); setShowChallenges(false); }} className={`p-5 rounded-3xl border-4 text-left transition-all hover:scale-[1.02] flex flex-col gap-3 group relative overflow-hidden ${activeChallenge?.id === challenge.id ? 'border-yellow-500 bg-white shadow-xl' : 'border-white bg-white hover:border-blue-300 shadow-md'}`}><h3 className={`font-bold text-lg z-10 transition-colors ${activeChallenge?.id === challenge.id ? 'text-yellow-600' : 'text-slate-800 group-hover:text-blue-600'}`}>{challenge.title}</h3><p className="text-sm text-slate-500 line-clamp-3 z-10">{challenge.description}</p></button>))}
+                <button 
+                  onClick={() => { setActiveChallenge(null); setShowChallenges(false); }} 
+                  className={`p-5 rounded-3xl border-4 text-left transition-all hover:scale-[1.02] flex flex-col gap-3 group relative overflow-hidden ${activeChallenge === null ? 'border-blue-500 bg-white shadow-xl' : 'border-white bg-white hover:border-blue-300 shadow-md'}`}
+                >
+                  <h3 className={`font-bold text-lg z-10 transition-colors ${activeChallenge === null ? 'text-blue-600' : 'text-slate-800 group-hover:text-blue-600'}`}>
+                    Free Drive (No Mission)
+                  </h3>
+                  <p className="text-sm text-slate-500 line-clamp-3 z-10">An open environment for free practice without predefined walls or tracks.</p>
+                </button>
+
+                {CHALLENGES.map((challenge) => (
+                  <button 
+                    key={challenge.id} 
+                    onClick={() => { setActiveChallenge(challenge); setShowChallenges(false); }} 
+                    className={`p-5 rounded-3xl border-4 text-left transition-all hover:scale-[1.02] flex flex-col gap-3 group relative overflow-hidden ${activeChallenge?.id === challenge.id ? 'border-yellow-500 bg-white shadow-xl' : 'border-white bg-white hover:border-blue-300 shadow-md'}`}
+                  >
+                    <h3 className={`font-bold text-lg z-10 transition-colors ${activeChallenge?.id === challenge.id ? 'text-yellow-600' : 'text-slate-800 group-hover:text-blue-600'}`}>
+                      {challenge.title}
+                    </h3>
+                    <p className="text-sm text-slate-500 line-clamp-3 z-10">{challenge.description}</p>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
-        </div>
-      )}
-      {showHelp && (
-        <div className="fixed inset-0 z-[2000000] bg-white overflow-hidden animate-in fade-in duration-300">
-            <div className="absolute top-4 right-6 z-[2000001]">
-                <button 
-                    onClick={() => setShowHelp(false)} 
-                    className="p-3 bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-all shadow-xl active:scale-90"
-                >
-                    <X size={28} />
-                </button>
-            </div>
-            <HelpCenter />
         </div>
       )}
     </div>
