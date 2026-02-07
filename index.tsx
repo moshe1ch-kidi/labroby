@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import MissionEditor from './components/MissionEditor';
+import MissionEditor from './components/MissionEditor.tsx';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -17,7 +17,7 @@ const RootComponent = () => {
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, []);
 
-    // Simple Router: If hash is #editor, show Editor. Otherwise show App.
+    // Simple Router
     if (route === '#editor') {
         return <MissionEditor />;
     }
