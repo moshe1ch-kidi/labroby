@@ -107,6 +107,7 @@ const HARDWARE_DETAILS: Record<string, HardwareDetail> = {
     }
 };
 
+// Fix: Defined helper components before the main component to avoid hoisting/children property missing errors in TS
 const BlockSection = ({ title, color, children }: { title: string, color: string, children: React.ReactNode }) => (
     <section>
         <div className="flex items-center gap-4 mb-8 border-b-4 pb-4" style={{ borderColor: color + '20' }}>
@@ -137,11 +138,7 @@ const BlockCard = ({ title, desc, img, color }: { title: string, desc: string, i
     </div>
 );
 
-interface HelpCenterProps {
-    onClose: () => void;
-}
-
-const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
+const HelpCenter: React.FC = () => {
     const [currentPage, setCurrentPage] = useState<HelpPage>('MENU');
     const [selectedHardware, setSelectedHardware] = useState<HardwareDetail | null>(null);
 
@@ -201,7 +198,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
     const renderHardwareModal = () => {
         if (!selectedHardware) return null;
         return (
-            <div className="fixed inset-0 z-[6000000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-[3000000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
                 <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in duration-300 flex flex-col border-4 border-emerald-500">
                     <div className={`p-8 bg-emerald-50 flex justify-between items-center border-b border-emerald-100`}>
                         <div className="flex items-center gap-4">
@@ -220,7 +217,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                             <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-3 flex items-center gap-2">
                                 <Activity size={16} /> How it works
                             </h3>
-                            <p className="text-slate-600 leading-relaxed text-xl">{selectedHardware.howItWorks}</p>
+                            <p className="text-slate-600 leading-relaxed text-lg">{selectedHardware.howItWorks}</p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -230,7 +227,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                                 </h3>
                                 <ul className="space-y-3">
                                     {selectedHardware.technicalData.map((data, i) => (
-                                        <li key={i} className="flex items-center gap-2 text-base font-bold text-slate-700">
+                                        <li key={i} className="flex items-center gap-2 text-sm font-bold text-slate-700">
                                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                             {data}
                                         </li>
@@ -242,7 +239,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                                 <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-4 flex items-center gap-2">
                                     <Target size={16} /> Pro Tip
                                 </h3>
-                                <p className="text-emerald-800 text-base font-bold leading-relaxed">
+                                <p className="text-emerald-800 text-sm font-bold leading-relaxed">
                                     {selectedHardware.programmingTip}
                                 </p>
                             </div>
@@ -270,7 +267,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                     <span className="bg-emerald-600 text-white p-2 rounded-2xl"><Cpu size={32} /></span>
                     Robot Hardware & Structure
                 </h1>
-                <p className="text-slate-500 mt-2 text-xl font-medium">Hardware technical manual for the virtual robot. <span className="font-bold text-emerald-600 underline underline-offset-4">Click any card to expand info.</span></p>
+                <p className="text-slate-500 mt-2 text-lg">Hardware technical manual for the virtual robot. <span className="font-bold text-emerald-600 underline underline-offset-4">Click any card to expand info.</span></p>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -285,7 +282,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                             </div>
                             <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        <p className="text-slate-600 text-sm md:text-base leading-relaxed">
+                        <p className="text-slate-600 text-xs leading-relaxed">
                             Independent Left and Right motors allow for differential steering. Power ranges from -100% to 100%.
                         </p>
                     </button>
@@ -300,7 +297,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                             </div>
                             <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        <p className="text-slate-600 text-sm md:text-base leading-relaxed">
+                        <p className="text-slate-600 text-xs leading-relaxed">
                             A red physical bumper at the very front tip. Returns <b>true</b> when pressed against a wall.
                         </p>
                     </button>
@@ -315,7 +312,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                             </div>
                             <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        <p className="text-slate-600 text-sm md:text-base leading-relaxed">
+                        <p className="text-slate-600 text-xs leading-relaxed">
                             <b>Located on the back-top part</b> (blue circle). It measures rotation angles and chassis tilt (pitch).
                         </p>
                     </button>
@@ -337,7 +334,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                     </div>
                     
                     <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 w-full text-center">
-                        <p className="text-blue-700 text-sm font-bold">
+                        <p className="text-blue-700 text-xs font-bold">
                             Official Robot Technical Architecture
                         </p>
                     </div>
@@ -354,7 +351,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                             </div>
                             <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        <p className="text-slate-600 text-sm md:text-base leading-relaxed">
+                        <p className="text-slate-600 text-xs leading-relaxed">
                             The "eyes" on the front face. Measures distance to objects in centimeters by bouncing sound waves.
                         </p>
                     </button>
@@ -369,7 +366,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                             </div>
                             <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        <p className="text-slate-600 text-sm md:text-base leading-relaxed">
+                        <p className="text-slate-600 text-xs leading-relaxed">
                             Pointed downwards under the front. It identifies floor colors and surface brightness for line-following.
                         </p>
                     </button>
@@ -384,7 +381,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                             </div>
                             <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        <p className="text-slate-600 text-sm md:text-base leading-relaxed">
+                        <p className="text-slate-600 text-xs leading-relaxed">
                             Two programmable LED lights on the top deck. Can be used for signaling or debugging logic states.
                         </p>
                     </button>
@@ -399,7 +396,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                             </div>
                             <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        <p className="text-slate-600 text-sm md:text-base leading-relaxed">
+                        <p className="text-slate-600 text-[10px] leading-relaxed">
                             The core processor that integrates all sensor data and executes your Blockly programs in real-time.
                         </p>
                     </button>
@@ -511,24 +508,11 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
     );
 
     return (
-        <div className="fixed inset-0 z-[5000000] bg-[#F8FAFC] font-sans selection:bg-blue-100 overflow-y-auto">
-            {/* Global Close Button */}
-            <div className="fixed top-6 right-6 z-[5000001]">
-                <button 
-                    onClick={onClose}
-                    className="p-4 bg-white/80 backdrop-blur-md hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-full transition-all active:scale-90 shadow-xl border border-slate-100 group"
-                    title="Close Help"
-                >
-                    <X size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
-                </button>
-            </div>
-
-            <div className="relative min-h-full">
-                {currentPage === 'MENU' && renderMenu()}
-                {currentPage === 'BLOCKS' && renderBlocks()}
-                {currentPage === 'CHALLENGES' && renderChallenges()}
-                {currentPage === 'STRUCTURE' && renderStructure()}
-            </div>
+        <div className="absolute inset-0 bg-[#F8FAFC] font-sans selection:bg-blue-100 overflow-y-auto">
+            {currentPage === 'MENU' && renderMenu()}
+            {currentPage === 'BLOCKS' && renderBlocks()}
+            {currentPage === 'CHALLENGES' && renderChallenges()}
+            {currentPage === 'STRUCTURE' && renderStructure()}
         </div>
     );
 };
