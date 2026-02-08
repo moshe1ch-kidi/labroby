@@ -24,16 +24,17 @@ const DEFAULT_ZONE: Partial<CustomObject> = { width: 2.5, length: 0.1, color: '#
 // --- 3D Scene Components ---
 
 // Renders the objects in the editor scene
-const EditorSceneObjects = ({ 
-    objects, 
-    selectedId, 
-    onSelect,
-    onDragStart
-}: { 
+// Fix: Use React.FC to properly handle React props in TypeScript
+const EditorSceneObjects: React.FC<{ 
     objects: CustomObject[], 
     selectedId: string | null, 
     onSelect: (id: string | null) => void,
     onDragStart: (id: string, e: ThreeEvent<PointerEvent>) => void
+}> = ({ 
+    objects, 
+    selectedId, 
+    onSelect,
+    onDragStart
 }) => {
     return (
         <group>
@@ -51,7 +52,8 @@ const EditorSceneObjects = ({
 };
 
 // Individual object mesh logic
-const EditorObjectMesh = ({ data, isSelected, onSelect, onDragStart }: { data: CustomObject, isSelected: boolean, onSelect: () => void, onDragStart: (e: ThreeEvent<PointerEvent>) => void }) => {
+// Fix: Use React.FC to properly handle React props like key in TypeScript
+const EditorObjectMesh: React.FC<{ data: CustomObject, isSelected: boolean, onSelect: () => void, onDragStart: (e: ThreeEvent<PointerEvent>) => void }> = ({ data, isSelected, onSelect, onDragStart }) => {
     const [hovered, setHover] = useState(false);
     useCursor(hovered);
 

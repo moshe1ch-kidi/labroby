@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Group, Vector3 } from 'three';
@@ -92,30 +91,20 @@ const RobotPen = ({ position, isDown, color }: { position: [number, number, numb
 };
 
 const TouchSensor = ({ position, pressed }: { position: [number, number, number], pressed: boolean }) => {
-    // When not pressed, the plunger group is at its default Z.
-    // When pressed, it moves back slightly along Z.
     const plungerPos = pressed ? -0.1 : 0; 
-
     return (
         <group position={position} userData={{ isRobotPart: true }}>
-            {/* Magenta connector piece, moved back to accommodate the new white box */}
             <mesh position={[0, 0.2, -0.4]} userData={{ isRobotPart: true }}>
                 <boxGeometry args={[0.4, 0.1, 0.4]} />
                 <meshStandardMaterial color={THEME.magenta} />
             </mesh>
-            
-            {/* White casing - this is now the main body of the sensor */}
             <group position={[0, -0.1, 0]} userData={{ isRobotPart: true }}>
                 <mesh castShadow userData={{ isRobotPart: true }}>
                     <boxGeometry args={[0.45, 0.4, 0.4]} />
                     <meshStandardMaterial color={THEME.white} roughness={0.2} />
                 </mesh>
             </group>
-            
-            {/* Red Plunger (the "tip") that protrudes from the white box */}
-            {/* The entire group moves back when pressed */}
             <group position={[0, -0.1, plungerPos]} userData={{ isRobotPart: true }}>
-                {/* The red tip itself, positioned to stick out from the white casing */}
                 <mesh position={[0, 0, 0.3]} castShadow>
                     <boxGeometry args={[0.25, 0.25, 0.25]} />
                     <meshStandardMaterial color="#CC0000" />
@@ -149,13 +138,17 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
   
   useFrame(() => {
     if (groupRef.current) {
-      // Set absolute position. Wheels are at 0 internally but group is shifted up by 0.6.
-      // So if state.y is 0, wheels touch 0.
-      // Add a small visual offset (0.02) to prevent clipping with the ground/ramps.
       groupRef.current.position.y = state.y + 0.02; 
       groupRef.current.position.x = state.x;
       groupRef.current.position.z = state.z;
-      groupRef.current.rotation.y = state.rotation * (Math.PI / 180);
+      
+      // FIX: Synchronize with Clockwise Compass Heading.
+      // Three.js rotation.y is Counter-Clockwise.
+      // Native model faces +Z (South). At heading 0 (North), it should face -Z (180 deg rotation).
+      // At heading 90 (East), it should face +X (90 deg CCW rotation from South).
+      // Formula: (180 - heading) maps CW heading to correct CCW Three.js Y rotation.
+      groupRef.current.rotation.y = (180 - state.rotation) * (Math.PI / 180);
+      
       groupRef.current.rotation.x = state.tilt * (Math.PI / 180);
       groupRef.current.rotation.z = state.roll * (Math.PI / 180);
     }
@@ -163,7 +156,6 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
 
   return (
     <group ref={groupRef} dispose={null} userData={{ isRobotPart: true }}>
-      {/* Visual center is shifted up by wheel radius (0.6) so ground contact is at y=0 */}
       <group position={[0, 0.6, 0]} userData={{ isRobotPart: true }}>
           {isPlacementMode && (
               <group position={[0, -0.6, 0]} userData={{ isRobotPart: true }}>
@@ -191,13 +183,11 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
           <LegoLight position={[0.6, 1.0, 0.9]} color={state.ledLeftColor} />
           <ColorSensor position={[0, -0.1, 0.9]} />
 
-          {/* ADDED: Larger, correctly positioned connecting beam for Touch Sensor */}
           <mesh position={[0, -0.2, 1.4]} castShadow userData={{ isRobotPart: true }}>
               <boxGeometry args={[0.4, 0.2, 0.6]} />
               <meshStandardMaterial color={THEME.darkGrey} />
           </mesh>
 
-          {/* שינוי מיקום חיישן המגע קדימה */}
           <TouchSensor position={[0, -0.2, 1.825]} pressed={state.isTouching} /> 
           <RobotPen position={[0, 0.1, -0.6]} isDown={state.penDown} color={state.penColor} />
           <group position={[0.6, 1.1, -0.5]} userData={{ isRobotPart: true }}>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { BookOpen, Trophy, ArrowLeft, Zap, Cpu, Hand, Palette, Eye, Compass, Info, Lightbulb, X, Activity, Target, Settings, PlusCircle, GraduationCap, MousePointer2, Ruler, Play, MoveVertical, Gauge, AlertTriangle, FastForward, Undo2, ChevronRight, Check, MoveHorizontal, RotateCw, RefreshCw, MoveRight, Layers, Navigation, CircleDot, Disc, MoveUp, MoveDown, Terminal, MousePointer } from 'lucide-react';
 
@@ -108,7 +107,7 @@ const HARDWARE_DETAILS: Record<string, HardwareDetail> = {
     }
 };
 
-const BlockSection = ({ title, color, children }: { title: string, color: string, children: React.ReactNode }) => (
+const BlockSection: React.FC<{ title: string, color: string, children: React.ReactNode }> = ({ title, color, children }) => (
     <section>
         <div className="flex items-center gap-4 mb-8 border-b-4 pb-4" style={{ borderColor: color + '20' }}>
             <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }} />
@@ -139,32 +138,56 @@ const BlockCard = ({ title, desc, img, color }: { title: string, desc: string, i
 );
 
 const PivotTurnDiagram = () => (
-    <div className="relative w-48 h-48 bg-white rounded-2xl border-2 border-indigo-100 flex items-center justify-center overflow-hidden shadow-inner">
-        <div className="w-24 h-32 bg-slate-100 border-2 border-slate-300 rounded-lg relative">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-indigo-500 rounded-full z-20 shadow-[0_0_10px_rgba(79,70,229,0.5)] animate-pulse" />
-            <div className="absolute top-1/4 -left-4 w-4 h-16 bg-slate-800 rounded-sm flex flex-col items-center justify-center">
-                <MoveDown className="text-red-400" size={14} />
-            </div>
-            <div className="absolute top-1/4 -right-4 w-4 h-16 bg-slate-800 rounded-sm flex flex-col items-center justify-center">
-                <MoveUp className="text-blue-400" size={14} />
-            </div>
-            <RotateCw className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-200" size={80} strokeWidth={1} />
-        </div>
+    <div className="relative w-64 h-64 md:w-80 md:h-80 bg-white rounded-[2rem] border-4 border-indigo-100 flex items-center justify-center overflow-hidden shadow-inner p-6">
+        <svg viewBox="0 0 200 200" className="w-full h-full">
+            <defs>
+                <marker id="arrow-head-blue" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#4C97FF" />
+                </marker>
+            </defs>
+            {/* Robot Base */}
+            <rect x="60" y="50" width="80" height="100" rx="12" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="3" />
+            
+            {/* Center of Rotation */}
+            <circle cx="100" cy="100" r="40" stroke="#ef4444" strokeWidth="2" strokeDasharray="6 4" fill="none" opacity="0.2" />
+            <circle cx="100" cy="100" r="8" fill="#ef4444" />
+            <text x="100" y="125" textAnchor="middle" fill="#ef4444" fontSize="10" fontWeight="bold">AXIS</text>
+
+            {/* Left Wheel Power Forward */}
+            <rect x="48" y="80" width="12" height="40" rx="3" fill="#1e293b" />
+            <path d="M35 120 L35 85" stroke="#4C97FF" strokeWidth="6" fill="none" markerEnd="url(#arrow-head-blue)" />
+            
+            {/* Right Wheel Power Backward */}
+            <rect x="140" y="80" width="12" height="40" rx="3" fill="#1e293b" />
+            <path d="M165 80 L165 115" stroke="#4C97FF" strokeWidth="6" fill="none" markerEnd="url(#arrow-head-blue)" />
+            
+            <text x="100" y="180" textAnchor="middle" fill="#64748b" fontSize="10" fontWeight="black">OPPOSITE POWER</text>
+        </svg>
     </div>
 );
 
 const SwingTurnDiagram = () => (
-    <div className="relative w-48 h-48 bg-white rounded-2xl border-2 border-amber-100 flex items-center justify-center overflow-hidden shadow-inner">
-        <div className="w-24 h-32 bg-slate-100 border-2 border-slate-300 rounded-lg relative origin-left">
-            <div className="absolute top-1/4 -left-4 w-4 h-16 bg-red-600 rounded-sm flex items-center justify-center">
-                <X className="text-white" size={12} strokeWidth={3} />
-            </div>
-            <div className="absolute top-1/4 -right-4 w-4 h-16 bg-slate-800 rounded-sm flex flex-col items-center justify-center">
-                <MoveUp className="text-blue-400" size={14} />
-            </div>
-            <div className="absolute top-1/2 -left-4 -translate-y-1/2 w-4 h-4 bg-red-500 rounded-full z-20 border-2 border-white shadow-md" />
-            <div className="absolute top-0 right-[-40px] w-48 h-48 border-4 border-dashed border-amber-300 rounded-full pointer-events-none -translate-y-1/2" />
-        </div>
+    <div className="relative w-64 h-64 md:w-80 md:h-80 bg-white rounded-[2rem] border-4 border-amber-100 flex items-center justify-center overflow-hidden shadow-inner p-6">
+        <svg viewBox="0 0 200 200" className="w-full h-full">
+            <defs>
+                <marker id="arrow-head-amber" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#FFAB19" />
+                </marker>
+            </defs>
+            {/* Robot Base */}
+            <rect x="60" y="70" width="80" height="100" rx="12" fill="#fffcf9" stroke="#fed7aa" strokeWidth="3" />
+            
+            {/* Left Wheel (STATIONARY - Center of Rotation) */}
+            <rect x="48" y="100" width="12" height="40" rx="3" fill="#ef4444" />
+            <circle cx="54" cy="120" r="10" fill="#ef4444" />
+            <text x="54" y="150" textAnchor="middle" fill="#ef4444" fontSize="10" fontWeight="bold">PIVOT</text>
+
+            {/* Right Wheel (DRIVING) */}
+            <rect x="140" y="100" width="12" height="40" rx="3" fill="#1e293b" />
+            <path d="M146 100 A90 90 0 0 0 54 10" stroke="#FFAB19" strokeWidth="6" fill="none" markerEnd="url(#arrow-head-amber)" />
+            
+            <text x="100" y="185" textAnchor="middle" fill="#92400e" fontSize="10" fontWeight="black">ONE MOTOR DRIVES</text>
+        </svg>
     </div>
 );
 
@@ -359,9 +382,9 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                         <section className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-sm">
                             <div className="flex items-center gap-4 mb-8">
                                 <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl"><RefreshCw size={28} /></div>
-                                <h3 className="text-3xl font-black text-slate-800">Rotation Physics</h3>
+                                <h3 className="text-3xl font-black text-slate-800">Point Turn vs. Swing Turn</h3>
                             </div>
-                            <p className="text-xl text-slate-600 leading-relaxed mb-12">Turning is more than just changing direction. Depending on how you spin the motors, the robot will follow a completely different path.</p>
+                            <p className="text-xl text-slate-600 leading-relaxed mb-12">Robots change direction using two main physical patterns. The difference is the <b>Center of Rotation</b> — the exact spot the robot spins around.</p>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 <div className="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-transparent hover:border-indigo-400 transition-all flex flex-col items-center">
                                     <div className="flex items-center justify-between gap-3 mb-6 w-full">
@@ -372,21 +395,21 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                                     </div>
                                     <PivotTurnDiagram />
                                     <div className="mt-8 space-y-6 w-full text-center">
-                                        <p className="text-lg text-slate-600">The robot rotates <b>on its own axis</b>. Achieved by spinning wheels in <b>opposite directions</b>.</p>
+                                        <p className="text-lg text-slate-600 font-medium">The robot rotates <b>on its own center</b>. The wheels move in <b>opposite directions</b> at the same power.</p>
                                         <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-indigo-700 font-bold text-sm text-left">
                                             ✔ Highest Precision <br/>
-                                            ✔ Used for tight corners & U-turns
+                                            ✔ Used for tight corners & "turning on a dime" <br/>
+                                            ✔ Zero turn radius
                                         </div>
-                                        <div className="space-y-3">
+                                        <div className="space-y-3 pt-6 border-t border-slate-200">
                                             <h5 className="text-xs font-black text-slate-400 uppercase flex items-center justify-center gap-2"><Terminal size={14}/> Recommended Block:</h5>
-                                            <div className="bg-white p-4 rounded-2xl shadow-sm border-2 border-indigo-100 inline-block">
+                                            <div className="bg-white p-4 rounded-2xl shadow-sm border-2 border-indigo-100 inline-block overflow-hidden">
                                                 <img 
-                                                    src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_turn_dgree_speed.svg" 
-                                                    className="h-14" 
-                                                    alt="Turn Block"
+                                                    src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/spinturn.svg" 
+                                                    className="h-20" 
+                                                    alt="Point Turn Block"
                                                 />
                                             </div>
-                                            <p className="text-[11px] text-slate-400 leading-tight italic">"This block handles the opposite motor directions automatically."</p>
                                         </div>
                                     </div>
                                 </div>
@@ -399,24 +422,21 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                                     </div>
                                     <SwingTurnDiagram />
                                     <div className="mt-8 space-y-6 w-full text-center">
-                                        <p className="text-lg text-slate-600">The robot swings around <b>one stationary wheel</b>. One motor drives while the other is stopped.</p>
+                                        <p className="text-lg text-slate-600 font-medium">The robot swings around <b>one stationary wheel</b>. One motor drives while the other is stopped.</p>
                                         <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 text-amber-700 font-bold text-sm text-left">
                                             ✔ Smooth wide curves <br/>
-                                            ✔ Great for circular tracks
+                                            ✔ Great for following circular tracks <br/>
+                                            ✔ Turn radius = robot width
                                         </div>
-                                        <div className="space-y-3">
+                                        <div className="space-y-3 pt-6 border-t border-slate-200">
                                             <h5 className="text-xs font-black text-slate-400 uppercase flex items-center justify-center gap-2"><Terminal size={14}/> Recommended Block:</h5>
-                                            <div className="bg-white p-4 rounded-2xl shadow-sm border-2 border-amber-100 inline-block space-y-2">
+                                            <div className="bg-white p-4 rounded-2xl shadow-sm border-2 border-amber-100 inline-block overflow-hidden">
                                                 <img 
-                                                    src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_setmotor.svg" 
-                                                    className="h-12" 
-                                                    alt="Set Motor Block"
+                                                    src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/swingturn.svg" 
+                                                    className="h-20" 
+                                                    alt="Swing Turn Block"
                                                 />
-                                                <div className="h-px bg-slate-100 w-full" />
-                                                <div className="text-[10px] font-bold text-slate-500 uppercase">Pro Tip:</div>
-                                                <p className="text-[11px] text-slate-600 font-medium">Set one motor power to <span className="text-blue-600">50%</span> and the other to <span className="text-red-500">0%</span>.</p>
                                             </div>
-                                            <p className="text-[11px] text-slate-400 leading-tight italic">"Direct motor control allows for custom turning radii."</p>
                                         </div>
                                     </div>
                                 </div>
@@ -508,22 +528,8 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                             </div>
                             <p className="text-xl text-slate-600 leading-relaxed mb-10">High-level robotics uses independent wheel control. By changing the speed of each motor, you create custom turns.</p>
                             
-                            <div className="bg-amber-50 p-6 rounded-3xl border-2 border-amber-200 mb-8 flex items-start gap-4 shadow-sm">
-                                <AlertTriangle className="text-amber-500 shrink-0 mt-1" size={24} />
-                                <div>
-                                    <h4 className="text-lg font-black text-amber-800 mb-1">Common Pitfall: The Sequential Override</h4>
-                                    <p className="text-amber-700 text-sm leading-relaxed">
-                                        Computer code executes in microseconds. If you call <b>"set_motor_power(40, 0)"</b> and then <b>"set_motor_power(0, -40)"</b>, the second line immediately tells the left motor to be 0 before it even started moving!
-                                        <br/><br/>
-                                        <b>Solution 1:</b> Set both motors in one command: <code>robot.set_motor_power(40, -40)</code>.
-                                        <br/>
-                                        <b>Solution 2:</b> Use the independent atomic functions: <code>robot.set_left_motor_power(40)</code> and <code>robot.set_right_motor_power(-40)</code>. These do NOT affect the other motor's state.
-                                    </p>
-                                </div>
-                            </div>
-
                             <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-200">
-                                <h4 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2"><MoveHorizontal size={24} className="text-red-500" /> motor power combinations</h4>
+                                <h4 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2"><MoveHorizontal size={24} className="text-red-500" /> Motor Power Combinations</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="bg-white p-6 rounded-2xl border shadow-sm text-center">
                                         <div className="text-xs font-black text-slate-400 mb-4">Left: 50 | Right: 10</div>
