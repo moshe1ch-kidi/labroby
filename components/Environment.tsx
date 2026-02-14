@@ -1,18 +1,18 @@
 
 import React, { useMemo, useEffect, useState } from 'react';
-import { Grid, Environment as DreiEnvironment, ContactShadows, Text, useTexture } from '@react-three/drei';
+import { Grid, Environment as DreiEnvironment, ContactShadows, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { CustomObject, RobotState } from '../types';
-import { ThreeEvent } from '@react-three/fiber'; // Import ThreeEvent here
+import { ThreeEvent } from '@react-three/fiber';
 
 interface EnvironmentProps {
     challengeId?: string;
     customObjects?: CustomObject[];
     selectedObjectId?: string | null;
     onObjectSelect?: (id: string) => void;
-    onPointerDown?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
-    onPointerMove?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
-    onPointerUp?: (e: ThreeEvent<MouseEvent>) => void; // Explicitly type
+    onPointerDown?: (e: ThreeEvent<PointerEvent>) => void; 
+    onPointerMove?: (e: ThreeEvent<PointerEvent>) => void; 
+    onPointerUp?: (e: ThreeEvent<PointerEvent>) => void; 
     robotState?: RobotState;
     svgMap?: { svgString: string, worldWidth: number, worldHeight: number };
 }
@@ -21,7 +21,7 @@ const EllipseMarker = ({ centerX, centerZ, radiusX, radiusZ, angle, width, color
     const x = radiusX * Math.cos(angle);
     const z = radiusZ * Math.sin(angle);
     const nx = x / (radiusX * radiusX);
-    const nz = z / (radiusZ / radiusZ); // Changed from radiusZ * radiusZ to radiusZ / radiusZ for ellipse normal calculation
+    const nz = z / (radiusZ * radiusZ);
     const rotation = Math.atan2(nx, -nz);
     return (
         <mesh name="challenge-marker" position={[centerX + x, 0.025, centerZ + z]} rotation={[-Math.PI / 2, 0, rotation]}>
@@ -159,7 +159,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
 
       {customObjects.map((obj) => {
           const isSelected = obj.id === selectedObjectId;
-          const handleSelect = (e: ThreeEvent<MouseEvent>) => { 
+          const handleSelect = (e: ThreeEvent<PointerEvent>) => { 
             e.stopPropagation(); 
             if (onObjectSelect) onObjectSelect(obj.id); 
           };
@@ -180,26 +180,21 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                             const h = obj.height || 1.0;
                             const slopeL = Math.sqrt(section * section + h * h);
                             const slopeAngle = Math.atan2(h, section);
-                            const t = 0.05; // Surface thickness
-                            
+                            const t = 0.05; 
                             return (
                                 <>
-                                    {/* Uphill surface */}
                                     <mesh rotation={[-slopeAngle, 0, 0]} position={[0, h/2, -section]}>
                                         <boxGeometry args={[obj.width, t, slopeL]} />
                                         <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
-                                    {/* Top flat surface */}
                                     <mesh position={[0, h, 0]}>
                                         <boxGeometry args={[obj.width, t, section]} />
                                         <meshStandardMaterial color={obj.color || "#475569"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
-                                    {/* Downhill surface */}
                                     <mesh rotation={[slopeAngle, 0, 0]} position={[0, h/2, section]}>
                                         <boxGeometry args={[obj.width, t, slopeL]} />
                                         <meshStandardMaterial color={obj.color || "#334155"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
-                                    {/* Fill body under the flat surface */}
                                     <mesh position={[0, h/2, 0]}>
                                         <boxGeometry args={[obj.width, h, section]} />
                                         <meshStandardMaterial color={obj.color || "#1e293b"} transparent opacity={(obj.opacity ?? 1) * 0.4} />

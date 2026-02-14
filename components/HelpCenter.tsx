@@ -1,1049 +1,742 @@
+
 import React, { useState } from 'react';
-import { BookOpen, Trophy, ArrowLeft, Zap, Cpu, Hand, Palette, Eye, Compass, Info, Lightbulb, X, Activity, Target, Settings, PlusCircle, GraduationCap, MousePointer2, Ruler, Play, MoveVertical, Gauge, AlertTriangle, FastForward, Undo2, ChevronRight, Check, MoveHorizontal, RotateCw, RefreshCw, MoveRight, Layers, Navigation, CircleDot, Disc, MoveUp, MoveDown, Terminal, MousePointer, Share2, GitCommitHorizontal, Route, ArrowRightLeft, Timer, Radar, FastForward as SpeedIcon, ZapOff, Sparkles, Target as TargetIcon, Waves } from 'lucide-react';
+import { BookOpen, Trophy, ArrowLeft, Zap, Cpu, Hand, Palette, Eye, Compass, Info, Lightbulb, X, Activity, Target, Settings, GraduationCap, Play, Gauge, Radar, CheckCircle2, ChevronRight, ChevronDown, Layers, Repeat, Variable, Star, LightbulbIcon, ArrowRight, ShieldCheck, Milestone, MoveHorizontal, RotateCw, Scaling, Flame, Waves, Fingerprint, ZapOff, Code, MonitorPlay, AlertTriangle, RotateCcw, Share2, Table, Projector } from 'lucide-react';
 
-type HelpPage = 'MENU' | 'BLOCKS' | 'CHALLENGES' | 'STRUCTURE' | 'COURSE';
-
-interface HardwareDetail {
-    id: string;
-    title: string;
-    icon: React.ReactNode;
-    color: string;
-    howItWorks: string;
-    technicalData: string[];
-    programmingTip: string;
-}
+type HelpPage = 'MENU' | 'BLOCKS' | 'CHALLENGES' | 'STRUCTURE' | 'COURSE' | 'UNIT_DETAIL';
 
 interface HelpCenterProps {
     onClose: () => void;
 }
 
-const HARDWARE_DETAILS: Record<string, HardwareDetail> = {
-    motors: {
-        id: 'motors',
-        title: 'Drive Motors',
-        icon: <Zap size={32} />,
-        color: 'blue',
-        howItWorks: 'The robot uses differential steering with two independent motors. By varying the power to each wheel, the robot can move forward, backward, or rotate on its axis.',
-        technicalData: [
-            'Power Range: -100% to 100%',
-            'Max Speed: Approx 20 cm/s',
-            'Independent Left/Right control'
+interface Mission {
+    id?: string;
+    title: string;
+    objective: string;
+    hint: string;
+    img?: string; // Field/Environment Image
+    imgCode?: string; // Specific Program/Code Image
+    video?: string;
+    placeholder?: string;
+    requiredChallenge?: string;
+}
+
+interface Unit {
+    id: number;
+    title: string;
+    subtitle: string;
+    description: string;
+    details: string;
+    technicalConcepts: { title: string, content: string }[];
+    color: string;
+    icon: React.ReactNode;
+    lessons: { title: string, description: string }[];
+    missions?: Mission[];
+    keyBlocks: string[];
+}
+
+const COURSE_UNITS: Unit[] = [
+    {
+        id: 1,
+        title: "Basics of Motion",
+        subtitle: "Differential Steering & Power",
+        description: "Understanding how two independent motors create complex movement.",
+        details: "At the heart of our robot is a Differential Drive system. By controlling the power to the left and right wheels separately, we can move forward, curve, or spin on the spot.",
+        technicalConcepts: [
+            { title: "System Outputs", content: "A robot's 'Output' is any way it interacts with its environment. In this lab, we focus on Kinetic Output (Motors), Visual Output (LEDs), and Sound Output (Buzzer)." },
+            { title: "Input Parameters", content: "Blocks aren't just commands; they are templates. Each parameter (Speed, Distance, Direction) is a specific variable that defines how the command is executed." }
         ],
-        programmingTip: 'To turn right in place, set Left Motor to 50 and Right Motor to -50.'
-    },
-    touch: {
-        id: 'touch',
-        title: 'Touch Sensor',
-        icon: <Hand size={32} />,
-        color: 'pink',
-        howItWorks: 'A physical bumper connected to a microswitch. When the red tip hits a wall, the circuit closes and sends a "True" signal to the brain.',
-        technicalData: [
-            'Type: Digital (On/Off)',
-            'Trigger: 0.1cm compression',
-            'Location: Front bumper'
+        color: "#4C97FF",
+        icon: <Play size={32} fill="currentColor" />,
+        lessons: [
+            { title: "Kinetic & Visual Outputs", description: "Discover how the robot communicates using three main outputs: Physical Motion (Motors), Visual Signals (LEDs), and Acoustic Feedback (Buzzer)." },
+            { title: "Block Input Parameters", description: "Learn to configure the 'Arguments' of a block. You must define Velocity (Speed), Displacement (Distance), and Heading (Direction) to achieve your goals." },
+            { title: "Dual-Motor Architecture", description: "Deep dive into the independent Left and Right motor setup. Understand how differing power levels between the two wheels create turns, curves, and pivots." }
         ],
-        programmingTip: 'Always use a "wait until touch sensor pressed" block for the most reliable wall detection.'
-    },
-    gyro: {
-        id: 'gyro',
-        title: 'Gyro Sensor',
-        icon: <Compass size={32} />,
-        color: 'orange',
-        howItWorks: 'Uses MEMS technology to measure rotational velocity. The brain integrates this data to keep track of the exact heading and pitch (tilt) of the robot.',
-        technicalData: [
-            'Heading: 0° - 359° (Continuous)',
-            'Tilt (Pitch): -90° to +90°',
-            'Precision: 0.1 degrees'
+        missions: [
+            {
+                title: "Mission 1: THE FIRST STEP",
+                objective: "Program the robot to move forward exactly 50cm and stop.",
+                img: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/Mission1TheFirstStep.svg",
+                hint: "Use the 'Drive Distance' block and look at the parameter for CM. Set the value to 50 for this mission.",
+            }
         ],
-        programmingTip: 'Use the Heading to maintain a perfectly straight line even if the robot bumps into something.'
+        keyBlocks: ["drive_forward.svg", "drive_speed.svg", "drive_stop.svg"]
     },
-    ultrasonic: {
-        id: 'ultrasonic',
-        title: 'Ultrasonic Sensor',
-        icon: <Eye size={32} />,
-        color: 'indigo',
-        howItWorks: 'Works like a bat\'s radar. It emits a high-frequency sound pulse and measures the time it takes for the echo to bounce back from an object.',
-        technicalData: [
-            'Range: 3cm to 250cm',
-            'Beam Angle: Approx 15°',
-            'Detection Frequency: 40kHz'
+    {
+        id: 2,
+        title: "Visual Communication",
+        subtitle: "Robot Status & LED Signaling",
+        description: "Programming the robot's lights to communicate movement, states, and warnings.",
+        details: "In robotics, LEDs serve as a human-machine interface (HMI). They provide immediate visual feedback about the robot's internal state. A green light might mean 'Safe to proceed', while a red light indicates an 'Obstacle detected'.",
+        technicalConcepts: [
+            { title: "Robot HMI", content: "Human-Machine Interface using visual cues. This is how the robot 'talks' to us without using words." }
         ],
-        programmingTip: 'The sensor can detect walls from a distance. Use it to slow down before hitting a wall for smoother movement.'
-    },
-    color: {
-        id: 'color',
-        title: 'Color Sensor',
-        icon: <Palette size={32} />,
-        color: 'yellow',
-        howItWorks: 'Projects a small beam of light onto the floor and uses a photodiode to measure the reflected wavelengths. It can identify specific colors and measure overall brightness.',
-        technicalData: [
-            'Recognized Colors: 10 standard colors',
-            'Intensity Range: 0% (Dark) to 100% (Bright)',
-            'Refresh Rate: 50Hz'
-        ],
-        programmingTip: 'Use "Light Intensity" for line following on gray surfaces where "Color" might not be distinct enough.'
-    },
-    leds: {
-        id: 'leds',
-        title: 'Status LEDs',
+        color: "#9966FF",
         icon: <Lightbulb size={32} />,
-        color: 'purple',
-        howItWorks: 'Two programmable RGB LEDs located on the top deck. They provide immediate visual feedback about the program state or sensor triggers.',
-        technicalData: [
-            'Type: RGB (Millions of colors)',
-            'Location: Top left & Top right',
-            'Status: Programmable via code'
+        lessons: [
+            { title: "Standardized Color Encoding", description: "Create a standard 'signaling language' using colors: Green for go, Red for stop, and Orange for warning states." }
         ],
-        programmingTip: 'Set the LED to Red when an obstacle is detected and Green when the path is clear to help debug your logic.'
+        missions: [
+            {
+                title: "Mission 1: Traffic Signals",
+                objective: "Move forward 50cm with Green LEDs. When stopped, change the LEDs to Red for 2 seconds.",
+                hint: "Use the 'Set LED Color' block before the movement, and change it again immediately after the movement finishes.",
+                img: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/ledmissen1.svg",
+            }
+        ],
+        keyBlocks: ["led_setcolor.svg", "led_turnoff.svg"]
     },
-    brain: {
-        id: 'brain',
-        title: 'Central Brain',
-        icon: <Cpu size={32} />,
-        color: 'emerald',
-        howItWorks: 'The core processing unit that interprets your Blockly commands. It processes sensor inputs and calculates motor power 60 times every second.',
-        technicalData: [
-            'Processor: 32-bit High Speed',
-            'Execution Rate: 60Hz (Simulated)',
-            'Variable Memory: Infinite (Simulated)'
+    {
+        id: 3,
+        title: "Senses & Environment",
+        subtitle: "The Four Core Sensors",
+        description: "Mastering the physics and logic of how robots perceive space, contact, orientation, and light.",
+        details: "Smart robots don't just follow pre-recorded instructions; they adapt to their surroundings. This module explores the four essential sensors that act as the robot's eyes and ears: Ultrasonic (Distance), Touch (Contact), Color (ID), and Gyro (Orientation).",
+        technicalConcepts: [
+            { title: "Digital vs. Analog", content: "Touch sensors are Digital (0/1), while Ultrasonic and Gyro are Analog, providing continuous numeric data for higher intelligence." },
+            { title: "SENSE-THINK-ACT", content: "The fundamental loop of robotics. Sensors provide the 'Sense' part, allowing the code to 'Think' and the motors to 'Act'." }
         ],
-        programmingTip: 'The brain can run multiple event blocks (hat blocks) at once. Use "Broadcast" to sync complex behaviors.'
+        color: "#00C7E5",
+        icon: <Radar size={32} />,
+        lessons: [
+            { title: "Ultrasonic Principles", description: "Learn how sound waves (Echolocation) allow the robot to calculate distance without touching objects." },
+            { title: "Touch Logic", description: "Programming the front bumper to act as an emergency stop or a physical navigation trigger." },
+            { title: "Color Identification", description: "Using light waves to detect floor markers, tracks, and road colors." },
+            { title: "Gyro Navigation", description: "Mastering rotation and tilt for perfect 90° turns and ramp safety." }
+        ],
+        missions: [
+            {
+                id: "M3_1",
+                title: "Mission 1: Ultrasonic Wall Stop",
+                objective: "Program the robot to stop automatically exactly 10cm before hitting a wall using the distance sensor.",
+                img: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/ultrasonikmission1.svg",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/ultrasonikmission1.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/ultrasonikmission1.mp4",
+                hint: "Combine the 'Drive Forward' block with a 'Wait Until (Distance < 10)' followed by a 'Stop' block.",
+                requiredChallenge: "Touch Sensor - Obstacle Retreat"
+            },
+            {
+                id: "M3_2",
+                title: "Mission 2: Impact Retreat",
+                objective: "Drive forward until the bumper is pressed. Immediately reverse for 30cm and stop.",
+                img: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensortouch1.svg",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensortouch1.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/touchsensor.mp4",
+                hint: "Wait until 'Touch Sensor Pressed' is true, then use the 'Drive Distance' block with a negative CM value.",
+                requiredChallenge: "Touch Sensor - Obstacle Retreat"
+            },
+            {
+                id: "M3_3",
+                title: "Mission 3: Precision Pivot",
+                objective: "Rotate the robot exactly 180 degrees using the Gyro sensor feedback and stop.",
+                img: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorgyro.svg",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorgyro1.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/gyrosensor.mp4",
+                hint: "Use 'Turn Right' followed by 'Wait Until (Gyro Angle >= 180)'. This ensures a precise rotation regardless of battery level.",
+            },
+            {
+                id: "M3_4",
+                title: "Mission 4: Color Signal Stop",
+                objective: "Drive forward until the color sensor detects a RED marker on the floor, then stop moving.",
+                img: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorcolor.svg",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorcolor2.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorcolor.mp4",
+                hint: "Use the 'Drive Forward' block, followed by a 'Wait Until (Detected Color = Red)' and then a 'Stop Moving' block.",
+                requiredChallenge: "Traffic Light - Road Nav"
+            }
+        ],
+        keyBlocks: ["sensor_distance.svg", "sensor_gyro.svg", "sensor_touch.svg", "sensor_touchingcolor.svg"]
+    },
+    {
+        id: 4,
+        title: "Engineering Turn Types",
+        subtitle: "Kinematics of Rotation",
+        description: "Mastering the three fundamental ways a robot rotates in space.",
+        details: "Not all turns are equal. In robotics engineering, we categorize rotation by how the motors behave relative to each other. Understanding Swing, Pivot, and Arc turns is essential for precise navigation and path planning.",
+        technicalConcepts: [
+            { title: "Turn Radius", content: "The distance between the center of the turn and the center of the robot. Pivot turns have zero radius, while Arcs have a variable large radius." },
+            { title: "Relative Velocity", content: "The difference in power between the left and right motors determines the sharpness and type of the turn." }
+        ],
+        color: "#F43F5E",
+        icon: <RotateCw size={32} />,
+        lessons: [
+            { title: "Swing Turn Mechanics", description: "One wheel stays stationary while the other moves. This creates a predictable sweep around a single point." },
+            { title: "Pivot Turn Physics", description: "Motors rotate in opposite directions at equal speeds. The robot spins on its own center of gravity." },
+            { title: "Arc Turn Geometry", description: "Both wheels move in the same direction but at different speeds, creating a smooth, sweeping curve." }
+        ],
+        missions: [
+            {
+                title: "SWING TURNSIDWAYES",
+                objective: "Perform a 90-degree turn to the right while the right wheel stays still (0% power) and the left wheel moves forward (50% power).",
+                hint: "Use the 'Set Motor' block. Set the right motor to 0 and the left motor to 50. Add a 'Wait Until' the Gyro Angle is greater than 90.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/swingrurnmission.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/swingrurnmission.mp4",
+            },
+            {
+                title: "PIVOT TURN U TURN",
+                objective: "Rotate exactly 180 degrees on the spot without the robot shifting forward or backward.",
+                hint: "Use the 'Turn by Degrees' block. Set it to 180. In a Pivot Turn, the wheels move at equal speeds in opposite directions automatically in this block.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/pivotturn.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/pivotturn.mp4",
+            },
+            {
+                title: "ARCTURN",
+                objective: "Travel through a long curved path. Both wheels must move forward, but one wheel must be twice as fast as the other.",
+                hint: "Use the 'Set Motor' block. Try setting one motor to 50% and the other to 10%. The smaller the difference, the wider the arc.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/arcturn.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/arcturn.mp4",
+            }
+        ],
+        keyBlocks: ["drive_turn_dgree_speed.svg", "drive_turn_until_speed.svg", "drive_heading_dgree.svg", "drive_setmotor.svg"]
+    },
+    {
+        id: 5,
+        title: "Logic & Intelligence",
+        subtitle: "Decision Trees & Boolean Logic",
+        description: "Programming the 'brain' to react to various sensor scenarios.",
+        details: "Logic is the set of rules that governs the robot's behavior. By using conditions, the robot can 'decide' what to do based on what it sees or feels.",
+        technicalConcepts: [
+            { title: "Conditional Branching (If/Else)", content: "The basis of AI: If condition is true, perform action A; otherwise, perform action B." }
+        ],
+        color: "#FFAB19",
+        icon: <Layers size={32} />,
+        lessons: [
+            { title: "Boolean State Awareness", description: "Introduction to True/False logic and using sensors as inputs for conditions." }
+        ],
+        missions: [
+             {
+                title: "Mission 1: The Gatekeeper",
+                objective: "If touch sensor is pressed - turn on Red light. If not pressed - turn on Green light.",
+                hint: "Use an 'If/Else' block inside a 'Forever' loop.",
+            }
+        ],
+        keyBlocks: ["control_if.svg", "logic_compare.svg", "logic_and.svg"]
     }
-};
-
-const BlockSection: React.FC<{ title: string, color: string, children: React.ReactNode }> = ({ title, color, children }) => (
-    <section>
-        <div className="flex items-center gap-4 mb-8 border-b-4 pb-4" style={{ borderColor: color + '20' }}>
-            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }} />
-            <h2 className="text-2xl font-bold text-slate-800 uppercase tracking-tight">{title}</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {children}
-        </div>
-    </section>
-);
-
-const BlockCard = ({ title, desc, img, color }: { title: string, desc: string, img: string, color: string }) => (
-    <div className="bg-white rounded-3xl p-6 shadow-sm border-2 border-slate-100 hover:border-slate-200 transition-all hover:shadow-md flex flex-col gap-4">
-        <div className="bg-slate-50 rounded-2xl p-4 flex items-center justify-center h-32 overflow-hidden">
-            <img 
-                src={`https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/${img}`} 
-                alt={title} 
-                className="max-w-full max-h-full object-contain"
-                onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://placehold.co/200x100?text=${title.replace(/ /g, '+')}`;
-                }}
-            />
-        </div>
-        <div className="h-1 rounded-full w-12" style={{ backgroundColor: color }} />
-        <h3 className="font-mono font-bold text-slate-800 text-sm bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 inline-block">{title}</h3>
-        <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
-    </div>
-);
-
-// --- Diagrams ---
-
-const DistanceDiagram = () => (
-    <div className="relative w-full max-w-sm h-48 bg-white rounded-3xl border-2 border-blue-100 flex flex-col items-center justify-center overflow-hidden shadow-inner p-4">
-        <svg viewBox="0 0 400 120" className="w-full">
-            <defs>
-                <marker id="arrow-blue-head" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#4C97FF" />
-                </marker>
-            </defs>
-            <line x1="40" y1="80" x2="360" y2="80" stroke="#cbd5e1" strokeWidth="2" strokeDasharray="4 4" />
-            <rect x="30" y="50" width="40" height="50" rx="4" fill="#3b82f6" opacity="0.3" />
-            <rect x="330" y="50" width="40" height="50" rx="4" fill="#3b82f6" />
-            <path d="M50 100 L350 100" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrow-blue-head)" />
-            <text x="200" y="115" textAnchor="middle" fill="#3b82f6" fontSize="14" fontWeight="bold">DISTANCE (cm)</text>
-            <g transform="translate(40, 85)">
-                {[0, 1, 2, 3, 4, 5, 6].map(i => (
-                    <line key={i} x1={i * 50} y1="0" x2={i * 50} y2="10" stroke="#94a3b8" strokeWidth="2" />
-                ))}
-            </g>
-        </svg>
-    </div>
-);
-
-const SpeedometerDiagram = () => (
-    <div className="relative w-full max-w-sm h-48 bg-white rounded-3xl border-2 border-emerald-100 flex flex-col items-center justify-center overflow-hidden shadow-inner p-4">
-        <svg viewBox="0 0 200 120" className="w-full h-full">
-            <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#e2e8f0" strokeWidth="12" strokeLinecap="round" />
-            <path d="M20 100 A80 80 0 0 1 130 35" fill="none" stroke="#10b981" strokeWidth="12" strokeLinecap="round" />
-            <circle cx="100" cy="100" r="8" fill="#1e293b" />
-            <line x1="100" y1="100" x2="135" y2="45" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
-            <text x="100" y="90" textAnchor="middle" fill="#1e293b" fontSize="14" fontWeight="black">75%</text>
-            <text x="35" y="115" textAnchor="middle" fill="#94a3b8" fontSize="8" fontWeight="bold">0%</text>
-            <text x="165" y="115" textAnchor="middle" fill="#94a3b8" fontSize="8" fontWeight="bold">100%</text>
-        </svg>
-    </div>
-);
-
-const UltrasonicRangeDiagram = () => (
-    <div className="relative w-full max-w-sm h-48 bg-white rounded-3xl border-2 border-indigo-100 flex flex-col items-center justify-center overflow-hidden shadow-inner p-4">
-        <svg viewBox="0 0 400 160" className="w-full">
-            <path d="M40 80 L360 20 L360 140 Z" fill="#6366f1" opacity="0.1" stroke="#6366f1" strokeWidth="2" strokeDasharray="4 4" />
-            <rect x="20" y="65" width="30" height="30" rx="6" fill="#1e293b" />
-            <circle cx="35" cy="72" r="3" fill="#6366f1" />
-            <circle cx="35" cy="88" r="3" fill="#6366f1" />
-            <g>
-                {[1, 2, 3, 4].map(i => (
-                    <path key={i} d={`M${60 + i * 40} ${80 - i * 15} Q${70 + i * 40} 80 ${60 + i * 40} ${80 + i * 15}`} fill="none" stroke="#6366f1" strokeWidth="2" opacity={1.2 - i * 0.2} />
-                ))}
-            </g>
-            <text x="220" y="150" textAnchor="middle" fill="#6366f1" fontSize="12" fontWeight="black">BEAM RANGE: 255cm</text>
-        </svg>
-    </div>
-);
-
-const TouchDiagram = () => (
-    <div className="relative w-full max-w-sm h-48 bg-white rounded-3xl border-2 border-pink-100 flex items-center justify-center overflow-hidden shadow-inner p-4">
-        <svg viewBox="0 0 400 200" className="w-full h-full">
-            <rect x="300" y="20" width="20" height="160" fill="#94a3b8" rx="4" />
-            <rect x="50" y="60" width="100" height="80" rx="8" fill="#334155" />
-            <rect x="150" y="85" width="40" height="30" rx="4" fill="#e2e8f0" />
-            <path d="M190 85 L260 85 L260 115 L190 115 Z" fill="#ef4444">
-                <animate attributeName="x" from="190" to="230" dur="2s" repeatCount="indefinite" />
-            </path>
-            <circle cx="280" cy="100" r="10" fill="#ef4444" opacity="0.3">
-                <animate attributeName="scale" from="0.5" to="2" dur="1s" repeatCount="indefinite" />
-            </circle>
-            <text x="200" y="160" textAnchor="middle" fill="#db2777" fontSize="14" fontWeight="bold">TOUCH DETECTED</text>
-        </svg>
-    </div>
-);
-
-const ColorSensorDiagram = () => (
-    <div className="relative w-full max-w-sm h-48 bg-white rounded-3xl border-2 border-yellow-100 flex items-center justify-center overflow-hidden shadow-inner p-4">
-        <svg viewBox="0 0 400 200" className="w-full h-full">
-            <rect x="50" y="160" width="300" height="20" fill="#22c55e" rx="4" />
-            <rect x="150" y="20" width="100" height="60" rx="8" fill="#334155" />
-            <path d="M200 80 L160 160 L240 160 Z" fill="rgba(34, 197, 94, 0.2)" />
-            <circle cx="200" cy="120" r="15" fill="#22c55e">
-                <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" />
-            </circle>
-            <text x="200" y="195" textAnchor="middle" fill="#854d0e" fontSize="14" fontWeight="bold">RECOGNIZED: GREEN</text>
-        </svg>
-    </div>
-);
-
-const SpinTurnDiagram = () => (
-    <div className="relative w-full h-72 bg-white rounded-3xl border-2 border-indigo-100 flex items-center justify-center overflow-hidden shadow-inner">
-        <svg viewBox="0 0 200 200" className="w-full h-full p-12">
-            <defs>
-                <marker id="arrow-blue-spin" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#4C97FF" />
-                </marker>
-                <marker id="arrow-red-spin" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
-                </marker>
-            </defs>
-            <rect x="70" y="60" width="60" height="80" rx="8" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2" />
-            <rect x="62" y="80" width="8" height="40" rx="2" fill="#334155" />
-            <path d="M52 110 L52 75" stroke="#4C97FF" strokeWidth="3" fill="none" markerEnd="url(#arrow-blue-spin)" />
-            <rect x="130" y="80" width="8" height="40" rx="2" fill="#334155" />
-            <path d="M148 90 L148 125" stroke="#ef4444" strokeWidth="3" fill="none" markerEnd="url(#arrow-red-spin)" />
-            <circle cx="100" cy="100" r="4" fill="#4C97FF" />
-            <circle cx="100" cy="100" r="12" fill="none" stroke="#4C97FF" strokeWidth="1" strokeDasharray="2 2" />
-            <text x="100" y="175" textAnchor="middle" fill="#4C97FF" fontSize="12" fontWeight="black">CENTER SPIN</text>
-        </svg>
-    </div>
-);
+];
 
 const SwingTurnDiagram = () => (
-    <div className="relative w-full h-72 bg-white rounded-3xl border-2 border-emerald-100 flex items-center justify-center overflow-hidden shadow-inner">
-        <svg viewBox="0 0 200 200" className="w-full h-full p-12">
-            <defs>
-                <marker id="arrow-emerald-swing" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981" />
-                </marker>
-            </defs>
-            <rect x="70" y="60" width="60" height="80" rx="8" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2" />
-            <rect x="62" y="80" width="8" height="40" rx="2" fill="#334155" />
-            <path d="M52 110 L52 95" stroke="#10b981" strokeWidth="3" fill="none" markerEnd="url(#arrow-emerald-swing)" />
-            <rect x="130" y="80" width="8" height="40" rx="2" fill="#334155" />
-            <path d="M148 110 L148 65" stroke="#10b981" strokeWidth="3" fill="none" markerEnd="url(#arrow-emerald-swing)" />
-            <path d="M100 130 A120 120 0 0 0 170 50" stroke="#10b981" strokeWidth="2" strokeDasharray="4 4" fill="none" />
-            <text x="100" y="175" textAnchor="middle" fill="#10b981" fontSize="12" fontWeight="black">SWING TURN</text>
-        </svg>
-    </div>
+    <svg viewBox="0 0 200 200" className="w-full h-auto">
+        <rect x="60" y="50" width="80" height="100" rx="10" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="2" />
+        <rect x="45" y="70" width="15" height="40" rx="4" fill="#ef4444" /> {/* Stopped Wheel */}
+        <circle cx="52" cy="90" r="4" fill="white" />
+        <rect x="140" y="70" width="15" height="40" rx="4" fill="#3b82f6" /> {/* Moving Wheel */}
+        <path d="M147 60 Q 147 20 80 20" fill="none" stroke="#3b82f6" strokeWidth="4" strokeDasharray="6 4" markerEnd="url(#arrow-blue)" />
+        <circle cx="52" cy="90" r="10" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 2" />
+        <defs>
+            <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#3b82f6" />
+            </marker>
+        </defs>
+        <text x="52" y="130" textAnchor="middle" fontSize="10" fontStyle="italic" fill="#ef4444">Axis of Rotation</text>
+    </svg>
 );
 
 const PivotTurnDiagram = () => (
-    <div className="relative w-full h-72 bg-white rounded-3xl border-2 border-orange-100 flex items-center justify-center overflow-hidden shadow-inner">
-        <svg viewBox="0 0 200 200" className="w-full h-full p-12">
-            <defs>
-                <marker id="arrow-orange-pivot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#FFAB19" />
-                </marker>
-            </defs>
-            <rect x="70" y="60" width="60" height="80" rx="8" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2" />
-            <rect x="62" y="80" width="8" height="40" rx="2" fill="#ef4444" />
-            <circle cx="66" cy="100" r="5" fill="#ef4444" />
-            <rect x="130" y="80" width="8" height="40" rx="2" fill="#1e293b" />
-            <path d="M148 110 L148 65" stroke="#FFAB19" strokeWidth="4" fill="none" markerEnd="url(#arrow-orange-pivot)" />
-            <text x="100" y="175" textAnchor="middle" fill="#FFAB19" fontSize="12" fontWeight="black">PIVOT POINT</text>
-        </svg>
-    </div>
+    <svg viewBox="0 0 200 200" className="w-full h-auto">
+        <rect x="60" y="50" width="80" height="100" rx="10" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="2" />
+        <rect x="45" y="70" width="15" height="40" rx="4" fill="#3b82f6" /> 
+        <path d="M52 115 L52 140" fill="none" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrow-blue)" /> {/* Backward */}
+        <rect x="140" y="70" width="15" height="40" rx="4" fill="#3b82f6" />
+        <path d="M147 65 L147 40" fill="none" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrow-blue)" /> {/* Forward */}
+        <circle cx="100" cy="90" r="6" fill="#f59e0b" />
+        <path d="M80 90 A 20 20 0 1 1 120 90" fill="none" stroke="#f59e0b" strokeWidth="2" strokeDasharray="4 2" markerEnd="url(#arrow-gold)" />
+        <defs>
+            <marker id="arrow-gold" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#f59e0b" />
+            </marker>
+        </defs>
+        <text x="100" y="115" textAnchor="middle" fontSize="10" fontStyle="italic" fill="#f59e0b">Center of Gravity</text>
+    </svg>
 );
 
-const GyroTurnDiagram = () => (
-    <div className="relative w-full h-72 bg-white rounded-3xl border-2 border-sky-100 flex items-center justify-center overflow-hidden shadow-inner">
-        <svg viewBox="0 0 200 200" className="w-full h-full p-8">
-            <circle cx="100" cy="100" r="80" fill="none" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="4 2" />
-            <path d="M100 20 L100 180 M20 100 L180 100" stroke="#e2e8f0" strokeWidth="1" />
-            <rect x="85" y="75" width="30" height="50" rx="4" fill="#334155" />
-            <path d="M100 75 A60 60 0 0 1 150 60" stroke="#0ea5e9" strokeWidth="4" fill="none" />
-            <circle cx="155" cy="55" r="8" fill="#0ea5e9" />
-            <text x="155" y="59" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">90°</text>
-            <Compass className="text-sky-500 opacity-20" size={100} style={{ position: 'absolute' }} />
-        </svg>
-    </div>
-);
-
-const MoveLDiagram = () => (
-    <div className="relative w-full h-72 bg-white rounded-3xl border-2 border-slate-100 flex items-center justify-center overflow-hidden shadow-inner">
-        <svg viewBox="0 0 200 200" className="w-full h-full p-12">
-            <path d="M40 160 L160 40" stroke="#64748b" strokeWidth="4" strokeDasharray="8 4" />
-            <rect x="30" y="150" width="20" height="30" rx="2" fill="#334155" transform="rotate(-45 40 165)" />
-            <rect x="150" y="30" width="20" height="30" rx="2" fill="#3b82f6" transform="rotate(-45 160 45)" />
-            <text x="100" y="110" textAnchor="middle" fill="#64748b" fontSize="12" fontWeight="bold" transform="rotate(-45 100 110)">LINEAR</text>
-        </svg>
-    </div>
+const ArcTurnDiagram = () => (
+    <svg viewBox="0 0 200 200" className="w-full h-auto">
+        <rect x="60" y="60" width="80" height="90" rx="10" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="2" transform="rotate(-15, 100, 105)" />
+        <rect x="40" y="80" width="15" height="40" rx="4" fill="#10b981" transform="rotate(-15, 47, 100)" /> 
+        <path d="M40 70 Q 50 10 150 10" fill="none" stroke="#10b981" strokeWidth="4" strokeDasharray="6 4" markerEnd="url(#arrow-green)" />
+        <rect x="135" y="60" width="15" height="40" rx="4" fill="#10b981" transform="rotate(-15, 142, 80)" />
+        <path d="M145 50 Q 155 0 200 0" fill="none" stroke="#10b981" strokeWidth="2" opacity="0.5" strokeDasharray="6 4" />
+        <defs>
+            <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#10b981" />
+            </marker>
+        </defs>
+        <text x="100" y="170" textAnchor="middle" fontSize="12" fontStyle="italic" fill="#10b981">Large Radius</text>
+    </svg>
 );
 
 const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
     const [currentPage, setCurrentPage] = useState<HelpPage>('MENU');
-    const [currentUnit, setCurrentUnit] = useState(1);
-    const [selectedHardware, setSelectedHardware] = useState<HardwareDetail | null>(null);
+    const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+    const [expandedMissionIdx, setExpandedMissionIdx] = useState<number | null>(0);
 
     const renderMenu = () => (
-        <div className="max-w-5xl mx-auto p-8 pt-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="text-center mb-16">
-                <h1 className="text-5xl font-black text-slate-900 mb-4 tracking-tight">RoboCode Knowledge Center</h1>
-                <p className="text-xl text-slate-500">Everything you need to master the virtual lab and build perfect code.</p>
+        <div className="max-w-6xl mx-auto p-8 pt-20 animate-in fade-in slide-in-from-bottom-6 duration-700 text-left" dir="ltr">
+            <header className="text-center mb-20">
+                <h1 className="text-7xl font-black text-slate-900 mb-6 tracking-tighter leading-none uppercase">Robot Wiki</h1>
+                <p className="text-2xl text-slate-500 font-medium italic">Complete guide to Virtual Robotics Lab v4.0</p>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <button onClick={() => setCurrentPage('COURSE')} className="group bg-white p-8 rounded-[2.5rem] shadow-xl hover:shadow-2xl transition-all border-4 border-transparent hover:border-amber-500 text-center flex flex-col items-center gap-6">
-                    <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
-                        <GraduationCap size={40} strokeWidth={2.5} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                <button onClick={() => setCurrentPage('COURSE')} className="group bg-white p-10 rounded-[3rem] shadow-xl hover:shadow-2xl transition-all border-4 border-transparent hover:border-amber-500 flex items-center gap-6 text-left">
+                    <div className="w-20 h-20 bg-amber-50 rounded-[1.5rem] flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform shadow-inner shrink-0">
+                        <Projector size={40} strokeWidth={2.5} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-slate-800 mb-2">Robotics Course</h2>
-                        <p className="text-slate-500 text-sm">Step-by-step lessons to learn robotics from scratch.</p>
+                        <h2 className="text-2xl font-black text-slate-800 mb-1 uppercase tracking-tight">Curriculum</h2>
+                        <p className="text-slate-500 text-sm font-medium">Step-by-step lessons.</p>
                     </div>
-                    <div className="mt-auto px-6 py-2.5 bg-amber-600 text-white rounded-2xl font-bold group-hover:bg-amber-500 transition-colors">Start Learning</div>
                 </button>
-                <button onClick={() => setCurrentPage('STRUCTURE')} className="group bg-white p-8 rounded-[2.5rem] shadow-xl hover:shadow-2xl transition-all border-4 border-transparent hover:border-emerald-500 text-center flex flex-col items-center gap-6">
-                    <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
-                        <Info size={40} strokeWidth={2.5} />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-bold text-slate-800 mb-2">Robot Structure</h2>
-                        <p className="text-slate-500 text-sm">Learn about the physical hardware, motors, and sensors.</p>
-                    </div>
-                    <div className="mt-auto px-6 py-2.5 bg-emerald-600 text-white rounded-2xl font-bold group-hover:bg-emerald-500 transition-colors">Hardware Info</div>
-                </button>
-                <button onClick={() => setCurrentPage('BLOCKS')} className="group bg-white p-8 rounded-[2.5rem] shadow-xl hover:shadow-2xl transition-all border-4 border-transparent hover:border-blue-500 text-center flex flex-col items-center gap-6">
-                    <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+
+                <button onClick={() => setCurrentPage('BLOCKS')} className="group bg-white p-10 rounded-[3rem] shadow-xl hover:shadow-2xl transition-all border-4 border-transparent hover:border-blue-500 flex items-center gap-6 text-left">
+                    <div className="w-20 h-20 bg-blue-50 rounded-[1.5rem] flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform shadow-inner shrink-0">
                         <BookOpen size={40} strokeWidth={2.5} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-slate-800 mb-2">Blocks Guide</h2>
-                        <p className="text-slate-500 text-sm">Discover what every programming block does, from movement to logic.</p>
+                        <h2 className="text-2xl font-black text-slate-800 mb-1 uppercase tracking-tight">Blocks</h2>
+                        <p className="text-slate-500 text-sm font-medium">Programming library.</p>
                     </div>
-                    <div className="mt-auto px-6 py-2.5 bg-blue-600 text-white rounded-2xl font-bold group-hover:bg-blue-500 transition-colors">View Blocks</div>
                 </button>
-                <button onClick={() => setCurrentPage('CHALLENGES')} className="group bg-white p-8 rounded-[2.5rem] shadow-xl hover:shadow-2xl transition-all border-4 border-transparent hover:border-purple-500 text-center flex flex-col items-center gap-6">
-                    <div className="w-20 h-20 bg-purple-50 rounded-3xl flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
+
+                <button onClick={() => setCurrentPage('STRUCTURE')} className="group bg-white p-10 rounded-[3rem] shadow-xl hover:shadow-2xl transition-all border-4 border-transparent hover:border-emerald-500 flex items-center gap-6 text-left">
+                    <div className="w-20 h-20 bg-emerald-50 rounded-[1.5rem] flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform shadow-inner shrink-0">
+                        <Cpu size={40} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-black text-slate-800 mb-1 uppercase tracking-tight">Hardware</h2>
+                        <p className="text-slate-500 text-sm font-medium">Sensor anatomy.</p>
+                    </div>
+                </button>
+
+                <button onClick={() => setCurrentPage('CHALLENGES')} className="group bg-white p-10 rounded-[3rem] shadow-xl hover:shadow-2xl transition-all border-4 border-transparent hover:border-purple-500 flex items-center gap-6 text-left">
+                    <div className="w-20 h-20 bg-purple-50 rounded-[1.5rem] flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform shadow-inner shrink-0">
                         <Trophy size={40} strokeWidth={2.5} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-slate-800 mb-2">Mission Help</h2>
-                        <p className="text-slate-500 text-sm">Tips and tricks for completing lab missions and challenges.</p>
+                        <h2 className="text-2xl font-black text-slate-800 mb-1 uppercase tracking-tight">Strategy</h2>
+                        <p className="text-slate-500 text-sm font-medium">Expert tactics.</p>
                     </div>
-                    <div className="mt-auto px-6 py-2.5 bg-purple-600 text-white rounded-2xl font-bold group-hover:bg-purple-500 transition-colors">View Missions</div>
                 </button>
             </div>
         </div>
     );
 
-    const renderCourse = () => {
-        const units = [
-            {
-                id: 1,
-                title: "Unit 1: The Lab & Robot Basics",
-                content: (
-                    <div className="space-y-12 text-slate-700">
-                        <section className="bg-white p-8 rounded-[2rem] border-2 border-slate-100 shadow-sm">
-                            <h3 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-3"><MousePointer2 className="text-amber-500" /> Welcome to the Lab</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                                <p className="text-lg leading-relaxed">
-                                    The Virtual Robotics Lab is split into two main areas:
-                                    <br /><br />
-                                    1. <b>The 3D World (Right side):</b> This is where your robot lives. Use your mouse to rotate and zoom, or the Camera buttons to switch views.
-                                    <br /><br />
-                                    2. <b>The Workspace (Left side):</b> This is where you build the "brain" of the robot using blocks.
-                                </p>
-                                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex flex-col gap-4">
-                                    <div className="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-slate-100">
-                                        <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold">1</div>
-                                        <p className="text-sm font-bold text-slate-700">Drag blocks from the toolbox to the center.</p>
-                                    </div>
-                                    <div className="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-slate-100">
-                                        <div className="w-10 h-10 bg-green-100 text-green-600 rounded-lg flex items-center justify-center font-bold">2</div>
-                                        <p className="text-sm font-bold text-slate-700">Connect them under the "When Flag Clicked" block.</p>
-                                    </div>
-                                    <div className="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-slate-100">
-                                        <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center font-bold">3</div>
-                                        <p className="text-sm font-bold text-slate-700">Press the Green Flag button at the top to start!</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-                )
-            },
-            {
-                id: 2,
-                title: "Unit 2: Physics of Linear Motion",
-                content: (
-                    <div className="space-y-12">
-                        {/* Direction Section */}
-                        <section className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-sm">
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl"><MoveVertical size={28} /></div>
-                                <h3 className="text-3xl font-black text-slate-800">1. Controlling Direction</h3>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="bg-slate-50 p-6 rounded-3xl">
-                                    <h4 className="text-xl font-bold text-slate-800 mb-3 underline decoration-blue-400 decoration-2">Drive Forward</h4>
-                                    <p className="text-slate-600 text-sm mb-4">Moves the robot in the direction its main sensor is facing (0° Heading).</p>
-                                    <div className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-center">
-                                        <img 
-                                            src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_forward_distance_speed.svg" 
-                                            className="h-24 object-contain"
-                                            onError={(e) => (e.currentTarget.src = "https://placehold.co/200x50?text=Drive+Forward+Block")}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="bg-slate-50 p-6 rounded-3xl">
-                                    <h4 className="text-xl font-bold text-slate-800 mb-3 underline decoration-pink-400 decoration-2">Drive Backward</h4>
-                                    <p className="text-slate-600 text-sm mb-4">Reverses the polarity of the motors. Useful for backing away from obstacles.</p>
-                                    <div className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-center gap-4">
-                                        <img 
-                                            src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/robot_drive_simple.svg" 
-                                            className="h-24 object-contain grayscale opacity-60"
-                                            onError={(e) => (e.currentTarget.src = "https://placehold.co/200x50?text=Drive+Backward+Block")}
-                                        />
-                                        <ArrowRightLeft className="text-pink-500" size={24} />
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Distance Section */}
-                        <section className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-sm text-slate-700">
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl"><Ruler size={28} /></div>
-                                <h3 className="text-3xl font-black text-slate-800">2. Mastering Distance</h3>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                                <div className="space-y-4">
-                                    <p className="text-lg leading-relaxed">
-                                        The robot measures distance in <b>centimeters (cm)</b>. It calculates this by counting how many times the wheels rotate (encoders).
-                                    </p>
-                                    <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100">
-                                        <h5 className="font-bold text-amber-800 mb-2 flex items-center gap-2"><Lightbulb size={16}/> Calculation Tip</h5>
-                                        <p className="text-sm text-amber-700">One full rotation of the wheel covers approx <b>3.77 cm</b>. To drive 10cm, the robot turns its wheels about 2.6 times.</p>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col items-center gap-4">
-                                    <div className="bg-white p-4 rounded-2xl border border-slate-100 w-full flex justify-center">
-                                        <img 
-                                            src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/robot_move.svg" 
-                                            className="h-24 object-contain"
-                                            onError={(e) => (e.currentTarget.src = "https://placehold.co/200x50?text=Move+Distance+Block")}
-                                        />
-                                    </div>
-                                    <DistanceDiagram />
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Speed Section */}
-                        <section className="bg-white p-10 rounded-[3rem] border-4 border-emerald-100 shadow-xl text-slate-700">
-                            <div className="flex items-center gap-4 mb-10">
-                                <div className="p-4 bg-emerald-100 text-emerald-600 rounded-3xl shadow-inner"><SpeedIcon size={32} strokeWidth={2.5} /></div>
-                                <h3 className="text-4xl font-black text-slate-900 tracking-tight">3. Understanding Speed</h3>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                                <div className="space-y-8">
-                                    <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
-                                        <h4 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                                            <div className="w-2 h-6 bg-blue-500 rounded-full"/> Speed-Controlled Blocks
-                                        </h4>
-                                        <p className="text-slate-600 text-sm leading-relaxed">
-                                            You can set the speed as a constant for all movements, or specify it for a single command.
-                                        </p>
-                                        
-                                        <div className="space-y-4">
-                                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3">
-                                                <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Continuous Speed</div>
-                                                <img 
-                                                    src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_speed.svg" 
-                                                    className="h-24 object-contain self-start"
-                                                />
-                                            </div>
-                                            
-                                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3">
-                                                <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Task-Specific Speed</div>
-                                                <img 
-                                                    src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/drive_forward_distance_speed.svg" 
-                                                    className="h-24 object-contain self-start"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-6 bg-emerald-50 rounded-[2rem] border-2 border-emerald-100 relative overflow-hidden group">
-                                        <AlertTriangle className="absolute -right-4 -bottom-4 text-emerald-100 group-hover:scale-110 transition-transform" size={120} />
-                                        <div className="relative z-10">
-                                            <h5 className="font-black text-emerald-900 text-lg mb-2 flex items-center gap-2"><Activity size={20}/> Physics: Momentum</h5>
-                                            <p className="text-emerald-800 text-sm font-medium leading-relaxed">
-                                                High speed means more <b>Kinetic Energy</b>. A robot driving at 100% speed will "coast" further after stopping than one at 20%. 
-                                                <br/><br/>
-                                                For precision tasks (like stopping exactly on a line), <b>lower speeds</b> are your best friend!
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col items-center justify-center gap-8 bg-slate-50/50 rounded-[3rem] p-8 border-2 border-dashed border-slate-200">
-                                    <h4 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">Motor Power Output</h4>
-                                    <SpeedometerDiagram />
-                                    <div className="grid grid-cols-2 gap-4 w-full">
-                                        <div className="bg-white p-4 rounded-2xl text-center border border-slate-200 shadow-sm">
-                                            <div className="text-2xl font-black text-slate-800">0%</div>
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase">Stationary</div>
-                                        </div>
-                                        <div className="bg-white p-4 rounded-2xl text-center border border-slate-200 shadow-sm">
-                                            <div className="text-2xl font-black text-emerald-500">100%</div>
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase">Max Power</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-                )
-            },
-            {
-                id: 3,
-                title: "Unit 3: Sensors & Decision Making",
-                content: (
-                    <div className="space-y-12">
-                        {/* Ultrasonic Section */}
-                        <section className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-sm text-slate-700">
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl"><Radar size={28} /></div>
-                                <h3 className="text-3xl font-black text-slate-800 uppercase tracking-tight">1. Seeing with Sound</h3>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                                <div className="space-y-4">
-                                    <p className="text-lg leading-relaxed">
-                                        The <b>Ultrasonic Sensor</b> acts as the robot's eyes. It sends out sound waves and measures how long it takes for them to bounce back.
-                                    </p>
-                                    <ul className="space-y-2">
-                                        <li className="flex items-center gap-2 font-bold text-slate-600"><Check size={16} className="text-indigo-500" /> Measures distance from 3cm to 255cm.</li>
-                                        <li className="flex items-center gap-2 font-bold text-slate-600"><Check size={16} className="text-indigo-500" /> Helps prevent crashes by "looking" ahead.</li>
-                                    </ul>
-                                </div>
-                                <UltrasonicRangeDiagram />
-                            </div>
-                        </section>
-
-                        {/* Logic Section */}
-                        <section className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-sm text-slate-700">
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl"><Timer size={28} /></div>
-                                <h3 className="text-3xl font-black text-slate-800">2. The "Wait Until" Concept</h3>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                                    <h4 className="text-xl font-bold text-slate-800 mb-3 underline decoration-amber-400 decoration-2">Event-Based Logic</h4>
-                                    <p className="text-slate-600 text-sm mb-6 font-medium">Instead of driving for a set distance, we tell the robot: <b>"Drive forward until the sensor sees a wall."</b></p>
-                                    <div className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-4">
-                                        <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/control_waituntil.svg" className="h-24 object-contain" />
-                                        <div className="flex items-center gap-2 text-xs font-black text-amber-600 uppercase">
-                                            <ArrowRightLeft size={14}/>
-                                            <span>Connects to: "Distance {'<'} 20 cm"</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="space-y-4 text-slate-600">
-                                    <p className="text-base font-medium">
-                                        This logic makes the robot <b>reactive</b>. It doesn't just blindly follow instructions; it adapts to its environment.
-                                    </p>
-                                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 text-emerald-800 text-xs font-bold">
-                                        PRO TIP: Use "Stop Moving" immediately after a "Wait Until" block to ensure the robot stops precisely when the condition is met.
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-                )
-            },
-            {
-                id: 4,
-                title: "Unit 4: Turning Patterns & Trajectories",
-                content: (
-                    <div className="space-y-12">
-                        <section className="bg-white p-10 rounded-[3rem] border-2 border-slate-100 shadow-sm">
-                            <header className="mb-12">
-                                <h3 className="text-4xl font-black text-slate-900 mb-4">Maneuvering Patterns</h3>
-                                <p className="text-xl text-slate-500">Choosing the right way to change direction depends on the environment and the required precision.</p>
-                            </header>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                {/* Spin Turn */}
-                                <div className="bg-indigo-50/50 p-8 rounded-[2.5rem] border-2 border-indigo-100 flex flex-col gap-6">
-                                    <h4 className="text-2xl font-black text-indigo-900">Spin Turn (Point Turn)</h4>
-                                    <div className="h-72 bg-white rounded-3xl border-2 border-indigo-100 p-2 overflow-hidden">
-                                        <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/spinturn.svg" className="w-full h-full object-contain" />
-                                    </div>
-                                    <SpinTurnDiagram />
-                                    <div className="space-y-3">
-                                        <p className="text-slate-700 font-medium">The robot spins <b>around its center</b>. One motor runs forward, the other backward.</p>
-                                        <div className="bg-white/60 p-4 rounded-2xl border border-indigo-200">
-                                            <h5 className="text-xs font-black text-indigo-600 uppercase mb-2 flex items-center gap-2"><TargetIcon size={14}/> When to use?</h5>
-                                            <ul className="text-sm text-slate-600 space-y-1.5 font-bold">
-                                                <li>• Dead ends: Perfect for doing a 180° flip.</li>
-                                                <li>• Tight corridors: When there is no room to curve.</li>
-                                                <li>• Fixed orientation: When you need to face a wall perfectly.</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Pivot Turn */}
-                                <div className="bg-orange-50/50 p-8 rounded-[2.5rem] border-2 border-orange-100 flex flex-col gap-6">
-                                    <h4 className="text-2xl font-black text-orange-900">Pivot Turn</h4>
-                                    <div className="h-72 bg-white rounded-3xl border-2 border-orange-100 p-2 overflow-hidden">
-                                        <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/pivotgturn.svg" className="w-full h-full object-contain" />
-                                    </div>
-                                    <PivotTurnDiagram />
-                                    <div className="space-y-3">
-                                        <p className="text-slate-700 font-medium">The robot turns <b>around one wheel</b>. One wheel stays stopped while the other drives.</p>
-                                        <div className="bg-white/60 p-4 rounded-2xl border border-orange-200">
-                                            <h5 className="text-xs font-black text-orange-600 uppercase mb-2 flex items-center gap-2"><TargetIcon size={14}/> When to use?</h5>
-                                            <ul className="text-sm text-slate-600 space-y-1.5 font-bold">
-                                                <li>• Cornering: Great for squaring up with a wall corner.</li>
-                                                <li>• Obstacles: Navigating around a small box.</li>
-                                                <li>• Simple 90°: Easier to calculate than a curve turn.</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Swing Turn */}
-                                <div className="bg-emerald-50/50 p-8 rounded-[2.5rem] border-2 border-emerald-100 flex flex-col gap-6">
-                                    <h4 className="text-2xl font-black text-emerald-900">Curve / Swing Turn</h4>
-                                    <div className="h-72 bg-white rounded-3xl border-2 border-emerald-100 p-2 overflow-hidden">
-                                        <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/turnswing.svg" className="w-full h-full object-contain" />
-                                    </div>
-                                    <SwingTurnDiagram />
-                                    <div className="space-y-3">
-                                        <p className="text-slate-700 font-medium">Wide, gentle turn. <b>Both wheels move</b>, but at different speeds.</p>
-                                        <div className="bg-white/60 p-4 rounded-2xl border border-emerald-200">
-                                            <h5 className="text-xs font-black text-emerald-600 uppercase mb-2 flex items-center gap-2"><TargetIcon size={14}/> When to use?</h5>
-                                            <ul className="text-sm text-slate-600 space-y-1.5 font-bold">
-                                                <li>• Racing: Best for high speeds as it keeps momentum.</li>
-                                                <li>• Curved Lines: Essential for following arc-shaped paths.</li>
-                                                <li>• Efficiency: The fastest way to change direction while moving.</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Gyro Turn */}
-                                <div className="bg-sky-50/50 p-8 rounded-[2.5rem] border-2 border-sky-100 flex flex-col gap-6">
-                                    <h4 className="text-2xl font-black text-sky-900">Gyro-Assisted Turn</h4>
-                                    <div className="h-72 bg-white rounded-3xl border-2 border-sky-100 p-2 flex items-center justify-center overflow-hidden">
-                                        <GyroTurnDiagram />
-                                    </div>
-                                    <div className="space-y-3">
-                                        <p className="text-slate-700 font-medium">Using <b>sensors</b> to stop at a perfect angle (e.g., exactly 90°).</p>
-                                        <div className="bg-white/60 p-4 rounded-2xl border border-sky-200">
-                                            <h5 className="text-xs font-black text-sky-600 uppercase mb-2 flex items-center gap-2"><TargetIcon size={14}/> When to use?</h5>
-                                            <ul className="text-sm text-slate-600 space-y-1.5 font-bold">
-                                                <li>• Critical Tasks: When you MUST be 100% accurate.</li>
-                                                <li>• Slippery Floors: Compensates for wheel slip on ramps.</li>
-                                                <li>• Long Missions: Prevents small errors from adding up.</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-                )
-            },
-            {
-                id: 5,
-                title: "Unit 5: Sensors - The Robot's Senses",
-                content: (
-                    <div className="space-y-16">
-                        {/* Ultrasonic */}
-                        <section className="bg-white p-10 rounded-[3rem] border-2 border-indigo-100 shadow-sm">
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="p-4 bg-indigo-100 text-indigo-600 rounded-3xl"><Waves size={32} /></div>
-                                <h3 className="text-3xl font-black text-slate-900">1. Ultrasonic Sensor (Distance)</h3>
-                            </div>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-                                <div className="space-y-6 text-left">
-                                    <p className="text-xl text-slate-600 leading-relaxed">
-                                        This sensor works like the sonar system of bats or dolphins. It emits high-frequency sound waves and measures how long it takes for them to return from an obstacle.
-                                    </p>
-                                    <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
-                                        <h4 className="font-black text-indigo-900 mb-2">Common Uses:</h4>
-                                        <ul className="list-disc list-inside text-indigo-800 space-y-1">
-                                            <li>Preventing wall collisions.</li>
-                                            <li>Precise distance detection for parking.</li>
-                                            <li>Maze navigation without physical contact.</li>
-                                        </ul>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Relevant Programming Block:</h4>
-                                        <div className="flex flex-col gap-2">
-                                            <BlockCard title="distance from obstacle" desc="Returns the distance in centimeters (0-255)." img="sensor_distance.svg" color="#00C7E5" />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-6 items-center">
-                                    <UltrasonicRangeDiagram />
-                                    <div className="bg-slate-50 p-4 rounded-xl text-sm font-bold text-slate-500 border border-slate-200">Diagram: Sensor sound wave range</div>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Color Sensor */}
-                        <section className="bg-white p-10 rounded-[3rem] border-2 border-yellow-100 shadow-sm">
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="p-4 bg-yellow-100 text-yellow-600 rounded-3xl"><Palette size={32} /></div>
-                                <h3 className="text-3xl font-black text-slate-900">2. Color Sensor</h3>
-                            </div>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-                                <div className="space-y-6 text-left">
-                                    <p className="text-xl text-slate-600 leading-relaxed">
-                                        The sensor is located at the bottom of the robot, facing the floor. It projects white light and measures the color reflected back from the surface.
-                                    </p>
-                                    <div className="bg-yellow-50 p-6 rounded-2xl border border-yellow-100">
-                                        <h4 className="font-black text-yellow-900 mb-2">Operation Modes:</h4>
-                                        <ul className="list-disc list-inside text-yellow-800 space-y-1">
-                                            <li><b>Color Identification:</b> Recognizes colors like Red, Green, Blue, and Black.</li>
-                                            <li><b>Light Intensity:</b> Measures how "bright" or "dark" the surface is (excellent for line following).</li>
-                                        </ul>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Relevant Programming Block:</h4>
-                                        <div className="flex flex-col gap-2">
-                                            <BlockCard title="touching color ?" desc="Checks if the robot is currently on a specific color." img="sensor_touchingcolor.svg" color="#00C7E5" />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-6 items-center">
-                                    <ColorSensorDiagram />
-                                    <div className="bg-slate-50 p-4 rounded-xl text-sm font-bold text-slate-500 border border-slate-200">Diagram: Surface color detection</div>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Touch Sensor */}
-                        <section className="bg-white p-10 rounded-[3rem] border-2 border-pink-100 shadow-sm">
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="p-4 bg-pink-100 text-pink-600 rounded-3xl"><Hand size={32} /></div>
-                                <h3 className="text-3xl font-black text-slate-900">3. Touch Sensor</h3>
-                            </div>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-                                <div className="space-y-6 text-left">
-                                    <p className="text-xl text-slate-600 leading-relaxed">
-                                        This sensor is a simple physical button. When the red tip is pressed against a wall or obstacle, the electrical circuit closes and the robot knows it has touched something.
-                                    </p>
-                                    <div className="bg-pink-50 p-6 rounded-2xl border border-pink-100">
-                                        <h4 className="font-black text-pink-900 mb-2">Uses:</h4>
-                                        <ul className="list-disc list-inside text-pink-800 space-y-1">
-                                            <li>Safe stopping during a collision.</li>
-                                            <li>"Feeling" walls during wall-following navigation.</li>
-                                            <li>Starting a program by manually pressing the bumper.</li>
-                                        </ul>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Relevant Programming Block:</h4>
-                                        <div className="flex flex-col gap-2">
-                                            <BlockCard title="touch sensor pressed?" desc="Returns 'True' if the bumper is pressed." img="sensor_touchpressed.svg" color="#00C7E5" />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-6 items-center">
-                                    <TouchDiagram />
-                                    <div className="bg-slate-50 p-4 rounded-xl text-sm font-bold text-slate-500 border border-slate-200">Diagram: Press mechanism and collision</div>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Gyro Sensor */}
-                        <section className="bg-white p-10 rounded-[3rem] border-2 border-orange-100 shadow-sm">
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="p-4 bg-orange-100 text-orange-600 rounded-3xl"><Compass size={32} /></div>
-                                <h3 className="text-3xl font-black text-slate-900">4. Gyro Sensor</h3>
-                            </div>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-                                <div className="space-y-6 text-left">
-                                    <p className="text-xl text-slate-600 leading-relaxed">
-                                        The Gyro is the robot's "compass" and "level". It measures rotational movement and angle changes with a precision of a fraction of a degree.
-                                    </p>
-                                    <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100">
-                                        <h4 className="font-black text-orange-900 mb-2">Measured Data:</h4>
-                                        <ul className="list-disc list-inside text-orange-800 space-y-1">
-                                            <li><b>Rotation Angle (Heading):</b> Which direction the robot is facing (0-360 degrees).</li>
-                                            <li><b>Tilt Angle:</b> Whether the robot is climbing up or down a ramp.</li>
-                                        </ul>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Relevant Programming Block:</h4>
-                                        <div className="flex flex-col gap-2">
-                                            <BlockCard title="gyro angle / tilt" desc="Returns the robot's current rotational or tilt angle." img="sensor_gyro.svg" color="#00C7E5" />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-6 items-center">
-                                    <GyroTurnDiagram />
-                                    <div className="bg-slate-50 p-4 rounded-xl text-sm font-bold text-slate-500 border border-slate-200">Diagram: Measuring angles in 360 degrees</div>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-                )
-            }
-        ];
-
-        const activeUnit = units.find(u => u.id === currentUnit) || units[0];
-
-        return (
-            <div className="max-w-6xl mx-auto p-8 pt-16 animate-in fade-in duration-300 h-full overflow-y-auto pb-40">
-                <button onClick={() => setCurrentPage('MENU')} className="flex items-center gap-2 text-amber-600 font-bold mb-8 hover:bg-amber-50 px-4 py-2 rounded-xl transition-all">
-                    <ArrowLeft size={20} /> Back to Help Menu
+    const renderCourseHome = () => (
+        <div className="max-w-6xl mx-auto p-8 pt-20 animate-in fade-in slide-in-from-bottom-6 duration-700 text-left" dir="ltr">
+            <header className="text-center mb-16">
+                <button onClick={() => setCurrentPage('MENU')} className="flex items-center gap-4 text-slate-500 font-black mb-8 hover:translate-x-[-8px] transition-transform text-2xl tracking-tighter uppercase">
+                    <ArrowLeft size={32} strokeWidth={3} /> Back to Wiki
                 </button>
-                <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div>
-                        <h1 className="text-5xl font-black text-slate-900 mb-2">Course Curriculum</h1>
-                        <p className="text-xl text-slate-500">Learn robotics step-by-step.</p>
-                    </div>
-                    <div className="flex bg-slate-100 p-1.5 rounded-2xl border-2 border-slate-200 overflow-x-auto max-w-full">
-                        {units.map((u) => (
-                            <button key={u.id} onClick={() => setCurrentUnit(u.id)} className={`px-6 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${currentUnit === u.id ? 'bg-white text-amber-600 shadow-md scale-105' : 'text-slate-500 hover:text-slate-800'}`}>Unit {u.id}</button>
-                        ))}
-                    </div>
-                </header>
-                <div className="animate-in slide-in-from-bottom-2 duration-500">
-                    <div className="mb-6">
-                        <span className="bg-amber-100 text-amber-600 px-4 py-1.5 rounded-full font-black text-xs uppercase tracking-widest">Active Lesson</span>
-                        <h2 className="text-3xl font-black text-slate-800 mt-3">{activeUnit?.title}</h2>
-                    </div>
-                    {activeUnit?.content}
-                </div>
-                <div className="mt-16 flex justify-between border-t-2 border-slate-100 pt-8">
-                    <button disabled={currentUnit === 1} onClick={() => setCurrentUnit(p => Math.max(1, p - 1))} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${currentUnit === 1 ? 'opacity-30 cursor-not-allowed' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}><ArrowLeft size={20} /> Previous Lesson</button>
-                    <button onClick={() => {
-                        const idx = units.findIndex(u => u.id === currentUnit);
-                        if (idx < units.length - 1) setCurrentUnit(units[idx+1].id);
-                    }} disabled={currentUnit === units[units.length-1]?.id} className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-bold transition-all ${currentUnit === units[units.length-1]?.id ? 'opacity-30 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-lg'}`}>Next Lesson</button>
-                </div>
-            </div>
-        );
-    };
-
-    const renderHardwareModal = () => {
-        if (!selectedHardware) return null;
-        return (
-            <div className="fixed inset-0 z-[6000000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-                <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in duration-300 flex flex-col border-4 border-emerald-500">
-                    <div className={`p-8 bg-emerald-50 flex justify-between items-center border-b border-emerald-100`}>
-                        <div className="flex items-center gap-4">
-                            <div className={`w-16 h-16 bg-white shadow-md rounded-2xl flex items-center justify-center text-emerald-500`}>{selectedHardware.icon}</div>
-                            <h2 className="text-3xl font-black text-slate-900">{selectedHardware.title}</h2>
-                        </div>
-                        <button onClick={() => setSelectedHardware(null)} className="p-3 hover:bg-white rounded-full text-slate-400 hover:text-slate-600 transition-all shadow-sm active:scale-90"><X size={24} strokeWidth={3} /></button>
-                    </div>
-                    <div className="p-10 space-y-8 overflow-y-auto max-h-[70vh]">
-                        <div>
-                            <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-3 flex items-center gap-2"><Activity size={16} /> How it works?</h3>
-                            <p className="text-slate-600 leading-relaxed text-xl">{selectedHardware.howItWorks}</p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Settings size={16} /> Technical Specs</h3>
-                                <ul className="space-y-3">
-                                    {selectedHardware.technicalData.map((data, i) => (
-                                        <li key={i} className="flex items-center gap-2 text-base font-bold text-slate-700"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />{data}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                            <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100">
-                                <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-4 flex items-center gap-2"><TargetIcon size={16} /> Programming Tip</h3>
-                                <p className="text-emerald-800 text-base font-bold leading-relaxed">{selectedHardware.programmingTip}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-center">
-                        <button onClick={() => setSelectedHardware(null)} className="px-10 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all active:scale-95 shadow-lg">Got it!</button>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    const renderStructure = () => (
-        <div className="max-w-7xl mx-auto p-8 pt-16 animate-in fade-in duration-300 h-full overflow-y-auto pb-40">
-            <button onClick={() => setCurrentPage('MENU')} className="flex items-center gap-2 text-emerald-600 font-bold mb-8 hover:bg-emerald-50 px-4 py-2 rounded-xl transition-all"><ArrowLeft size={20} /> Back to Menu</button>
-            <header className="mb-12 text-center">
-                <h1 className="text-4xl font-black text-slate-900 flex flex-col md:flex-row items-center justify-center gap-4"><span className="bg-emerald-600 text-white p-2 rounded-2xl"><Cpu size={32} /></span>Robot Hardware & Structure</h1>
-                <p className="text-slate-500 mt-2 text-xl font-medium">Technical manual for the virtual robot hardware.</p>
+                <h1 className="text-6xl font-black text-slate-900 mb-6 tracking-tighter leading-none uppercase">The Course</h1>
+                <p className="text-xl text-slate-500 font-medium italic">Master the art of robotics, module by module.</p>
             </header>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                <div className="space-y-6">
-                    <button onClick={() => setSelectedHardware(HARDWARE_DETAILS.motors)} className="w-full text-left bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 hover:border-emerald-400 hover:shadow-md transition-all group flex flex-col gap-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Zap size={20} /></div>
-                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Drive Motors</h2>
-                            </div>
-                            <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {COURSE_UNITS.map((unit) => (
+                    <button 
+                        key={unit.id} 
+                        onClick={() => { setSelectedUnit(unit); setCurrentPage('UNIT_DETAIL'); setExpandedMissionIdx(0); }}
+                        className="group bg-white p-8 rounded-[3rem] shadow-lg hover:shadow-2xl transition-all border-4 border-transparent flex flex-col items-start text-left gap-6 relative overflow-hidden"
+                        style={{ borderColor: 'transparent' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.borderColor = unit.color)}
+                        onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
+                    >
+                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: unit.color }}>
+                            {unit.icon}
                         </div>
-                        <p className="text-slate-600 text-base leading-relaxed">Two independent motors allowing forward, backward movement and turning in place.</p>
-                    </button>
-                    <button onClick={() => setSelectedHardware(HARDWARE_DETAILS.touch)} className="w-full text-left bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 hover:border-emerald-400 hover:shadow-md transition-all group flex flex-col gap-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-pink-50 text-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Hand size={20} /></div>
-                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Touch Sensor</h2>
-                            </div>
-                            <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.3em] mb-1" style={{ color: unit.color }}>UNIT MODULE 0{unit.id}</div>
+                            <h2 className="text-2xl font-black text-slate-800 mb-2 tracking-tight uppercase">{unit.title}</h2>
+                            <p className="text-slate-500 text-sm font-medium line-clamp-2">{unit.description}</p>
                         </div>
-                        <p className="text-slate-600 text-base leading-relaxed">A physical bumper located at the front tip. Returns "True" when hitting a wall.</p>
-                    </button>
-                    <button onClick={() => setSelectedHardware(HARDWARE_DETAILS.gyro)} className="w-full text-left bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 hover:border-emerald-400 hover:shadow-md transition-all group flex flex-col gap-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Compass size={20} /></div>
-                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Gyro Sensor</h2>
-                            </div>
-                            <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="mt-auto pt-4 flex items-center gap-2 text-sm font-black uppercase tracking-widest transition-transform group-hover:translate-x-[8px]" style={{ color: unit.color }}>
+                            Start Lesson <ChevronRight size={16} strokeWidth={3} />
                         </div>
-                        <p className="text-slate-600 text-base leading-relaxed">Measures the rotation angle and pitch (tilt) of the robot in real-time.</p>
                     </button>
-                </div>
-                <div className="flex flex-col gap-8 py-4 items-center">
-                    <div className="relative group w-full">
-                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-3 py-1 rounded-full font-bold z-10">Hardware Diagram</div>
-                        <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex items-center justify-center min-h-[350px]">
-                            <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/robotsensor.svg?v=1.2" alt="Robot Sensor Diagram" className="w-full h-auto max-w-sm drop-shadow-lg" />
+                ))}
+            </div>
+        </div>
+    );
+
+    const renderUnitDetail = () => {
+        if (!selectedUnit) return null;
+        
+        return (
+            <div className="max-w-[1600px] mx-auto p-8 md:p-12 pt-20 animate-in slide-in-from-right duration-500 h-full overflow-y-auto pb-60 text-left font-sans" dir="ltr">
+                <button onClick={() => setCurrentPage('COURSE')} className="flex items-center gap-4 text-slate-400 font-black mb-14 hover:translate-x-[-8px] transition-transform text-2xl tracking-tighter uppercase">
+                    <ArrowLeft size={32} strokeWidth={3} /> Back to Units
+                </button>
+                
+                <div className="bg-white rounded-[5rem] p-8 md:p-16 shadow-2xl border border-slate-100 mb-16 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-96 h-96 opacity-[0.03] pointer-events-none" style={{ color: selectedUnit.color }}>
+                         <GraduationCap size={380} className="rotate-12 transform translate-x-24 -translate-y-24" />
+                    </div>
+
+                    <div className="flex items-center gap-8 mb-16">
+                        <div className="w-28 h-28 rounded-[2.5rem] flex items-center justify-center text-white shadow-xl shrink-0" style={{ backgroundColor: selectedUnit.color }}>
+                            {selectedUnit.icon}
+                        </div>
+                        <div>
+                            <div className="text-sm font-black uppercase tracking-[0.4em]" style={{ color: selectedUnit.color }}>Study Module 0{selectedUnit.id}</div>
+                            <h1 className="text-7xl font-black text-slate-900 tracking-tighter leading-none uppercase">{selectedUnit.title}</h1>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-16">
+                        <div className="lg:col-span-3 space-y-20">
+                            {/* Summary */}
+                            <div className="space-y-6">
+                                <h3 className="text-2xl font-black text-slate-800 flex items-center gap-3 uppercase"><Info className="text-slate-400" /> Executive Summary</h3>
+                                <p className="text-slate-500 text-2xl leading-relaxed font-medium italic">{selectedUnit.details}</p>
+                            </div>
+
+                            {/* MODULE 4 SPECIAL: TURN TYPE DIAGRAMS */}
+                            {selectedUnit.id === 4 && (
+                                <div className="space-y-20">
+                                    <div className="grid grid-cols-1 gap-12">
+                                        <div className="bg-slate-50 rounded-[4rem] border-2 border-blue-100 flex flex-col lg:flex-row overflow-hidden">
+                                            <div className="p-12 lg:w-2/3 space-y-6">
+                                                <h4 className="text-3xl font-black text-blue-600 uppercase">1. Swing Turn</h4>
+                                                <p className="text-xl text-slate-600 font-medium">One wheel stops while the other moves. The robot swings around the stationary axis.</p>
+                                            </div>
+                                            <div className="lg:w-1/3 bg-white p-8 border-l-2 border-slate-100 flex items-center justify-center">
+                                                <div className="w-full max-w-[250px]"><SwingTurnDiagram /></div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-[4rem] border-2 border-rose-100 flex flex-col lg:flex-row overflow-hidden">
+                                            <div className="p-12 lg:w-2/3 space-y-6">
+                                                <h4 className="text-3xl font-black text-rose-600 uppercase">2. Pivot Turn</h4>
+                                                <p className="text-xl text-slate-600 font-medium">Wheels spin in opposite directions. The robot rotates exactly on its center.</p>
+                                            </div>
+                                            <div className="lg:w-1/3 bg-white p-8 border-l-2 border-slate-100 flex items-center justify-center">
+                                                <div className="w-full max-w-[250px]"><PivotTurnDiagram /></div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-[4rem] border-2 border-emerald-100 flex flex-col lg:flex-row overflow-hidden">
+                                            <div className="p-12 lg:w-2/3 space-y-6">
+                                                <h4 className="text-3xl font-black text-emerald-600 uppercase">3. Arc Turn</h4>
+                                                <p className="text-xl text-slate-600 font-medium">Both wheels move forward but at different speeds, creating a sweeping curve.</p>
+                                            </div>
+                                            <div className="lg:w-1/3 bg-white p-8 border-l-2 border-slate-100 flex items-center justify-center">
+                                                <div className="w-full max-w-[250px]"><ArcTurnDiagram /></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-slate-900 p-12 rounded-[4rem] shadow-2xl text-white">
+                                        <h3 className="text-4xl font-black mb-8 flex items-center gap-4">Comparison Table</h3>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left">
+                                                <thead>
+                                                    <tr className="border-b-2 border-slate-700">
+                                                        <th className="pb-6 text-slate-400 font-black uppercase text-sm">Turn Mode</th>
+                                                        <th className="pb-6 text-slate-400 font-black uppercase text-sm">One Wheel</th>
+                                                        <th className="pb-6 text-slate-400 font-black uppercase text-sm">Second Wheel</th>
+                                                        <th className="pb-6 text-slate-400 font-black uppercase text-sm">Radius</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800">
+                                                    <tr>
+                                                        <td className="py-6 font-bold text-2xl">Swing</td>
+                                                        <td className="py-6 text-slate-300">Stopped</td>
+                                                        <td className="py-6 text-slate-300">Moving</td>
+                                                        <td className="py-6 text-blue-400 font-bold">Medium</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="py-6 font-bold text-2xl">Pivot</td>
+                                                        <td className="py-6 text-slate-300">Forward</td>
+                                                        <td className="py-6 text-slate-300">Backward</td>
+                                                        <td className="py-6 text-rose-400 font-bold">Zero</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="py-6 font-bold text-2xl">Arc</td>
+                                                        <td className="py-6 text-slate-300">Speed X</td>
+                                                        <td className="py-6 text-slate-300">Speed Y</td>
+                                                        <td className="py-6 text-emerald-400 font-bold">Large</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* MODULE 3 SPECIAL: SENSOR SHOWCASE */}
+                            {selectedUnit.id === 3 && (
+                                <div className="space-y-12">
+                                    <h3 className="text-3xl font-black text-slate-900 border-b-4 border-cyan-100 pb-4 inline-block uppercase tracking-tight">Sensor Hardware Specs</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                        <div className="bg-slate-50 rounded-[3rem] p-10 border border-slate-100 flex flex-col gap-6 group hover:bg-white hover:shadow-2xl transition-all">
+                                            <div className="h-56 bg-white rounded-3xl p-6 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform overflow-hidden border border-slate-50">
+                                                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorultrasonok.svg" alt="Ultrasonic" className="max-h-full object-contain" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-2"><Radar className="text-cyan-500" /><h4 className="text-2xl font-black text-cyan-600 uppercase">Ultrasonic</h4></div>
+                                                <p className="text-slate-600 font-medium leading-relaxed">Measures distance (0-255cm) using echolocation sound waves.</p>
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-[3rem] p-10 border border-slate-100 flex flex-col gap-6 group hover:bg-white hover:shadow-2xl transition-all">
+                                            <div className="h-56 bg-white rounded-3xl p-6 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform overflow-hidden border border-slate-50">
+                                                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensortouch.svg" alt="Touch" className="max-h-full object-contain" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-2"><Hand className="text-red-500" /><h4 className="text-2xl font-black text-red-500 uppercase">Touch Sensor</h4></div>
+                                                <p className="text-slate-600 font-medium leading-relaxed">A digital binary switch that detects physical impact with obstacles.</p>
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-[3rem] p-10 border border-slate-100 flex flex-col gap-6 group hover:bg-white hover:shadow-2xl transition-all">
+                                            <div className="h-56 bg-white rounded-3xl p-6 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform overflow-hidden border border-slate-50">
+                                                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorgyro.svg" alt="Gyro" className="max-h-full object-contain" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-2"><Compass className="text-indigo-500" /><h4 className="text-2xl font-black text-indigo-600 uppercase">Gyroscope</h4></div>
+                                                <p className="text-slate-600 font-medium leading-relaxed">Tracks rotation angle and pitch for precise navigation and balancing.</p>
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-[3rem] p-10 border border-slate-100 flex flex-col gap-6 group hover:bg-white hover:shadow-2xl transition-all">
+                                            <div className="h-56 bg-white rounded-3xl p-6 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform overflow-hidden border border-slate-50">
+                                                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorcolor.svg" alt="Color" className="max-h-full object-contain" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-2"><Palette className="text-pink-500" /><h4 className="text-2xl font-black text-pink-600 uppercase">Color Sensor</h4></div>
+                                                <p className="text-slate-600 font-medium leading-relaxed">Identifies track colors and light intensity using RGB spectrum analysis.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-12">
+                                <h3 className="text-2xl font-black text-slate-800 uppercase mb-6 flex items-center gap-3"><Milestone className="text-slate-400" /> Learning Path</h3>
+                                <div className="grid grid-cols-1 gap-6">
+                                    {selectedUnit.lessons.map((lesson, idx) => (
+                                        <div key={idx} className="flex flex-col gap-3 bg-slate-50 p-10 rounded-[3rem] border border-slate-100 shadow-sm group hover:bg-white hover:shadow-xl transition-all">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-white shadow-md shrink-0" style={{ backgroundColor: selectedUnit.color }}>{idx + 1}</div>
+                                                <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tight">{lesson.title}</h4>
+                                            </div>
+                                            <p className="text-slate-600 text-xl leading-relaxed font-medium pl-14">{lesson.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-8 pt-10 border-t-2 border-slate-100">
+                                <h3 className="text-2xl font-black text-slate-800 flex items-center gap-3 uppercase"><ShieldCheck className="text-slate-400" /> Essential Blocks</h3>
+                                <div className="flex flex-wrap items-start gap-6">
+                                    {selectedUnit.keyBlocks.map((block, idx) => (
+                                        <div key={idx} className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-50 shadow-lg group hover:border-slate-200 transition-all inline-flex items-center justify-center">
+                                            <img src={`https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/${block}`} alt="Block Icon" className="h-auto w-auto max-h-[110px] block group-hover:scale-105 transition-transform" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {selectedUnit.missions && selectedUnit.missions.length > 0 && (
+                                <div className="space-y-12 pt-20">
+                                    <h3 className="text-2xl font-black text-slate-800 flex items-center gap-3 uppercase tracking-tighter"><Target className="text-slate-400" /> Unit Missions</h3>
+                                    <div className="space-y-4">
+                                        {selectedUnit.missions.map((mission, mIdx) => {
+                                            const isExpanded = expandedMissionIdx === mIdx;
+                                            return (
+                                                <div key={mIdx} className={`bg-slate-50 rounded-[3rem] border-2 transition-all duration-300 overflow-hidden ${isExpanded ? 'border-blue-400 shadow-xl' : 'border-slate-100 shadow-sm hover:bg-slate-100'}`}>
+                                                    <button onClick={() => setExpandedMissionIdx(isExpanded ? null : mIdx)} className="w-full p-8 flex items-center justify-between group">
+                                                        <div className="flex items-center gap-6">
+                                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl transition-colors ${isExpanded ? 'bg-blue-500 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200 group-hover:text-slate-600'}`}>{mIdx + 1}</div>
+                                                            <h4 className={`text-2xl font-black uppercase tracking-tight transition-colors ${isExpanded ? 'text-blue-600' : 'text-slate-700'}`}>{mission.title}</h4>
+                                                        </div>
+                                                        <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180 text-blue-500' : 'text-slate-300 group-hover:text-slate-500'}`}><ChevronDown size={28} strokeWidth={3} /></div>
+                                                    </button>
+                                                    {isExpanded && (
+                                                        <div className="p-8 pt-0 space-y-10 animate-in fade-in slide-in-from-top-4 duration-500">
+                                                            <div className="h-px bg-slate-200 w-full mb-8" />
+                                                            <div className="flex flex-col gap-10">
+                                                                {mission.requiredChallenge && (
+                                                                    <div className="bg-rose-50 border-2 border-rose-200 rounded-3xl p-6 flex items-start gap-4 animate-pulse">
+                                                                        <AlertTriangle className="text-rose-500 shrink-0 mt-1" size={24} />
+                                                                        <div><h5 className="font-black text-rose-800 text-lg mb-1">Important Mission Note:</h5><p className="text-rose-700 font-bold leading-relaxed">To spawn required obstacles, load <span className="bg-white px-2 py-0.5 rounded-lg mx-1 border border-rose-300">"{mission.requiredChallenge}"</span> from the Challenges menu.</p></div>
+                                                                    </div>
+                                                                )}
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-inner flex flex-col gap-3">
+                                                                        <span className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-[0.2em]"><Target size={14} className="text-blue-500" /> Mission Objective</span>
+                                                                        <p className="text-slate-700 font-bold text-2xl leading-tight italic">{mission.objective}</p>
+                                                                    </div>
+                                                                    <div className="bg-amber-50 p-8 rounded-3xl border border-amber-200 shadow-inner flex flex-col gap-3">
+                                                                        <span className="flex items-center gap-2 text-xs font-black text-amber-500 uppercase tracking-[0.2em]"><LightbulbIcon size={14} /> Engineer Hint</span>
+                                                                        <p className="text-amber-900 font-bold text-xl leading-snug">{mission.hint}</p>
+                                                                    </div>
+                                                                </div>
+                                                                {mission.imgCode && (
+                                                                    <div className="space-y-4">
+                                                                        <div className="flex items-center gap-2 text-indigo-500 font-black text-[10px] uppercase tracking-[0.3em] pl-4"><Code size={16} /> Official Program Solution</div>
+                                                                        <div className="p-8 bg-slate-900 rounded-[3rem] border-4 border-indigo-500/30 shadow-2xl relative overflow-x-auto min-h-[300px] flex items-center justify-center group-hover:border-indigo-500 transition-all duration-500">
+                                                                            <img src={mission.imgCode} alt="Code Solution" className="w-auto h-auto max-w-full rounded-lg drop-shadow-[0_0_30px_rgba(99,102,241,0.4)]" />
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                <div className="space-y-4">
+                                                                    <div className="flex items-center gap-2 text-emerald-500 font-black text-[10px] uppercase tracking-[0.3em] pl-4"><MonitorPlay size={16} /> Live Visual Guide</div>
+                                                                    <div className="bg-slate-900 rounded-[3.5rem] overflow-hidden shadow-2xl flex flex-col border-8 border-slate-800">
+                                                                        <div className="flex-1 flex items-center justify-center bg-black min-h-[450px]">
+                                                                            {mission.video ? (
+                                                                                <video src={mission.video} autoPlay loop muted playsInline className="w-full h-auto object-contain" />
+                                                                            ) : mission.img ? (
+                                                                                <img src={mission.img} alt="Mission Preview" className="w-full h-auto object-contain p-8" />
+                                                                            ) : (
+                                                                                <div className="text-slate-800 font-black uppercase tracking-widest text-4xl opacity-50">Offline Feed</div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="lg:col-span-1 space-y-12">
+                            <div className="sticky top-12 space-y-12">
+                                <h3 className="text-2xl font-black text-slate-800 flex items-center gap-3 uppercase"><Cpu className="text-slate-400" /> Specs</h3>
+                                <div className="grid grid-cols-1 gap-8">
+                                    {selectedUnit.technicalConcepts.map((concept, idx) => (
+                                        <div key={idx} className="bg-slate-50/50 p-10 rounded-[3.5rem] border border-slate-100 shadow-sm">
+                                            <h4 className="text-xl font-black text-slate-900 mb-4 flex items-center gap-3 uppercase">
+                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedUnit.color }} />
+                                                {concept.title}
+                                            </h4>
+                                            <p className="text-slate-600 text-lg leading-relaxed font-medium">{concept.content}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div className="space-y-6">
-                    <button onClick={() => setSelectedHardware(HARDWARE_DETAILS.ultrasonic)} className="w-full text-left bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 hover:border-emerald-400 hover:shadow-md transition-all group flex flex-col gap-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Eye size={20} /></div>
-                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Ultrasonic Sensor</h2>
-                            </div>
-                            <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </div>
-                        <p className="text-slate-600 text-base leading-relaxed">The "eyes" of the robot. Measures distance to objects in cm using sound waves.</p>
-                    </button>
-                    <button onClick={() => setSelectedHardware(HARDWARE_DETAILS.color)} className="w-full text-left bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 hover:border-emerald-400 hover:shadow-md transition-all group flex flex-col gap-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-yellow-50 text-yellow-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Palette size={20} /></div>
-                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Color Sensor</h2>
-                            </div>
-                            <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </div>
-                        <p className="text-slate-600 text-base leading-relaxed">Pointed at the floor. Identifies colors and light intensity for line following.</p>
-                    </button>
-                    <button onClick={() => setSelectedHardware(HARDWARE_DETAILS.leds)} className="w-full text-left bg-white rounded-[2rem] p-6 shadow-sm border-2 border-slate-100 hover:border-emerald-400 hover:shadow-md transition-all group flex flex-col gap-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-purple-50 text-purple-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Lightbulb size={20} /></div>
-                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Status LEDs</h2>
-                            </div>
-                            <PlusCircle size={16} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </div>
-                        <p className="text-slate-600 text-base leading-relaxed">Two programmable RGB lights on the back of the robot for visual feedback.</p>
-                    </button>
-                </div>
             </div>
-            {renderHardwareModal()}
-        </div>
-    );
+        );
+    };
 
     const renderBlocks = () => (
-        <div className="max-w-6xl mx-auto p-8 pt-16 animate-in fade-in duration-300 h-full overflow-y-auto pb-40">
-            <button onClick={() => setCurrentPage('MENU')} className="flex items-center gap-2 text-blue-600 font-bold mb-8 hover:bg-blue-50 px-4 py-2 rounded-xl transition-all"><ArrowLeft size={20} /> Back to Help Menu</button>
-            <header className="mb-12">
-                <h1 className="text-4xl font-black text-slate-900 flex items-center gap-4"><span className="bg-blue-600 text-white p-2 rounded-2xl"><BookOpen size={32} /></span>Blocks Library</h1>
-                <p className="text-slate-500 mt-2 text-lg">Full details of all blocks available in the lab.</p>
-            </header>
-            <div className="space-y-16 pb-32">
-                <BlockSection title="Drive Blocks" color="#4C97FF">
-                    <BlockCard title="drive forward" desc="Starts continuous movement of the robot forward or backward without distance limit." img="robot_drive_simple.svg" color="#4C97FF" />
-                    <BlockCard title="drive forward distance" desc="Drives the robot for a defined distance (in cm) and then stops." img="robot_move.svg" color="#4C97FF" />
-                    <BlockCard title="drive distance at speed" desc="Drives for a defined distance while setting motor power as a percentage." img="robot_move_speed.svg" color="#4C97FF" />
-                    <BlockCard title="set default speed" desc="Sets the constant working speed for all subsequent movement actions." img="robot_set_speed.svg" color="#4C97FF" />
-                    <BlockCard title="stop moving" desc="Immediately stops all robot movements." img="robot_stop.svg" color="#4C97FF" />
-                    <BlockCard title="turn degree at speed" desc="Rotates the robot to a precise angle at the selected speed." img="robot_turn.svg" color="#4C97FF" />
+        <div className="max-w-7xl mx-auto p-12 pt-20 animate-in fade-in duration-500 h-full overflow-y-auto pb-60 text-left" dir="ltr">
+            <button onClick={() => setCurrentPage('MENU')} className="flex items-center gap-4 text-blue-600 font-black mb-14 hover:translate-x-[-8px] transition-transform text-2xl uppercase tracking-tighter">
+                <ArrowLeft size={32} strokeWidth={3} /> Back to Wiki
+            </button>
+            <div className="space-y-24">
+                <BlockSection title="Drive & Motion" color="#4C97FF">
+                    <BlockCard title="Drive Forward" desc="Starts continuous forward motion." img="drive_forward.svg" color="#4C97FF" />
+                    <BlockCard title="Drive Distance" desc="Moves for a precise number of centimeters." img="drive_forward_distance.svg" color="#4C97FF" />
+                    <BlockCard title="Drive Distance Speed" desc="Moves a distance at a specific speed percentage." img="drive_forward_distance_speed.svg" color="#4C97FF" />
+                    <BlockCard title="Heading Degree" desc="Sets the absolute robot orientation." img="drive_heading_dgree.svg" color="#4C97FF" />
+                    <BlockCard title="Set Motor" desc="Directly control left and right motor power." img="drive_setmotor.svg" color="#4C97FF" />
+                    <BlockCard title="Speed" desc="Sets the default travel speed." img="drive_speed.svg" color="#4C97FF" />
+                    <BlockCard title="Stop" desc="Immediately halts all motor activity." img="drive_stop.svg" color="#4C97FF" />
+                    <BlockCard title="Turn Degree Speed" desc="Turns by an angle at a specific speed." img="drive_turn_dgree_speed.svg" color="#4C97FF" />
+                    <BlockCard title="Turn Until Speed" desc="Turns at speed until a condition is met." img="drive_turn_until_speed.svg" color="#4C97FF" />
+                    <BlockCard title="Drive Until Speed" desc="Drives forward at speed until a condition is met." img="drive_until_speed.svg" color="#4C97FF" />
                 </BlockSection>
-                <BlockSection title="Control" color="#FFAB19">
-                    <BlockCard title="forever" desc="A loop that runs the code inside it repeatedly without end." img="control_forever.svg" color="#FFAB19" />
-                    <BlockCard title="wait (seconds)" desc="Pauses program execution for a few seconds before the next block." img="robot_wait.svg" color="#FFAB19" />
-                    <BlockCard title="wait until" desc="Stops code execution until a condition is met (e.g. hitting a wall)." img="control_waituntil.svg" color="#FFAB19" />
+                <BlockSection title="Sensing & Perception" color="#00C7E5">
+                    <BlockCard title="Distance Sensor" desc="Measures range to obstacle in cm." img="sensor_distance.svg" color="#00C7E5" />
+                    <BlockCard title="Gyroscope" desc="Provides orientation and tilt data." img="sensor_gyro.svg" color="#00C7E5" />
+                    <BlockCard title="Touch Sensor" desc="Returns the physical bumper state." img="sensor_touch.svg" color="#00C7E5" />
+                    <BlockCard title="Touching Color" desc="Checks if the robot is over a specific track color." img="sensor_touchingcolor.svg" color="#00C7E5" />
+                    <BlockCard title="Touch Event" desc="Event trigger when the bumper is hit." img="sensor_touchpressed.svg" color="#00C7E5" />
+                    <BlockCard title="Wheel Info" desc="Returns physical wheel metrics." img="sensor_wheel.svg" color="#00C7E5" />
+                </BlockSection>
+                <BlockSection title="Control & Logic" color="#FFAB19">
+                    <BlockCard title="Forever" desc="Loops the code blocks indefinitely." img="control_forever.svg" color="#FFAB19" />
+                    <BlockCard title="If Condition" desc="Executes if the logical statement is true." img="control_if.svg" color="#FFAB19" />
+                    <BlockCard title="If Else" desc="Selects between two paths of execution." img="control_ifelse.svg" color="#FFAB19" />
+                    <BlockCard title="Repeat Until" desc="Loops until a specific condition is satisfied." img="control_repeat_until.svg" color="#FFAB19" />
+                    <BlockCard title="Stop Program" desc="Terminates all execution logic." img="control_stopprogram.svg" color="#FFAB19" />
+                    <BlockCard title="Wait Seconds" desc="Pauses execution for a duration." img="control_wait.svg" color="#FFAB19" />
+                    <BlockCard title="Wait Until" desc="Pauses execution until a condition occurs." img="control_waituntil.svg" color="#FFAB19" />
+                </BlockSection>
+                <BlockSection title="Logic & Math" color="#59C059">
+                    <BlockCard title="And / Or" desc="Combines logical conditions." img="logic_and.svg" color="#59C059" />
+                    <BlockCard title="Compare" desc="Checks for equality or inequality." img="logic_compare.svg" color="#59C059" />
+                    <BlockCard title="Integer" desc="Rounds decimal numbers to whole numbers." img="logic_intrger.svg" color="#59C059" />
+                    <BlockCard title="Arithmetic" desc="Basic mathematical operators." img="logic_math.svg" color="#59C059" />
+                    <BlockCard title="Not" desc="Inverts a logical boolean value." img="logic_not.svg" color="#59C059" />
+                    <BlockCard title="Boolean" desc="Constant True or False values." img="logic_true.svg" color="#59C059" />
+                </BlockSection>
+                <BlockSection title="Looks & Signaling" color="#9966FF">
+                    <BlockCard title="Detected Color" desc="Matches LEDs to environmental color." img="led_detectedcolor.svg" color="#9966FF" />
+                    <BlockCard title="Set LED Color" desc="Manually set status indicator color." img="led_setcolor.svg" color="#9966FF" />
+                    <BlockCard title="Turn LED Off" desc="Deactivates light output." img="led_turnoff.svg" color="#9966FF" />
+                </BlockSection>
+                <BlockSection title="Pen Drawing" color="#0FBD8C">
+                    <BlockCard title="Clear Drawing" desc="Erases all lines from the surface." img="pen_clear.svg" color="#0FBD8C" />
+                    <BlockCard title="Pen Down" desc="Lowers the robot pen to draw." img="pen_down.svg" color="#0FBD8C" />
+                    <BlockCard title="Set Pen Color" desc="Changes the drawing ink color." img="pen_setcolor.svg" color="#0FBD8C" />
+                    <BlockCard title="Pen Up" desc="Lifts the pen to stop drawing." img="pen_up.svg" color="#0FBD8C" />
                 </BlockSection>
             </div>
         </div>
     );
 
-    const renderChallenges = () => (
-        <div className="h-full flex flex-col items-center justify-center text-center p-8 animate-in zoom-in duration-300">
-            <div className="w-24 h-24 bg-purple-50 rounded-full flex items-center justify-center mb-8 animate-bounce"><Zap size={48} className="text-purple-500 fill-purple-500" /></div>
-            <h1 className="text-4xl font-black text-slate-900 mb-4">Missions Guide</h1>
-            <p className="text-xl text-slate-500 max-w-md mb-8">How to complete lab challenges like a pro.</p>
-            <div className="bg-white p-8 rounded-3xl shadow-lg border-2 border-slate-100 text-left max-w-2xl">
-                <h3 className="font-bold text-slate-800 text-lg mb-4 text-xl">Tips for Victory:</h3>
-                <ul className="space-y-4 text-slate-700 text-base">
-                    <li className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-green-500 flex-shrink-0 mt-0.5" /><span>Use the <b>Ultrasonic sensor</b> to detect walls from a distance and prevent crashes.</span></li>
-                    <li className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-blue-500 flex-shrink-0 mt-0.5" /><span>The <b>Color sensor</b> is excellent for identifying finish lines or specific tracks.</span></li>
-                    <li className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-yellow-500 flex-shrink-0 mt-0.5" /><span>Use <b>Loops</b> to keep your code clean and perform repeating movement patterns.</span></li>
-                </ul>
+    const renderStructure = () => (
+        <div className="max-w-7xl mx-auto p-12 pt-20 animate-in fade-in duration-500 h-full overflow-y-auto pb-60 text-left" dir="ltr">
+             <button onClick={() => setCurrentPage('MENU')} className="flex items-center gap-4 text-emerald-600 font-black mb-14 hover:translate-x-[-8px] transition-transform text-2xl uppercase tracking-tighter">
+                <ArrowLeft size={32} strokeWidth={3} /> Back to Wiki
+            </button>
+            <div className="flex flex-col items-center gap-16">
+                <header className="text-center">
+                    <h1 className="text-5xl font-black text-slate-900 mb-4 uppercase">Robot Anatomy v4.0</h1>
+                    <p className="text-xl text-slate-500 font-medium">Explore the hardware configuration of your virtual lab bot.</p>
+                </header>
+                <div className="bg-white p-16 rounded-[5rem] shadow-2xl border-4 border-slate-100 flex flex-col items-center justify-center max-w-5xl">
+                    <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/robotsensor.svg" alt="Robot Diagram" className="w-full h-auto drop-shadow-2xl" />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 w-full text-center">
+                        <div className="p-8 bg-blue-50 rounded-[2.5rem] border border-blue-100"><Radar className="mx-auto mb-4 text-blue-500" size={40} /><h3 className="font-black text-blue-900 mb-2 uppercase">Distance</h3><p className="text-sm text-blue-700 font-medium">Ultrasonic sound waves for collision avoidance (Range: 2.5m).</p></div>
+                        <div className="p-8 bg-red-50 rounded-[2.5rem] border border-red-100"><Hand className="mx-auto mb-4 text-red-500" size={40} /><h3 className="font-black text-red-900 mb-2 uppercase">Touch</h3><p className="text-sm text-red-700 font-medium">Physical micro-switch for detection of wall impacts.</p></div>
+                        <div className="p-8 bg-purple-50 rounded-[2.5rem] border border-purple-100"><Eye className="mx-auto mb-4 text-purple-500" size={40} /><h3 className="font-black text-purple-900 mb-2 uppercase">Color</h3><p className="text-sm text-purple-700 font-medium">Optical spectrometer for line following and marker ID.</p></div>
+                    </div>
+                </div>
             </div>
-            <button onClick={() => setCurrentPage('MENU')} className="mt-12 px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all flex items-center gap-2">Back to Menu <ArrowLeft size={20} /></button>
+        </div>
+    );
+
+    const BlockSection = ({ title, color, children }: { title: string; color: string; children?: React.ReactNode }) => (
+        <div className="space-y-10">
+            <h2 className="text-4xl font-black text-slate-900 flex items-center gap-4 uppercase tracking-tighter">
+                <div className="w-4 h-12 rounded-full" style={{ backgroundColor: color }} />
+                {title}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">{children}</div>
+        </div>
+    );
+
+    const BlockCard = ({ title, desc, img, color }: { title: string; desc: string; img: string; color: string }) => (
+        <div className="bg-white p-8 rounded-[3rem] shadow-lg border-2 border-slate-50 hover:shadow-2xl transition-all group flex flex-col gap-6">
+            <div className="flex-1 flex items-center justify-center p-6 bg-slate-50 rounded-[2.5rem] shadow-inner group-hover:bg-white transition-colors duration-500">
+                <img src={`https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/${img}`} alt={title} className="max-h-[110px] w-auto drop-shadow-md group-hover:scale-105 transition-transform duration-500" />
+            </div>
+            <div className="px-4">
+                <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight" style={{ color }}>{title}</h3>
+                <p className="text-slate-500 text-lg font-medium leading-relaxed">{desc}</p>
+            </div>
         </div>
     );
 
     return (
-        <div className="fixed inset-0 z-[5000000] bg-[#F8FAFC] font-sans selection:bg-blue-100 overflow-y-auto" dir="ltr">
-            <div className="fixed top-6 left-6 z-[5000001]">
-                <button onClick={onClose} className="p-4 bg-white/90 backdrop-blur-md hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-full transition-all active:scale-90 shadow-xl border-2 border-slate-100 group" title="Close Help Center"><X size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" /></button>
+        <div className="fixed inset-0 z-[5000000] bg-[#F8FAFC] font-sans selection:bg-blue-100 overflow-y-auto overflow-x-hidden">
+            <div className="fixed top-10 right-10 z-[5000001]">
+                <button onClick={onClose} className="p-7 bg-white shadow-2xl hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-full transition-all active:scale-90 border-4 border-slate-100 group">
+                    <X size={48} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" />
+                </button>
             </div>
-            <div className="relative min-h-full">
+            <div className="relative min-h-full pb-20">
                 {currentPage === 'MENU' && renderMenu()}
+                {currentPage === 'COURSE' && renderCourseHome()}
+                {currentPage === 'UNIT_DETAIL' && renderUnitDetail()}
                 {currentPage === 'BLOCKS' && renderBlocks()}
-                {currentPage === 'CHALLENGES' && renderChallenges()}
                 {currentPage === 'STRUCTURE' && renderStructure()}
-                {currentPage === 'COURSE' && renderCourse()}
             </div>
         </div>
     );
