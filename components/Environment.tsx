@@ -105,11 +105,10 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
       const isEllipseTrack = challengeId === 'c12';
       const isFrontWall = ['c10', 'c16', 'c19', 'c20'].includes(challengeId || '');
       const isLineFollow = ['c21'].includes(challengeId || '');
-      const isSlope = challengeId === 'c3';
       const isAutoLevel = challengeId === 'c18';
       const isGrayRoad = ['c10', 'c10_lines', 'c11', 'c9'].includes(challengeId || '');
       const isComplexPath = ['c14', 'c15'].includes(challengeId || '');
-      return { isRoomNav, isLineTrack, isFrontWall, isLineFollow, isSlope, isAutoLevel, isEllipseTrack, isGrayRoad, isComplexPath };
+      return { isRoomNav, isLineTrack, isFrontWall, isLineFollow, isAutoLevel, isEllipseTrack, isGrayRoad, isComplexPath };
   }, [challengeId]);
 
   return (
@@ -197,7 +196,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                                     </mesh>
                                     <mesh position={[0, h/2, 0]}>
                                         <boxGeometry args={[obj.width, h, section]} />
-                                        <meshStandardMaterial color={obj.color || "#1e293b"} transparent opacity={(obj.opacity ?? 1) * 0.4} />
+                                        <meshStandardMaterial color={obj.color || "#1e293b"} transparent opacity={obj.opacity ?? 1} />
                                     </mesh>
                                 </>
                             );
@@ -222,7 +221,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                             <>
                                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow><planeGeometry args={[obj.width, obj.width]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
                                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[obj.width/4 - 0.05, 0.025, 0]}><planeGeometry args={[obj.width/2 + 0.1, 0.2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -obj.width/4 + 0.05]}><planeGeometry args={[0.2, obj.width/2 + 0.1]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                <mesh rotation={[-Math.PI / 2, 0, Math.PI/2]} position={[0, 0.025, -obj.width/4 + 0.05]}><planeGeometry args={[0.2, obj.width/2 + 0.1]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
                             </>
                         )}
                         {obj.shape === 'CURVED' && (
@@ -237,6 +236,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                                     <ringGeometry args={[obj.length/2 - obj.width/2, obj.length/2 + obj.width/2, 64, 1, Math.PI/2, Math.PI/2]} />
                                     <meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} />
                                 </mesh>
+                                {/* FIX: Corrected rotation array syntax and position property placement */}
                                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[obj.length/2, 0.025, 0]}>
                                     <ringGeometry args={[obj.length/2 - 0.1, obj.length/2 + 0.1, 64, 1, Math.PI/2, Math.PI/2]} />
                                     <meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} />
@@ -284,12 +284,6 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
               <mesh name="road-background" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -14.5]} receiveShadow><planeGeometry args={[4.2, 8]} /><meshStandardMaterial color="#64748b" /></mesh>
               <mesh name="challenge-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, -17.5]}><planeGeometry args={[4.2, 0.5]} /><meshBasicMaterial color="#ff0000" /></mesh>
               <Text position={[0, 0.1, -0.4]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.3} color="white">STEEP RAMP</Text>
-          </group>
-      )}
-
-      {config.isSlope && (
-          <group position={[0, 0, 0]}>
-              <mesh name="road-background" rotation={[0.0665, 0, 0]} position={[0, 0.5 - 0.025, -9]} receiveShadow castShadow><boxGeometry args={[4.2, 0.05, 15]} /><meshStandardMaterial color="#f8fafc" /></mesh>
           </group>
       )}
 

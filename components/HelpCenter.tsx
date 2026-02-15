@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { BookOpen, Trophy, ArrowLeft, Zap, Cpu, Hand, Palette, Eye, Compass, Info, Lightbulb, X, Activity, Target, Settings, GraduationCap, Play, Gauge, Radar, CheckCircle2, ChevronRight, ChevronDown, Layers, Repeat, Variable, Star, LightbulbIcon, ArrowRight, ShieldCheck, Milestone, MoveHorizontal, RotateCw, Scaling, Flame, Waves, Fingerprint, ZapOff, Code, MonitorPlay, AlertTriangle, RotateCcw, Share2, Table, Projector } from 'lucide-react';
+import { BookOpen, Trophy, ArrowLeft, Zap, Cpu, Hand, Palette, Eye, Compass, Info, Lightbulb, X, Activity, Target, Settings, GraduationCap, Play, Gauge, Radar, CheckCircle2, ChevronRight, ChevronDown, Layers, Repeat, Variable, Star, LightbulbIcon, ArrowRight, ShieldCheck, Milestone, MoveHorizontal, RotateCw, Scaling, Flame, Waves, Fingerprint, ZapOff, Code, MonitorPlay, AlertTriangle, RotateCcw, Share2, Table, Projector, ListChecks, GitBranch, RefreshCw, Binary } from 'lucide-react';
 
 type HelpPage = 'MENU' | 'BLOCKS' | 'CHALLENGES' | 'STRUCTURE' | 'COURSE' | 'UNIT_DETAIL';
 
@@ -13,9 +13,16 @@ interface Mission {
     title: string;
     objective: string;
     hint: string;
+    deepDive?: {
+        title: string;
+        concepts: { name: string, description: string }[];
+        advantagesTitle: string;
+        advantages: string[];
+    };
     img?: string; // Field/Environment Image
     imgCode?: string; // Specific Program/Code Image
-    video?: string;
+    videoCode?: string; // Video solution for the program
+    video?: string; // Live visual guide video
     placeholder?: string;
     requiredChallenge?: string;
 }
@@ -33,6 +40,35 @@ interface Unit {
     missions?: Mission[];
     keyBlocks: string[];
 }
+
+// Helper to convert filename to readable label in English
+const getBlockLabel = (filename: string): string => {
+    const name = filename.replace('.svg', '');
+    const mapping: Record<string, string> = {
+        'drive_forward_distance': 'Drive Distance',
+        'drive_forward': 'Drive Forward',
+        'drive_speed': 'Set Speed',
+        'drive_stop': 'Stop Moving',
+        'led_setcolor': 'Set LED Color',
+        'led_turnoff': 'Turn LED Off',
+        'sensor_distance': 'Distance Sensor',
+        'sensor_gyro': 'Gyro Sensor',
+        'sensor_touch': 'Touch Sensor',
+        'sensor_touchingcolor': 'Touching Color?',
+        'drive_turn_dgree_speed': 'Turn by Degrees',
+        'drive_turn_until_speed': 'Turn Until...',
+        'drive_heading_dgree': 'Set Heading',
+        'drive_setmotor': 'Set Raw Motors',
+        'control_forever': 'Forever Loop',
+        'repeatornge': 'Repeat X Times',
+        'control_ifelse': 'If / Else',
+        'control_if': 'If Then',
+        'logic_compare': 'Compare (>, <, =)',
+        'logic_and': 'And / Or',
+        'control_wait': 'Wait Seconds'
+    };
+    return mapping[name] || name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+};
 
 const COURSE_UNITS: Unit[] = [
     {
@@ -60,7 +96,7 @@ const COURSE_UNITS: Unit[] = [
                 hint: "Use the 'Drive Distance' block and look at the parameter for CM. Set the value to 50 for this mission.",
             }
         ],
-        keyBlocks: ["drive_forward.svg", "drive_speed.svg", "drive_stop.svg"]
+        keyBlocks: ["drive_forward_distance.svg", "drive_speed.svg", "drive_stop.svg"]
     },
     {
         id: 2,
@@ -81,7 +117,7 @@ const COURSE_UNITS: Unit[] = [
                 title: "Mission 1: Traffic Signals",
                 objective: "Move forward 50cm with Green LEDs. When stopped, change the LEDs to Red for 2 seconds.",
                 hint: "Use the 'Set LED Color' block before the movement, and change it again immediately after the movement finishes.",
-                img: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/ledmissen1.svg",
+                img: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/led_setcolor.svg",
             }
         ],
         keyBlocks: ["led_setcolor.svg", "led_turnoff.svg"]
@@ -124,25 +160,6 @@ const COURSE_UNITS: Unit[] = [
                 video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/touchsensor.mp4",
                 hint: "Wait until 'Touch Sensor Pressed' is true, then use the 'Drive Distance' block with a negative CM value.",
                 requiredChallenge: "Touch Sensor - Obstacle Retreat"
-            },
-            {
-                id: "M3_3",
-                title: "Mission 3: Precision Pivot",
-                objective: "Rotate the robot exactly 180 degrees using the Gyro sensor feedback and stop.",
-                img: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorgyro.svg",
-                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorgyro1.svg",
-                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/gyrosensor.mp4",
-                hint: "Use 'Turn Right' followed by 'Wait Until (Gyro Angle >= 180)'. This ensures a precise rotation regardless of battery level.",
-            },
-            {
-                id: "M3_4",
-                title: "Mission 4: Color Signal Stop",
-                objective: "Drive forward until the color sensor detects a RED marker on the floor, then stop moving.",
-                img: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorcolor.svg",
-                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorcolor2.svg",
-                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorcolor.mp4",
-                hint: "Use the 'Drive Forward' block, followed by a 'Wait Until (Detected Color = Red)' and then a 'Stop Moving' block.",
-                requiredChallenge: "Traffic Light - Road Nav"
             }
         ],
         keyBlocks: ["sensor_distance.svg", "sensor_gyro.svg", "sensor_touch.svg", "sensor_touchingcolor.svg"]
@@ -191,26 +208,68 @@ const COURSE_UNITS: Unit[] = [
     },
     {
         id: 5,
-        title: "Logic & Intelligence",
-        subtitle: "Decision Trees & Boolean Logic",
-        description: "Programming the 'brain' to react to various sensor scenarios.",
-        details: "Logic is the set of rules that governs the robot's behavior. By using conditions, the robot can 'decide' what to do based on what it sees or feels.",
+        title: "Programming Logic & Efficiency",
+        subtitle: "Loops, Branching & Decision Making",
+        description: "Optimizing code with loops and teaching the robot to make autonomous decisions based on conditions.",
+        details: "As programs grow, efficiency becomes critical. Instead of repeating the same blocks (Sequence), we use Loops. To make robots truly smart, we use Conditional Statements (If/Else) to allow them to choose paths based on sensor input.",
         technicalConcepts: [
-            { title: "Conditional Branching (If/Else)", content: "The basis of AI: If condition is true, perform action A; otherwise, perform action B." }
+            { title: "Programming Efficiency", content: "Writing the same sequence of blocks over and over is inefficient. This is where the 'Loop' concept comes in – instead of writing the same blocks four times, we use a single loop block (orange) that tells the robot to repeat the action 4 times." },
+            { title: "Stacking Loops", content: "Adding blocks one after another. The robot will finish all iterations of the first loop before moving on to the next loop in line." },
+            { title: "Nesting Loops", content: "Placing one loop block inside the 'mouth' of another loop block. Every time the outer loop runs once, it triggers the inner loop to run through its entire set of repetitions. This allows for massive complexity with very few blocks." },
+            { title: "Program Branching", content: "The IF statement forces the program to check a condition. If the condition is met, the robot executes what's inside the block. If not, it simply moves on. This makes the robot responsive and intelligent." }
         ],
         color: "#FFAB19",
         icon: <Layers size={32} />,
         lessons: [
-            { title: "Boolean State Awareness", description: "Introduction to True/False logic and using sensors as inputs for conditions." }
+            { title: "Efficiency with Loops", description: "Learn to replace redundant sequences with structured loops. Understand 'Stacking' (sequential loops) and 'Nesting' (loops inside loops)." },
+            { title: "The If-Then Formula", description: "Use diamond-shaped parameters to define conditions. If a condition is met, execute; otherwise, skip. Remember: Sequence matters!" },
+            { title: "Path Branching", description: "Master If-Else blocks to create different behaviors for different sensor scenarios (e.g., Obstacle on Left vs. Obstacle on Right)." }
         ],
         missions: [
              {
-                title: "Mission 1: The Gatekeeper",
-                objective: "If touch sensor is pressed - turn on Red light. If not pressed - turn on Green light.",
-                hint: "Use an 'If/Else' block inside a 'Forever' loop.",
+                title: "Efficiency: THE SQUARE LOOP",
+                objective: "Drive in a perfect square pattern. Instead of using 8 blocks, achieve the goal using a 'Repeat' loop with only 2 blocks inside.",
+                hint: "Put 'Drive Distance' and 'Turn 90°' inside a 'Repeat 4 times' block.",
+                videoCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/missionrepeat.mp4",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/missionrepeat1.mp4",
+            },
+            {
+                title: "Mission 2: THE TOUCH & COLOR LOGIC (IF)",
+                objective: "Program the robot to drive forward with green LEDs. Upon hitting an obstacle (touch sensor), it should stop, turn the LEDs red, and wait for one second. Then, it should drive backward with yellow LEDs and stop automatically only when it detects the green color on the ground.",
+                hint: "Use an 'If' block inside a 'Forever' loop to check the state of the touch sensor. Inside the 'If', place the commands for changing lights, waiting, and starting the backward motion. Use the 'Wait Until' block to stop when the green color is detected.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/MISSION2IF.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/MISSION2IF.mp4",
+            },
+            {
+                title: "Mission 3: ULTRASONIC RANGE LOGIC (IF ELSE)",
+                objective: "Program the robot to move forward continuously as long as the distance from the wall is greater than 10cm. If the distance becomes 10cm or less, the robot must reverse for 50cm. The entire logic must be placed inside a 'Forever' loop so the robot automatically approaches and retreats from the wall.",
+                hint: "Use the 'If Else' block inside a 'Forever' loop. Set the condition to 'Distance from obstacle > 10'. In the 'Then' section, use 'Drive Forward'. In the 'Else' section, use 'Drive Distance' set to -50cm.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/ultrasonicifelse.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/ultrasonicifelse.mp4",
+            },
+            {
+                title: "Mission 4: Speed Control by Track Color",
+                objective: "Identify the track color to adjust the robot's speed dynamically. Program the robot to drive fast (100%) on Green, moderate (50%) on Yellow, and very slow (20%) on Red. The robot must stop and the program must terminate exactly at the purple stop line.",
+                hint: "Engineer Hint: For this mission, you must select the 'Color Run - 4 Meters' challenge from the challenges menu. Use nested If Else blocks inside a Forever loop to check colors and update the driving speed accordingly.",
+                deepDive: {
+                    title: "Advanced Logic Concepts",
+                    concepts: [
+                        { name: "1. Forever Loop", description: "This is your 'while True' engine. It ensures the internal code runs repeatedly without stopping. In robotics, this is vital because the robot needs to 'sample' its environment and sensors every split second to respond correctly." },
+                        { name: "2. Nested If-Else Blocks", description: "This is the heart of complex decision-making. 'Nested' means placing one If-Else block inside the 'Else' branch of another. This creates a logical hierarchy or 'staircase' where the robot checks conditions in a specific order." }
+                    ],
+                    advantagesTitle: "Why Use Nested Logic?",
+                    advantages: [
+                        "Prioritization: Ensures only one action happens at a time. If the robot sees two colors, it follows only the first match.",
+                        "Computational Efficiency: Once a condition is true, the processor skips all other checks in the nested tree, saving energy and speed.",
+                        "Conflict Resolution: Prevents overlapping commands (like setting speed to 20 and 50 at once). The logic flow is always clear and unambiguous."
+                    ]
+                },
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/missioncolorspeed.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/missioncolorspeed.mp4",
+                requiredChallenge: "c_color_run"
             }
         ],
-        keyBlocks: ["control_if.svg", "logic_compare.svg", "logic_and.svg"]
+        keyBlocks: ["control_forever.svg", "repeatornge.svg", "control_ifelse.svg", "logic_compare.svg", "logic_and.svg", "control_if.svg"]
     }
 ];
 
@@ -265,10 +324,41 @@ const ArcTurnDiagram = () => (
     </svg>
 );
 
+const FlowDiagram = ({ type }: { type: 'NESTING' | 'BRANCHING' }) => {
+    if (type === 'NESTING') {
+        return (
+            <svg viewBox="0 0 200 120" className="w-full h-auto">
+                <rect x="10" y="10" width="180" height="100" rx="8" fill="#FFAB19" fillOpacity="0.2" stroke="#FFAB19" strokeWidth="2" strokeDasharray="4 2" />
+                <text x="20" y="25" fontSize="10" fontWeight="bold" fill="#CF8B17">OUTER LOOP (x10)</text>
+                <rect x="40" y="40" width="120" height="50" rx="8" fill="#FFAB19" stroke="#FFAB19" strokeWidth="2" />
+                <text x="50" y="55" fontSize="10" fontWeight="bold" fill="white">INNER LOOP (x4)</text>
+                <rect x="60" y="65" width="80" height="15" rx="4" fill="white" fillOpacity="0.5" />
+                <text x="100" y="76" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#CF8B17">DRIVE & TURN</text>
+            </svg>
+        );
+    }
+    return (
+        <svg viewBox="0 0 200 120" className="w-full h-auto">
+            <path d="M100 10 L100 30" stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrow)" />
+            <rect x="70" y="30" width="60" height="30" rx="4" fill="#FFAB19" stroke="#CF8B17" strokeWidth="2" transform="rotate(45, 100, 45)" />
+            <text x="100" y="50" textAnchor="middle" fontSize="10" fontWeight="bold" fill="white">IF?</text>
+            <path d="M80 50 L40 80" stroke="#ef4444" strokeWidth="2" markerEnd="url(#arrow)" />
+            <path d="M120 50 L160 80" stroke="#22c55e" strokeWidth="2" markerEnd="url(#arrow)" />
+            <text x="40" y="100" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#ef4444">FALSE (Else)</text>
+            <text x="160" y="100" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#22c55e">TRUE (Then)</text>
+            <defs>
+                <marker id="arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                    <path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8" />
+                </marker>
+            </defs>
+        </svg>
+    );
+};
+
 const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
     const [currentPage, setCurrentPage] = useState<HelpPage>('MENU');
     const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
-    const [expandedMissionIdx, setExpandedMissionIdx] = useState<number | null>(0);
+    const [expandedMissionIdx, setExpandedMissionIdx] = useState<number | null>(null);
 
     const renderMenu = () => (
         <div className="max-w-6xl mx-auto p-8 pt-20 animate-in fade-in slide-in-from-bottom-6 duration-700 text-left" dir="ltr">
@@ -335,7 +425,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                 {COURSE_UNITS.map((unit) => (
                     <button 
                         key={unit.id} 
-                        onClick={() => { setSelectedUnit(unit); setCurrentPage('UNIT_DETAIL'); setExpandedMissionIdx(0); }}
+                        onClick={() => { setSelectedUnit(unit); setCurrentPage('UNIT_DETAIL'); setExpandedMissionIdx(null); }}
                         className="group bg-white p-8 rounded-[3rem] shadow-lg hover:shadow-2xl transition-all border-4 border-transparent flex flex-col items-start text-left gap-6 relative overflow-hidden"
                         style={{ borderColor: 'transparent' }}
                         onMouseEnter={(e) => (e.currentTarget.style.borderColor = unit.color)}
@@ -389,6 +479,52 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                                 <h3 className="text-2xl font-black text-slate-800 flex items-center gap-3 uppercase"><Info className="text-slate-400" /> Executive Summary</h3>
                                 <p className="text-slate-500 text-2xl leading-relaxed font-medium italic">{selectedUnit.details}</p>
                             </div>
+
+                            {/* MODULE 5 SPECIAL: LOGIC CONCEPTS */}
+                            {selectedUnit.id === 5 && (
+                                <div className="space-y-24">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                        <div className="bg-amber-50 rounded-[4rem] border-2 border-amber-100 flex flex-col overflow-hidden">
+                                            <div className="p-10 space-y-6">
+                                                <h4 className="text-3xl font-black text-amber-600 uppercase flex items-center gap-3"><RefreshCw /> Stacking & Nesting Loops</h4>
+                                                <p className="text-xl text-slate-700 font-medium"><b>Stacking:</b> Placing loops one after another. The robot finishes the first set of repetitions completely before moving to the next.</p>
+                                                <p className="text-xl text-slate-700 font-medium"><b>Nesting:</b> Placing a loop inside another's "mouth". The inner loop is treated as a single command that the outer loop repeats. This allows for massive complexity with minimal blocks.</p>
+                                            </div>
+                                            <div className="bg-white p-8 border-t-2 border-amber-50">
+                                                <FlowDiagram type="NESTING" />
+                                            </div>
+                                        </div>
+                                        <div className="bg-blue-50 rounded-[4rem] border-2 border-blue-100 flex flex-col overflow-hidden">
+                                            <div className="p-10 space-y-6">
+                                                <h4 className="text-3xl font-black text-blue-600 uppercase flex items-center gap-3"><GitBranch /> Branching Paths (If/Else)</h4>
+                                                <p className="text-xl text-slate-700 font-medium italic">"If it is Saturday, then go to the beach; otherwise, stay home."</p>
+                                                <p className="text-xl text-slate-700 font-medium">The <b>If-Else</b> block forces a split. The robot checks the diamond-shaped condition; if true, it takes the first path. If false, it takes the "Else" path. It never does both!</p>
+                                            </div>
+                                            <div className="bg-white p-8 border-t-2 border-blue-50">
+                                                <FlowDiagram type="BRANCHING" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-900 p-12 rounded-[4rem] shadow-2xl text-white">
+                                        <h3 className="text-4xl font-black mb-8 flex items-center gap-4 text-amber-400"><ListChecks /> Algorithmic Rules</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                            <div className="space-y-4">
+                                                <h5 className="text-2xl font-bold text-slate-300 uppercase">Sequence</h5>
+                                                <p className="text-slate-400 leading-relaxed text-lg">Every program moves step-by-step. Even with complex nested conditions, the robot always checks the top block first and follows the flow chronologically.</p>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <h5 className="text-2xl font-bold text-slate-300 uppercase">Decision Menus</h5>
+                                                <p className="text-slate-400 leading-relaxed text-lg">By nesting multiple If-Else blocks, you can create a "Decision Tree". Obstacle on the left? Turn right. Else, if obstacle on the right? Turn left. Otherwise? Drive straight.</p>
+                                            </div>
+                                        </div>
+                                        <div className="mt-12 bg-slate-800 p-8 rounded-3xl border border-slate-700 flex items-start gap-4">
+                                            <AlertTriangle className="text-amber-500 shrink-0 mt-1" />
+                                            <p className="text-slate-300 italic"><b>Pro Tip:</b> The robot processes code faster than you can blink (1/100th of a second). If your 'If' block depends on a physical event, consider adding a 'Wait' block to synchronize the robot with your actions.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* MODULE 4 SPECIAL: TURN TYPE DIAGRAMS */}
                             {selectedUnit.id === 4 && (
@@ -461,51 +597,6 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                                 </div>
                             )}
 
-                            {/* MODULE 3 SPECIAL: SENSOR SHOWCASE */}
-                            {selectedUnit.id === 3 && (
-                                <div className="space-y-12">
-                                    <h3 className="text-3xl font-black text-slate-900 border-b-4 border-cyan-100 pb-4 inline-block uppercase tracking-tight">Sensor Hardware Specs</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                        <div className="bg-slate-50 rounded-[3rem] p-10 border border-slate-100 flex flex-col gap-6 group hover:bg-white hover:shadow-2xl transition-all">
-                                            <div className="h-56 bg-white rounded-3xl p-6 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform overflow-hidden border border-slate-50">
-                                                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorultrasonok.svg" alt="Ultrasonic" className="max-h-full object-contain" />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-2"><Radar className="text-cyan-500" /><h4 className="text-2xl font-black text-cyan-600 uppercase">Ultrasonic</h4></div>
-                                                <p className="text-slate-600 font-medium leading-relaxed">Measures distance (0-255cm) using echolocation sound waves.</p>
-                                            </div>
-                                        </div>
-                                        <div className="bg-slate-50 rounded-[3rem] p-10 border border-slate-100 flex flex-col gap-6 group hover:bg-white hover:shadow-2xl transition-all">
-                                            <div className="h-56 bg-white rounded-3xl p-6 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform overflow-hidden border border-slate-50">
-                                                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensortouch.svg" alt="Touch" className="max-h-full object-contain" />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-2"><Hand className="text-red-500" /><h4 className="text-2xl font-black text-red-500 uppercase">Touch Sensor</h4></div>
-                                                <p className="text-slate-600 font-medium leading-relaxed">A digital binary switch that detects physical impact with obstacles.</p>
-                                            </div>
-                                        </div>
-                                        <div className="bg-slate-50 rounded-[3rem] p-10 border border-slate-100 flex flex-col gap-6 group hover:bg-white hover:shadow-2xl transition-all">
-                                            <div className="h-56 bg-white rounded-3xl p-6 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform overflow-hidden border border-slate-50">
-                                                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorgyro.svg" alt="Gyro" className="max-h-full object-contain" />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-2"><Compass className="text-indigo-500" /><h4 className="text-2xl font-black text-indigo-600 uppercase">Gyroscope</h4></div>
-                                                <p className="text-slate-600 font-medium leading-relaxed">Tracks rotation angle and pitch for precise navigation and balancing.</p>
-                                            </div>
-                                        </div>
-                                        <div className="bg-slate-50 rounded-[3rem] p-10 border border-slate-100 flex flex-col gap-6 group hover:bg-white hover:shadow-2xl transition-all">
-                                            <div className="h-56 bg-white rounded-3xl p-6 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform overflow-hidden border border-slate-50">
-                                                <img src="https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/sensorcolor.svg" alt="Color" className="max-h-full object-contain" />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-2"><Palette className="text-pink-500" /><h4 className="text-2xl font-black text-pink-600 uppercase">Color Sensor</h4></div>
-                                                <p className="text-slate-600 font-medium leading-relaxed">Identifies track colors and light intensity using RGB spectrum analysis.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
                             <div className="space-y-12">
                                 <h3 className="text-2xl font-black text-slate-800 uppercase mb-6 flex items-center gap-3"><Milestone className="text-slate-400" /> Learning Path</h3>
                                 <div className="grid grid-cols-1 gap-6">
@@ -523,10 +614,13 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
 
                             <div className="space-y-8 pt-10 border-t-2 border-slate-100">
                                 <h3 className="text-2xl font-black text-slate-800 flex items-center gap-3 uppercase"><ShieldCheck className="text-slate-400" /> Essential Blocks</h3>
-                                <div className="flex flex-wrap items-start gap-6">
+                                <div className="flex flex-wrap items-start gap-8">
                                     {selectedUnit.keyBlocks.map((block, idx) => (
-                                        <div key={idx} className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-50 shadow-lg group hover:border-slate-200 transition-all inline-flex items-center justify-center">
-                                            <img src={`https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/${block}`} alt="Block Icon" className="h-auto w-auto max-h-[110px] block group-hover:scale-105 transition-transform" />
+                                        <div key={idx} className="flex flex-col items-center gap-3 group">
+                                            <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-50 shadow-lg group-hover:border-blue-200 transition-all inline-flex items-center justify-center">
+                                                <img src={`https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/blocks/${block}`} alt={getBlockLabel(block)} className="h-auto w-auto max-h-[90px] block group-hover:scale-105 transition-transform" />
+                                            </div>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{getBlockLabel(block)}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -551,12 +645,6 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                                                         <div className="p-8 pt-0 space-y-10 animate-in fade-in slide-in-from-top-4 duration-500">
                                                             <div className="h-px bg-slate-200 w-full mb-8" />
                                                             <div className="flex flex-col gap-10">
-                                                                {mission.requiredChallenge && (
-                                                                    <div className="bg-rose-50 border-2 border-rose-200 rounded-3xl p-6 flex items-start gap-4 animate-pulse">
-                                                                        <AlertTriangle className="text-rose-500 shrink-0 mt-1" size={24} />
-                                                                        <div><h5 className="font-black text-rose-800 text-lg mb-1">Important Mission Note:</h5><p className="text-rose-700 font-bold leading-relaxed">To spawn required obstacles, load <span className="bg-white px-2 py-0.5 rounded-lg mx-1 border border-rose-300">"{mission.requiredChallenge}"</span> from the Challenges menu.</p></div>
-                                                                    </div>
-                                                                )}
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                                                     <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-inner flex flex-col gap-3">
                                                                         <span className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-[0.2em]"><Target size={14} className="text-blue-500" /> Mission Objective</span>
@@ -567,14 +655,50 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                                                                         <p className="text-amber-900 font-bold text-xl leading-snug">{mission.hint}</p>
                                                                     </div>
                                                                 </div>
-                                                                {mission.imgCode && (
-                                                                    <div className="space-y-4">
-                                                                        <div className="flex items-center gap-2 text-indigo-500 font-black text-[10px] uppercase tracking-[0.3em] pl-4"><Code size={16} /> Official Program Solution</div>
-                                                                        <div className="p-8 bg-slate-900 rounded-[3rem] border-4 border-indigo-500/30 shadow-2xl relative overflow-x-auto min-h-[300px] flex items-center justify-center group-hover:border-indigo-500 transition-all duration-500">
-                                                                            <img src={mission.imgCode} alt="Code Solution" className="w-auto h-auto max-w-full rounded-lg drop-shadow-[0_0_30px_rgba(99,102,241,0.4)]" />
+
+                                                                {mission.deepDive && (
+                                                                    <div className="bg-white rounded-[2.5rem] border border-slate-200 p-10 space-y-8 shadow-sm">
+                                                                        <div className="flex items-center gap-3 text-indigo-600">
+                                                                            <Binary size={24} />
+                                                                            <h5 className="text-3xl font-black uppercase tracking-tight">{mission.deepDive.title}</h5>
+                                                                        </div>
+                                                                        
+                                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                                                            {mission.deepDive.concepts.map((concept, cIdx) => (
+                                                                                <div key={cIdx} className="space-y-3">
+                                                                                    <h6 className="text-xl font-black text-slate-800 uppercase tracking-wide">{concept.name}</h6>
+                                                                                    <p className="text-slate-600 text-lg leading-relaxed">{concept.description}</p>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+
+                                                                        <div className="bg-indigo-50/50 p-8 rounded-3xl border border-indigo-100">
+                                                                            <h6 className="text-xl font-black text-indigo-700 uppercase mb-4 flex items-center gap-2"><CheckCircle2 size={20}/> {mission.deepDive.advantagesTitle}</h6>
+                                                                            <ul className="space-y-3">
+                                                                                {mission.deepDive.advantages.map((adv, aIdx) => (
+                                                                                    <li key={aIdx} className="flex items-start gap-3 text-indigo-900 font-medium text-lg leading-snug">
+                                                                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 shrink-0" />
+                                                                                        {adv}
+                                                                                    </li>
+                                                                                ))}
+                                                                            </ul>
                                                                         </div>
                                                                     </div>
                                                                 )}
+                                                                
+                                                                {(mission.imgCode || mission.videoCode) && (
+                                                                    <div className="space-y-4">
+                                                                        <div className="flex items-center gap-2 text-indigo-500 font-black text-[10px] uppercase tracking-[0.3em] pl-4"><Code size={16} /> Official Program Solution</div>
+                                                                        <div className="p-8 bg-slate-900 rounded-[3rem] border-4 border-indigo-500/30 shadow-2xl relative overflow-hidden min-h-[300px] flex items-center justify-center group-hover:border-indigo-500 transition-all duration-500">
+                                                                            {mission.videoCode ? (
+                                                                                <video src={mission.videoCode} autoPlay loop muted playsInline className="w-full h-auto object-contain rounded-lg shadow-2xl" />
+                                                                            ) : (
+                                                                                <img src={mission.imgCode} alt="Code Solution" className="w-auto h-auto max-w-full rounded-lg drop-shadow-[0_0_30px_rgba(99,102,241,0.4)]" />
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
                                                                 <div className="space-y-4">
                                                                     <div className="flex items-center gap-2 text-emerald-500 font-black text-[10px] uppercase tracking-[0.3em] pl-4"><MonitorPlay size={16} /> Live Visual Guide</div>
                                                                     <div className="bg-slate-900 rounded-[3.5rem] overflow-hidden shadow-2xl flex flex-col border-8 border-slate-800">
@@ -645,16 +769,12 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                     <BlockCard title="Gyroscope" desc="Provides orientation and tilt data." img="sensor_gyro.svg" color="#00C7E5" />
                     <BlockCard title="Touch Sensor" desc="Returns the physical bumper state." img="sensor_touch.svg" color="#00C7E5" />
                     <BlockCard title="Touching Color" desc="Checks if the robot is over a specific track color." img="sensor_touchingcolor.svg" color="#00C7E5" />
-                    <BlockCard title="Touch Event" desc="Event trigger when the bumper is hit." img="sensor_touchpressed.svg" color="#00C7E5" />
-                    <BlockCard title="Wheel Info" desc="Returns physical wheel metrics." img="sensor_wheel.svg" color="#00C7E5" />
                 </BlockSection>
                 <BlockSection title="Control & Logic" color="#FFAB19">
                     <BlockCard title="Forever" desc="Loops the code blocks indefinitely." img="control_forever.svg" color="#FFAB19" />
+                    <BlockCard title="Repeat X Times" desc="Repeats the internal blocks for a specific count." img="repeatornge.svg" color="#FFAB19" />
                     <BlockCard title="If Condition" desc="Executes if the logical statement is true." img="control_if.svg" color="#FFAB19" />
                     <BlockCard title="If Else" desc="Selects between two paths of execution." img="control_ifelse.svg" color="#FFAB19" />
-                    <BlockCard title="Repeat Until" desc="Loops until a specific condition is satisfied." img="control_repeat_until.svg" color="#FFAB19" />
-                    <BlockCard title="Stop Program" desc="Terminates all execution logic." img="control_stopprogram.svg" color="#FFAB19" />
-                    <BlockCard title="Wait Seconds" desc="Pauses execution for a duration." img="control_wait.svg" color="#FFAB19" />
                     <BlockCard title="Wait Until" desc="Pauses execution until a condition occurs." img="control_waituntil.svg" color="#FFAB19" />
                 </BlockSection>
                 <BlockSection title="Logic & Math" color="#59C059">
@@ -664,17 +784,6 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                     <BlockCard title="Arithmetic" desc="Basic mathematical operators." img="logic_math.svg" color="#59C059" />
                     <BlockCard title="Not" desc="Inverts a logical boolean value." img="logic_not.svg" color="#59C059" />
                     <BlockCard title="Boolean" desc="Constant True or False values." img="logic_true.svg" color="#59C059" />
-                </BlockSection>
-                <BlockSection title="Looks & Signaling" color="#9966FF">
-                    <BlockCard title="Detected Color" desc="Matches LEDs to environmental color." img="led_detectedcolor.svg" color="#9966FF" />
-                    <BlockCard title="Set LED Color" desc="Manually set status indicator color." img="led_setcolor.svg" color="#9966FF" />
-                    <BlockCard title="Turn LED Off" desc="Deactivates light output." img="led_turnoff.svg" color="#9966FF" />
-                </BlockSection>
-                <BlockSection title="Pen Drawing" color="#0FBD8C">
-                    <BlockCard title="Clear Drawing" desc="Erases all lines from the surface." img="pen_clear.svg" color="#0FBD8C" />
-                    <BlockCard title="Pen Down" desc="Lowers the robot pen to draw." img="pen_down.svg" color="#0FBD8C" />
-                    <BlockCard title="Set Pen Color" desc="Changes the drawing ink color." img="pen_setcolor.svg" color="#0FBD8C" />
-                    <BlockCard title="Pen Up" desc="Lifts the pen to stop drawing." img="pen_up.svg" color="#0FBD8C" />
                 </BlockSection>
             </div>
         </div>
