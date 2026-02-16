@@ -634,11 +634,10 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                                             const isExpanded = expandedMissionIdx === mIdx;
                                             return (
                                                 <div key={mIdx} className={`bg-slate-50 rounded-[3rem] border-2 transition-all duration-300 overflow-hidden ${isExpanded ? 'border-blue-400 shadow-xl' : 'border-slate-100 shadow-sm hover:bg-slate-100'}`}>
-                                                    <button onClick={() => setExpandedMissionIdx(isExpanded ? null : mIdx)} className="w-full p-8 flex items-center justify-between group">
-                                                        <div className="flex items-center gap-6">
-                                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl transition-colors ${isExpanded ? 'bg-blue-500 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200 group-hover:text-slate-600'}`}>{mIdx + 1}</div>
-                                                            <h4 className={`text-2xl font-black uppercase tracking-tight transition-colors ${isExpanded ? 'text-blue-600' : 'text-slate-700'}`}>{mission.title}</h4>
-                                                        </div>
+                                                    <button onClick={() => setExpandedMissionIdx(isExpanded ? null : mIdx)} className="w-full p-8 flex items-center justify-between group text-left">
+                                                        <h4 className={`text-2xl font-black uppercase tracking-tight transition-colors ${isExpanded ? 'text-blue-600' : 'text-slate-700'}`}>
+                                                            {mIdx + 1}. {mission.title.replace(/Mission\s*\d*:\s*/i, '')}
+                                                        </h4>
                                                         <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180 text-blue-500' : 'text-slate-300 group-hover:text-slate-500'}`}><ChevronDown size={28} strokeWidth={3} /></div>
                                                     </button>
                                                     {isExpanded && (
