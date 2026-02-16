@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
-import { RotateCcw, Code2, Ruler, Trophy, X, Flag, Save, FolderOpen, Check, AlertCircle, Info, Terminal, Home, Eye, Move, Hand, Bot, Target, FileCode, ZoomIn, ZoomOut, Navigation, HelpCircle } from 'lucide-react';
+import { RotateCcw, Code2, Ruler, Trophy, X, Flag, Save, FolderOpen, Check, AlertCircle, Info, Terminal, Home, Eye, Move, Hand, Bot, Target, FileCode, ZoomIn, ZoomOut, Navigation, HelpCircle, Layout, PlayCircle, LayoutGrid } from 'lucide-react';
 import * as THREE from 'three';
 import BlocklyEditor, { BlocklyEditorHandle } from './components/BlocklyEditor';
 import Robot3D from './components/Robot3D';
@@ -12,19 +12,16 @@ import Numpad from './components/Numpad';
 import SensorDashboard from './components/SensorDashboard';
 import RulerTool from './components/RulerTool';
 import CameraManager from './components/CameraManager';
-import HelpCenter from './components/HelpCenter';
+import HelpCenter from './components/HelpCenter.tsx';
 import AngleChart from './components/AngleChart';
 import { CHALLENGES, Challenge } from './data/challenges';
 import { ThreeEvent } from '@react-three/fiber';
 
 const TICK_RATE = 16; 
 const BASE_VELOCITY = 0.165;
+const BASE_TURN_SPEED = 0.78; 
 
-/**
- * כיול מחדש: 
- * מהירות הסיבוב המקסימלית הופחתה ל-1.2 לאפשר דיוק מירבי.
- */
-const BASE_TURN_SPEED = 1.2;  
+const MAX_SPEED_CAP = 60; // המהירות המקסימלית המותרת במערכת
 
 const PHYSICS_RADIUS = 1.6; 
 const TOUCH_RADIUS = 2.15;  
@@ -114,7 +111,7 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
 
     const wheelOffsetX = 0.95; const wheelOffsetZ = 0.5; const casterOffsetZ = -0.8;
     const hLeft = getSurfaceHeightAt(getPointWorldPos(-wheelOffsetX, wheelOffsetZ).wx, getPointWorldPos(-wheelOffsetX, wheelOffsetZ).wz);
-    const hRight = getSurfaceHeightAt(getPointWorldPos(wheelOffsetX, wheelOffsetZ).wx, getPointWorldPos(wheelOffsetZ, wheelOffsetZ).wz);
+    const hRight = getSurfaceHeightAt(getPointWorldPos(wheelOffsetX, wheelOffsetZ).wx, getPointWorldPos(wheelOffsetX, wheelOffsetZ).wz);
     const hBack = getSurfaceHeightAt(getPointWorldPos(0, casterOffsetZ).wx, getPointWorldPos(0, casterOffsetZ).wz);
     
     const y = (hLeft + hRight + hBack) / 3; 
@@ -159,10 +156,11 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
         const ray = getPointWorldPos(0, PHYSICS_RADIUS + d);
         if (checkHit(ray.wx, ray.wz)) { dist = Math.round(d * 10); break; }
     }
-    return { gyro, tilt, roll, y, isTouching, physicalHit, distance: dist, color, intensity, sensorX: cx, sensorZ: cz };
+    return { gyro: Math.round(normalizeAngle(rotation)), tilt, roll, y, isTouching, physicalHit, distance: dist, color, intensity, sensorX: cx, sensorZ: cz };
 };
 
 const App: React.FC = () => {
+  const [viewMode, setViewMode] = useState<'CODE' | 'SIM' | 'SPLIT'>('SPLIT');
   const [generatedCode, setGeneratedCode] = useState<string>('');
   const [startBlockCount, setStartBlockCount] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -192,9 +190,18 @@ const App: React.FC = () => {
   
   const [homePosition, setHomePosition] = useState<{x: number, z: number} | null>(null);
   const [isDraggingRobot, setIsDraggingRobot] = useState(false);
+  
+  const isScriptedMoving = useRef(false);
 
-  const isTurningRef = useRef(false);
-  const localTurnSpeedRef = useRef(100);
+  useEffect(() => {
+    // A small delay after view mode changes to allow container to resize before triggering
+    // a global resize event. This helps Blockly and the 3D canvas to adjust their dimensions.
+    const resizeTimer = setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+    }, 550); // Slightly longer than the 500ms CSS transition
+
+    return () => clearTimeout(resizeTimer);
+  }, [viewMode]);
 
   const showToast = useCallback((message: string, type: 'success' | 'info' | 'error' = 'success') => { 
     setToast({ message, type }); 
@@ -215,8 +222,6 @@ const App: React.FC = () => {
   const handleReset = useCallback(() => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     executionId.current++; 
-    isTurningRef.current = false;
-    localTurnSpeedRef.current = 100;
     const env = activeChallenge?.environmentObjects || []; 
     setCustomObjects(env);
     
@@ -239,13 +244,19 @@ const App: React.FC = () => {
     setCompletedDrawings([]); 
     setActiveDrawing(null); 
     activeDrawingRef.current = null;
+    isScriptedMoving.current = false;
     historyRef.current = { maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 }; 
     listenersRef.current = { messages: {}, colors: [], obstacles: [], distances: [], variables: {} };
     setCameraMode('HOME');
   }, [activeChallenge, svgConfig, homePosition]);
 
-  useEffect(() => { setHomePosition(null); }, [activeChallenge?.id]);
-  useEffect(() => { handleReset(); }, [activeChallenge?.id]);
+  useEffect(() => {
+    setHomePosition(null);
+  }, [activeChallenge?.id]);
+
+  useEffect(() => { 
+      handleReset(); 
+  }, [activeChallenge?.id]);
 
   const handleGroundPointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
     if (editorTool === 'ROBOT_MOVE') {
@@ -261,9 +272,11 @@ const App: React.FC = () => {
       const snap = 0.5;
       const newX = Math.round(e.point.x / snap) * snap;
       const newZ = Math.round(e.point.z / snap) * snap;
+      
       const sd = calculateSensorReadings(newX, newZ, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig);
       const next = { ...robotRef.current, x: newX, z: newZ, y: sd.y, tilt: sd.tilt, roll: sd.roll, isTouching: sd.isTouching };
-      robotRef.current = next; setRobotState(next);
+      robotRef.current = next;
+      setRobotState(next);
     }
   }, [isDraggingRobot, editorTool, activeChallenge, customObjects, svgConfig]);
 
@@ -280,43 +293,86 @@ const App: React.FC = () => {
     if (isRunning) return; 
     setIsRunning(true); 
     setChallengeSuccess(false);
+    if(viewMode === 'CODE') {
+        setViewMode('SPLIT');
+    }
+
+    // Allow React to commit state updates and re-render before starting the simulation logic.
+    // This prevents a race condition where the simulation tries to run while the UI is still updating.
+    await new Promise(resolve => setTimeout(resolve, 1));
+    
     const curId = ++executionId.current; const ctrl = new AbortController(); abortControllerRef.current = ctrl;
     const check = () => { if (ctrl.signal.aborted || executionId.current !== curId) throw new Error("Simulation aborted"); };
+    
     const robotApi = {
       move: async (dist: number) => {
-        check(); isTurningRef.current = false;
-        const startX = robotRef.current.x; const startZ = robotRef.current.z; 
-        const targetDist = Math.abs(dist) * 0.1; const dir = dist > 0 ? 1 : -1;
-        robotRef.current = { ...robotRef.current, motorLeftSpeed: 100 * dir, motorRightSpeed: 100 * dir };
+        check(); 
+        const sX = robotRef.current.x; const sZ = robotRef.current.z; const tD = Math.abs(dist) * 0.1; const dir = dist > 0 ? 1 : -1;
+        isScriptedMoving.current = true;
+        
+        const targetPower = Math.min(MAX_SPEED_CAP, robotRef.current.speed || 100);
+        
+        robotRef.current = { ...robotRef.current, motorLeftSpeed: targetPower * dir, motorRightSpeed: targetPower * dir };
         while (true) { 
-          check(); const currentDist = Math.sqrt((robotRef.current.x - startX)**2 + (robotRef.current.z - startZ)**2);
-          if (currentDist >= targetDist - 0.005 || (dist > 0 && robotRef.current.isTouching)) break; 
+          check(); 
+          const currentDistMoved = Math.sqrt((robotRef.current.x - sX)**2 + (robotRef.current.z - sZ)**2);
+          if (currentDistMoved >= tD || (dist > 0 && robotRef.current.isTouching)) break; 
           await new Promise(r => setTimeout(r, TICK_RATE)); 
         }
         robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
+        isScriptedMoving.current = false;
       },
-      turn: async (angle: number, speed: number = 100) => {
-        check(); isTurningRef.current = true; localTurnSpeedRef.current = Number(speed) || 100;
-        const startRotation = robotRef.current.rotation; const targetAbs = Math.abs(angle); const dir = angle > 0 ? 1 : -1;
-        let accumulatedTurn = 0; let lastRotation = startRotation;
-        robotRef.current = { ...robotRef.current, motorLeftSpeed: 100 * dir, motorRightSpeed: -100 * dir };
-        while (true) { 
-          check(); const currentRotation = robotRef.current.rotation;
-          let delta = currentRotation - lastRotation;
-          if (delta > 180) delta -= 360; if (delta < -180) delta += 360;
-          accumulatedTurn += Math.abs(delta); lastRotation = currentRotation;
-          if (accumulatedTurn >= targetAbs - 0.01) break; 
-          await new Promise(r => setTimeout(r, TICK_RATE)); 
+      turn: async (angle: number) => {
+        check(); 
+        isScriptedMoving.current = true;
+        const startR = robotRef.current.rotation;
+        const targetAngle = normalizeAngle(startR + angle);
+        const dir = angle > 0 ? 1 : -1;
+        const totalAngleToRotate = Math.abs(angle);
+
+        const stepSize = 1; 
+        const numSteps = Math.floor(totalAngleToRotate / stepSize);
+        const remainingFraction = totalAngleToRotate % stepSize;
+        
+        const currentSpeed = Math.min(MAX_SPEED_CAP, robotRef.current.speed || 100);
+        const STEP_DELAY = Math.max(16, Math.floor(1800 / Math.max(currentSpeed, 1))); 
+
+        robotRef.current = { 
+            ...robotRef.current, 
+            motorLeftSpeed: currentSpeed * dir, 
+            motorRightSpeed: -currentSpeed * dir 
+        };
+
+        for (let i = 0; i < numSteps; i++) {
+            check();
+            const nextR = normalizeAngle(robotRef.current.rotation + (stepSize * dir));
+            robotRef.current = { ...robotRef.current, rotation: nextR };
+            setRobotState({ ...robotRef.current });
+            await new Promise(r => setTimeout(r, STEP_DELAY));
         }
-        robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0, rotation: startRotation + angle }; 
-        isTurningRef.current = false; setRobotState({ ...robotRef.current });
+
+        if (remainingFraction > 0) {
+            check();
+            robotRef.current = { ...robotRef.current, rotation: targetAngle };
+            setRobotState({ ...robotRef.current });
+            await new Promise(r => setTimeout(r, STEP_DELAY));
+        }
+        
+        robotRef.current = { 
+            ...robotRef.current, 
+            motorLeftSpeed: 0, 
+            motorRightSpeed: 0, 
+            rotation: targetAngle 
+        };
+        setRobotState({ ...robotRef.current });
+        isScriptedMoving.current = false;
       },
       setHeading: async (tA: number) => { check(); await robotApi.turn(getAngleDifference(normalizeAngle(tA), normalizeAngle(robotRef.current.rotation))); },
       wait: (ms: number) => new Promise((res, rej) => { const t = setTimeout(res, ms); ctrl.signal.addEventListener('abort', () => { clearTimeout(t); rej(new Error("Simulation aborted")); }); }),
-      setMotorPower: async (l: number, r: number) => { check(); robotRef.current = { ...robotRef.current, motorLeftSpeed: l, motorRightSpeed: r }; },
-      setLeftMotorPower: async (p: number) => { check(); robotRef.current.motorLeftSpeed = p; },
-      setRightMotorPower: async (p: number) => { check(); robotRef.current.motorRightSpeed = p; },
-      setSpeed: async (s: number) => { check(); robotRef.current.speed = s; },
+      setMotorPower: async (l: number, r: number) => { check(); robotRef.current = { ...robotRef.current, motorLeftSpeed: Math.min(MAX_SPEED_CAP, l), motorRightSpeed: Math.min(MAX_SPEED_CAP, r) }; },
+      setLeftMotorPower: async (p: number) => { check(); robotRef.current.motorLeftSpeed = Math.min(MAX_SPEED_CAP, p); },
+      setRightMotorPower: async (p: number) => { check(); robotRef.current.motorRightSpeed = Math.min(MAX_SPEED_CAP, p); },
+      setSpeed: async (s: number) => { check(); robotRef.current.speed = Math.min(MAX_SPEED_CAP, s); },
       stop: async () => { check(); robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 }; },
       setPen: async (d: boolean) => { check(); robotRef.current.penDown = d; setRobotState(p => ({ ...p, penDown: d })); },
       setPenColor: async (c: string) => { check(); robotRef.current.penColor = c; },
@@ -325,6 +381,7 @@ const App: React.FC = () => {
       getGyro: async (m: 'ANGLE' | 'TILT') => { const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig); return m === 'TILT' ? sd.tilt : sd.gyro; },
       getColor: async () => calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig).color,
       isTouchingColor: async (h: string) => isColorClose(calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig).color, h),
+      getSpeed: async () => robotRef.current.speed,
       setLed: (s: 'left' | 'right' | 'both', c: string) => { check(); if (s === 'left' || s === 'both') robotRef.current.ledLeftColor = c; if (s === 'right' || s === 'both') robotRef.current.ledRightColor = c; setRobotState({ ...robotRef.current }); },
       onMessage: (m: string, cb: () => Promise<void>) => { if (!listenersRef.current.messages[m]) listenersRef.current.messages[m] = []; listenersRef.current.messages[m].push(cb); },
       sendMessage: async (m: string) => { if (listenersRef.current.messages[m]) await Promise.all(listenersRef.current.messages[m].map(cb => cb())); },
@@ -332,37 +389,58 @@ const App: React.FC = () => {
       onObstacle: (cb: () => Promise<void>) => listenersRef.current.obstacles.push({ cb, lastMatch: false }),
       onDistance: (t: number, cb: () => Promise<void>) => listenersRef.current.distances.push({ threshold: t, cb, lastMatch: false }),
       updateVariable: (n: string, v: any) => setMonitoredValues(p => ({ ...p, [n]: v })),
-      getWheelCircumference: async () => 17.5,
-      stopProgram: async () => { ctrl.abort(); setIsRunning(false); }
+      stopProgram: async () => { 
+        robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
+        setRobotState({...robotRef.current});
+        ctrl.abort(); 
+        setIsRunning(false); 
+      }
     };
-    try { const AsyncF = Object.getPrototypeOf(async function(){}).constructor; await new AsyncF('robot', generatedCode)(robotApi); } catch (e: any) { if (e.message !== "Simulation aborted") setIsRunning(false); }
-  }, [isRunning, generatedCode, activeChallenge, customObjects, svgConfig]);
+    
+    try { 
+      const AsyncF = Object.getPrototypeOf(async function(){}).constructor; 
+      await new AsyncF('robot', generatedCode)(robotApi); 
+    } catch (e: any) { 
+      if (e.message !== "Simulation aborted") console.error(e);
+    } finally {
+      robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
+      setRobotState({ ...robotRef.current });
+      setIsRunning(false);
+      isScriptedMoving.current = false;
+    }
+  }, [isRunning, generatedCode, activeChallenge, customObjects, svgConfig, viewMode]);
 
   useEffect(() => {
     let int: any; if (isRunning) { 
       int = setInterval(() => { 
-        const cur = robotRef.current; const globalSpeedFactor = cur.speed / 100.0; 
-        const pL = cur.motorLeftSpeed / 100.0; const pR = cur.motorRightSpeed / 100.0;
-        let fV = 0; let rV = 0;
-        if (isTurningRef.current) {
-            const localTurnFactor = localTurnSpeedRef.current / 100.0;
-            const turnMultiplier = 0.3; const rotationPower = globalSpeedFactor * localTurnFactor * turnMultiplier;
-            rV = (pL - pR) * BASE_TURN_SPEED * rotationPower;
-        } else {
-            fV = ((pL + pR) / 2.0) * BASE_VELOCITY * globalSpeedFactor; 
-            rV = (pL - pR) * BASE_TURN_SPEED * globalSpeedFactor; 
-        }
+        const cur = robotRef.current; 
+        
+        const effectiveSpeed = Math.min(MAX_SPEED_CAP, cur.speed || 100);
+        const f = effectiveSpeed / 100.0; 
+        
+        const pL = (cur.motorLeftSpeed || 0) / 100.0; 
+        const pR = (cur.motorRightSpeed || 0) / 100.0;
+        
+        let fV = ((pL + pR) / 2.0) * BASE_VELOCITY * f; 
+        const rV = isScriptedMoving.current ? 0 : (pL - pR) * BASE_TURN_SPEED * f; 
+        
         const sd_c = calculateSensorReadings(cur.x, cur.z, cur.rotation, activeChallenge?.id, customObjects, svgConfig);
         if (Math.abs(sd_c.tilt) > 3) fV *= Math.max(0.2, 1 - (Math.min(Math.abs(sd_c.tilt)/25, 1)) * 0.8);
+        
         const nR = cur.rotation + rV; 
         const nX = cur.x + Math.sin(nR * Math.PI/180) * fV; 
         const nZ = cur.z - Math.cos(nR * Math.PI/180) * fV; 
         const sd_p = calculateSensorReadings(nX, nZ, nR, activeChallenge?.id, customObjects, svgConfig);
+        
         const shouldBlock = sd_p.physicalHit && fV > 0;
-        const fX = shouldBlock ? cur.x : nX; const fZ = shouldBlock ? cur.z : nZ;
+        const fX = shouldBlock ? cur.x : nX; 
+        const fZ = shouldBlock ? cur.z : nZ;
+        
         const sd_f = calculateSensorReadings(fX, fZ, nR, activeChallenge?.id, customObjects, svgConfig);
         const next = { ...cur, x: fX, z: fZ, y: cur.y + (sd_f.y - cur.y)*0.3, tilt: cur.tilt + (sd_f.tilt - cur.tilt)*0.3, roll: cur.roll + (sd_f.roll - cur.roll)*0.3, rotation: nR, isTouching: sd_f.isTouching, isMoving: Math.abs(fV) > 0.001 || Math.abs(rV) > 0.001, sensorX: sd_f.sensorX, sensorZ: sd_f.sensorZ }; 
+        
         robotRef.current = next; setRobotState(next); 
+
         listenersRef.current.colors.forEach(l => { const m = isColorClose(sd_f.color, l.color); if (m && !l.lastMatch) l.cb(); l.lastMatch = m; });
         listenersRef.current.obstacles.forEach(l => { if (sd_f.isTouching && !l.lastMatch) l.cb(); l.lastMatch = sd_f.isTouching; });
         listenersRef.current.distances.forEach(l => { const m = sd_f.distance < l.threshold; if (m && !l.lastMatch) l.cb(); l.lastMatch = m; });
@@ -378,24 +456,38 @@ const App: React.FC = () => {
                   const newD = { id: `p-${Date.now()}`, points: [p], color: next.penColor }; activeDrawingRef.current = newD; return newD;
               } else { const upd = { ...d, points: [...d.points, p] }; activeDrawingRef.current = upd; return upd; }
           });
-        } else if (activeDrawingRef.current) { 
-          const lastD = activeDrawingRef.current;
-          if (lastD) setCompletedDrawings(o => [...o, lastD]); 
-          setActiveDrawing(null); activeDrawingRef.current = null; 
-        }
+        } else if (activeDrawingRef.current) { setCompletedDrawings(o => [...o, activeDrawingRef.current!]); setActiveDrawing(null); activeDrawingRef.current = null; }
         if (activeChallenge && activeChallenge.check(cur, next, historyRef.current) && !challengeSuccess) { setChallengeSuccess(true); showToast("Mission Accomplished!", "success"); } 
       }, TICK_RATE); 
     } return () => clearInterval(int);
   }, [isRunning, customObjects, activeChallenge, challengeSuccess, showToast, svgConfig]);
 
   const sensorReadings = useMemo(() => calculateSensorReadings(robotState.x, robotState.z, robotState.rotation, activeChallenge?.id, customObjects, svgConfig), [robotState.x, robotState.z, robotState.rotation, activeChallenge, customObjects, svgConfig]);
+
   const showBlocklyNumpad = useCallback((i: any, onC: any, pos: any) => setNumpadConfig({ isOpen: true, value: parseFloat(i.toString()), onConfirm: onC, position: { top: pos.top, bottom: pos.bottom, left: pos.left, right: pos.right, width: pos.width, height: pos.height } }), []);
-  const openPythonView = () => { if (blocklyEditorRef.current) setIsPythonModalOpen(true); };
+
+  const openPythonView = () => {
+    if (blocklyEditorRef.current) {
+      setIsPythonModalOpen(true);
+    }
+  };
 
   const orbitControlsProps = useMemo(() => {
-    let props: any = { enablePan: true, enableRotate: true, mouseButtons: { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }, minDistance: 1.2, maxDistance: 60 };
-    if (editorTool === 'PAN' || cameraMode === 'TOP') { props.enableRotate = false; props.mouseButtons.LEFT = THREE.MOUSE.PAN; }
-    if (cameraMode === 'FOLLOW') { props.enablePan = false; props.enableRotate = false; }
+    let props: any = {
+      enablePan: true,
+      enableRotate: true,
+      mouseButtons: { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN },
+      minDistance: 1.2,
+      maxDistance: 60,
+    };
+    if (editorTool === 'PAN' || cameraMode === 'TOP') {
+        props.enableRotate = false;
+        props.mouseButtons.LEFT = THREE.MOUSE.PAN;
+    }
+    if (cameraMode === 'FOLLOW') {
+        props.enablePan = false;
+        props.enableRotate = false;
+    }
     return props;
   }, [editorTool, cameraMode]);
 
@@ -407,79 +499,143 @@ const App: React.FC = () => {
           <span className="font-bold text-sm">{toast.message}</span>
         </div>
       )}
+      
       <header className="bg-slate-900 text-white p-3 flex justify-between items-center shadow-lg z-10 shrink-0">
         <div className="flex items-center gap-3">
           <div className="bg-blue-600 p-1.5 rounded-lg shadow-inner"><Code2 className="w-5 h-5 text-white" /></div>
           <h1 className="text-lg font-bold hidden sm:block tracking-tight text-slate-100">Virtual Robotics Lab</h1>
         </div>
-        <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-sm">
-          <button onClick={handleRun} disabled={isRunning || startBlockCount === 0} className={`flex items-center justify-center w-11 h-11 rounded-xl font-bold transition-all transform active:scale-95 ${isRunning || startBlockCount === 0 ? 'bg-slate-700/50 text-slate-600' : 'bg-green-600 text-white hover:bg-green-500'}`} title="Run Program"><Flag size={20} fill={(isRunning || startBlockCount === 0) ? "none" : "currentColor"} /></button>
-          <button onClick={handleReset} className="flex items-center justify-center w-11 h-11 bg-red-600 hover:bg-red-50 text-white rounded-xl font-bold transition-all transform active:scale-95 shadow-md active:shadow-none" title="Reset"><RotateCcw size={22} strokeWidth={2.5} /></button>
-          <div className="w-px h-6 bg-slate-700 mx-1"></div>
-          <button onClick={() => setIsRulerActive(!isRulerActive)} className={`flex items-center justify-center w-11 h-11 rounded-xl font-bold transition-all transform active:scale-95 ${isRulerActive ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`} title="Ruler Tool"><Ruler size={20} /></button>
-          <button onClick={() => setShowAngleChart(!showAngleChart)} className={`flex items-center justify-center w-11 h-11 rounded-xl font-bold transition-all transform active:scale-95 ${showAngleChart ? 'bg-orange-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`} title="Angle Chart"><Navigation size={20} /></button>
-          <div className="w-px h-6 bg-slate-700 mx-1"></div>
-          <button onClick={() => setProjectModal({ isOpen: true, mode: 'save' })} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Save Project"><Save size={20} /></button>
-          <button onClick={() => setProjectModal({ isOpen: true, mode: 'load' })} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Open Project"><FolderOpen size={20} /></button>
-          <div className="w-px h-6 bg-slate-700 mx-1"></div>
-          <button onClick={openPythonView} className="flex items-center justify-center w-11 h-11 bg-slate-700 text-slate-400 hover:bg-slate-600 rounded-xl font-bold transition-all transform active:scale-95" title="Python Code"><Terminal size={20} /></button>
-        </div>
+        
         <div className="flex items-center gap-2">
+            <button onClick={handleRun} disabled={isRunning || startBlockCount === 0} className="w-14 h-14 flex items-center justify-center rounded-2xl bg-emerald-500 text-white disabled:bg-slate-700 disabled:text-slate-500 hover:bg-emerald-400 transition-all shadow-lg active:scale-95" title="Run Program">
+                <Flag size={24} fill="currentColor" />
+            </button>
+            <button onClick={handleReset} className="w-14 h-14 flex items-center justify-center rounded-2xl bg-red-600/20 text-red-500 hover:bg-red-600 hover:text-white transition-all active:scale-95" title="Reset Simulation">
+                <RotateCcw size={24} strokeWidth={3} />
+            </button>
+
+            <div className="w-px h-8 bg-slate-700 mx-2"></div>
+           
+            <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-2xl border border-slate-700">
+               <button 
+                 onClick={() => setViewMode('CODE')} 
+                 className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${viewMode === 'CODE' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+               >
+                 <Layout size={18} /> Code
+               </button>
+                <button 
+                 onClick={() => setViewMode('SPLIT')} 
+                 className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${viewMode === 'SPLIT' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+               >
+                 <LayoutGrid size={18} /> Split
+               </button>
+               <button 
+                 onClick={() => setViewMode('SIM')} 
+                 className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${viewMode === 'SIM' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+               >
+                 <Bot size={18} /> Simulation
+               </button>
+            </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button onClick={() => setProjectModal({ isOpen: true, mode: 'save' })} className="p-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl transition-colors" title="Save Project"><Save size={20} /></button>
+          <button onClick={() => setProjectModal({ isOpen: true, mode: 'load' })} className="p-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl transition-colors" title="Open Project"><FolderOpen size={20} /></button>
+          <button onClick={openPythonView} className="p-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl transition-colors" title="View Python Code"><Terminal size={20} /></button>
+          <div className="w-px h-6 bg-slate-700 mx-1"></div>
           <button onClick={() => setShowHelp(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl text-sm font-bold transition-all active:scale-95" title="Help"><HelpCircle size={16} />Help</button>
           <button onClick={() => setShowChallenges(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${activeChallenge ? 'bg-yellow-500 text-slate-900 hover:bg-yellow-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}><Trophy size={16} /> {activeChallenge ? activeChallenge.title : "Challenges"}</button>
         </div>
       </header>
-      <main className="flex flex-1 overflow-hidden relative">
-        <div className="w-1/2 relative flex flex-col bg-white text-left text-sm border-r border-slate-200">
-          <div className="bg-slate-50 border-b p-2 flex justify-between items-center shrink-0">
-            <div className="flex items-center gap-2"><Code2 size={18} className="text-slate-400" /><span className="font-bold text-slate-600 uppercase tracking-tight">Workspace</span></div>
-          </div>
-          <div className="flex-1 relative">
-            <BlocklyEditor ref={blocklyEditorRef} onCodeChange={useCallback((c, n) => { setGeneratedCode(c); setStartBlockCount(n); }, [])} visibleVariables={visibleVariables} onToggleVariable={useCallback((n) => setVisibleVariables(v => { const x = new Set(v); if (x.has(n)) x.delete(n); else x.add(n); return x; }), [])} onShowNumpad={showBlocklyNumpad} />
-          </div>
-        </div>
-        <div className="w-1/2 relative bg-slate-900 overflow-hidden">
-          <div className="absolute top-4 left-4 z-[100] flex flex-col gap-2 pointer-events-none">
-            {Array.from(visibleVariables).map((v) => (
-              <div key={v} className="bg-[#FF8C1A] text-white rounded-lg px-3 py-1 flex items-center gap-3 text-sm font-bold shadow-lg border-2 border-white/20 pointer-events-auto">
-                <span>{v}</span>
-                <span className="bg-white/30 rounded px-2 py-0.5 min-w-[4rem] text-center font-mono">{typeof monitoredValues[v] === 'number' ? monitoredValues[v].toFixed(2) : String(monitoredValues[v] ?? 0)}</span>
-              </div>
-            ))}
-          </div>
-          <div className="absolute top-4 right-4 z-[100] flex flex-col gap-3">
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 p-1 flex flex-col overflow-hidden">
-              <button onClick={() => setCameraMode('HOME')} className={`p-3 transition-all rounded-xl ${cameraMode === 'HOME' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Reset Camera"><Home size={22} /></button>
-              <div className="h-px bg-slate-100 mx-2 my-0.5" />
-              <button onClick={() => setCameraMode(p => p === 'TOP' ? 'HOME' : 'TOP')} className={`p-3 transition-all rounded-xl ${cameraMode === 'TOP' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Top View"><Eye size={22} /></button>
-              <button onClick={() => setCameraMode(p => p === 'FOLLOW' ? 'HOME' : 'FOLLOW')} className={`p-3 transition-all rounded-xl ${cameraMode === 'FOLLOW' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Follow Camera"><Target size={22} /></button>
-              <div className="h-px bg-slate-100 mx-2 my-0.5" />
-              <button onClick={() => { controlsRef.current?.dollyOut(1.2); controlsRef.current?.update(); }} className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95" title="Zoom In (+)"><ZoomIn size={22} /></button>
-              <button onClick={() => { controlsRef.current?.dollyIn(1.2); controlsRef.current?.update(); }} className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95" title="Zoom Out (-)"><ZoomOut size={22} /></button>
-              <div className="h-px bg-slate-100 mx-2 my-0.5" />
-              <button onClick={() => setEditorTool(p => p === 'PAN' ? 'NONE' : 'PAN')} className={`p-3 rounded-xl transition-all ${editorTool === 'PAN' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Pan Tool"><Hand size={22} /></button>
-              <button onClick={() => setEditorTool('NONE')} className={`p-3 transition-all rounded-xl ${editorTool === 'NONE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Rotate Tool"><Move size={22} /></button>
-              <button onClick={() => setEditorTool(p => p === 'ROBOT_MOVE' ? 'NONE' : 'ROBOT_MOVE')} className={`p-3 transition-all rounded-xl ${editorTool === 'ROBOT_MOVE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Manual Robot Placement (Drag to move)"><Bot size={22} /></button>
+      
+      <main className="flex flex-1 overflow-hidden">
+        {/* Code View Pane */}
+        <div className={`h-full transition-all duration-500 ease-in-out overflow-hidden ${
+            viewMode === 'CODE' ? 'w-full' :
+            viewMode === 'SIM' ? 'w-0 opacity-0' :
+            'w-1/2'
+        }`}>
+            <div className="w-full h-full relative flex flex-col bg-white text-left text-sm">
+                <div className="flex-1 relative">
+                    <BlocklyEditor ref={blocklyEditorRef} onCodeChange={useCallback((c, n) => { setGeneratedCode(c); setStartBlockCount(n); }, [])} visibleVariables={visibleVariables} onToggleVariable={useCallback((n) => setVisibleVariables(v => { const x = new Set(v); if (x.has(n)) x.delete(n); else x.add(n); return x; }), [])} onShowNumpad={showBlocklyNumpad} />
+                </div>
             </div>
-          </div>
-          <SensorDashboard distance={sensorReadings.distance} isTouching={sensorReadings.isTouching} gyroAngle={sensorReadings.gyro} tiltAngle={sensorReadings.tilt} detectedColor={sensorReadings.color} lightIntensity={sensorReadings.intensity} />
-          <Canvas shadows camera={{ position: [10, 10, 10], fov: 45 }}>
-            <SimulationEnvironment challengeId={activeChallenge?.id} customObjects={customObjects} robotState={robotState} svgMap={activeChallenge?.svgMap} onPointerDown={handleGroundPointerDown} onPointerMove={handleGroundPointerMove} onPointerUp={handleGroundPointerUp} />
-            {completedDrawings.map((p, i) => (p && p.points && p.points.length > 1) ? <Line key={p.id || i} points={p.points} color={p.color} lineWidth={4} /> : null)}
-            {activeDrawing && activeDrawing.points && activeDrawing.points.length > 1 && <Line key={activeDrawing.id} points={activeDrawing.points} color={activeDrawing.color} lineWidth={4} />}
-            <Robot3D state={robotState} isPlacementMode={editorTool === 'ROBOT_MOVE'} />
-            <OrbitControls ref={controlsRef} makeDefault {...orbitControlsProps} />
-            <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />
-            {isRulerActive && <RulerTool />}
-            <AngleChart isOpen={showAngleChart} robotPos={{ x: robotState.x, z: robotState.z }} />
-          </Canvas>
+        </div>
+        
+        {/* Simulation View Pane */}
+        <div className={`h-full transition-all duration-500 ease-in-out overflow-hidden ${
+            viewMode === 'CODE' ? 'w-0 opacity-0' :
+            viewMode === 'SIM' ? 'w-full' :
+            'w-1/2'
+        }`}>
+            <div className="w-full h-full relative bg-slate-900 overflow-hidden">
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] pointer-events-none">
+                <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700/50 p-2 rounded-2xl flex items-center gap-2 shadow-2xl pointer-events-auto">
+                    <button onClick={() => setIsRulerActive(!isRulerActive)} className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all ${isRulerActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`} title="Ruler">
+                        <Ruler size={20} />
+                    </button>
+                    <button onClick={() => setShowAngleChart(!showAngleChart)} className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all ${showAngleChart ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`} title="Angle Chart">
+                        <Navigation size={20} />
+                    </button>
+                </div>
+                </div>
+
+                <div className="absolute top-4 left-4 z-[100] flex flex-col gap-2 pointer-events-none">
+                {Array.from(visibleVariables).map((v) => (
+                    <div key={v} className="bg-[#FF8C1A] text-white rounded-lg px-3 py-1 flex items-center gap-3 text-sm font-bold shadow-lg border-2 border-white/20 pointer-events-auto">
+                    <span>{v}</span>
+                    <span className="bg-white/30 rounded px-2 py-0.5 min-w-[4rem] text-center font-mono">{typeof monitoredValues[v] === 'number' ? monitoredValues[v].toFixed(2) : String(monitoredValues[v] ?? 0)}</span>
+                    </div>
+                ))}
+                </div>
+
+                <div className="absolute top-4 right-4 z-[100] flex flex-col gap-3">
+                <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 p-1 flex flex-col overflow-hidden">
+                    <button onClick={() => setCameraMode('HOME')} className={`p-3 transition-all rounded-xl ${cameraMode === 'HOME' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Reset Camera"><Home size={22} /></button>
+                    <div className="h-px bg-slate-100 mx-2 my-0.5" />
+                    <button onClick={() => setCameraMode(p => p === 'TOP' ? 'HOME' : 'TOP')} className={`p-3 transition-all rounded-xl ${cameraMode === 'TOP' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Top View"><Eye size={22} /></button>
+                    <button onClick={() => setCameraMode(p => p === 'FOLLOW' ? 'HOME' : 'FOLLOW')} className={`p-3 transition-all rounded-xl ${cameraMode === 'FOLLOW' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Follow Camera"><Target size={22} /></button>
+                    <div className="h-px bg-slate-100 mx-2 my-0.5" />
+                    
+                    <button onClick={() => { controlsRef.current?.dollyOut(1.2); controlsRef.current?.update(); }} className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95"><ZoomIn size={22} /></button>
+                    <button onClick={() => { controlsRef.current?.dollyIn(1.2); controlsRef.current?.update(); }} className="p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all active:scale-95"><ZoomOut size={22} /></button>
+
+                    <div className="h-px bg-slate-100 mx-2 my-0.5" />
+                    <button onClick={() => setEditorTool(p => p === 'PAN' ? 'NONE' : 'PAN')} className={`p-3 rounded-xl transition-all ${editorTool === 'PAN' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Pan Tool"><Hand size={22} /></button>
+                    <button onClick={() => setEditorTool('NONE')} className={`p-3 transition-all rounded-xl ${editorTool === 'NONE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Rotate Tool"><Move size={22} /></button>
+                    <button onClick={() => setEditorTool(p => p === 'ROBOT_MOVE' ? 'NONE' : 'ROBOT_MOVE')} className={`p-3 transition-all rounded-xl ${editorTool === 'ROBOT_MOVE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`} title="Manual Robot Placement (Drag to move)"><Bot size={22} /></button>
+                </div>
+                </div>
+                
+                <SensorDashboard distance={sensorReadings.distance} isTouching={sensorReadings.isTouching} gyroAngle={sensorReadings.gyro} tiltAngle={sensorReadings.tilt} detectedColor={sensorReadings.color} lightIntensity={sensorReadings.intensity} />
+                
+                <Canvas shadows camera={{ position: [10, 10, 10], fov: 45 }}>
+                <SimulationEnvironment 
+                    challengeId={activeChallenge?.id} 
+                    customObjects={customObjects} 
+                    robotState={robotState} 
+                    svgMap={activeChallenge?.svgMap} 
+                    onPointerDown={handleGroundPointerDown}
+                    onPointerMove={handleGroundPointerMove}
+                    onPointerUp={handleGroundPointerUp}
+                />
+                {completedDrawings.map((p) => <Line key={p.id} points={p.points} color={p.color} lineWidth={4} />)}
+                {activeDrawing && activeDrawing.points.length > 1 && <Line key={activeDrawing.id} points={activeDrawing.points} color={activeDrawing.color} lineWidth={4} />}
+                <Robot3D state={robotState} isPlacementMode={editorTool === 'ROBOT_MOVE'} />
+                <OrbitControls ref={controlsRef} makeDefault {...orbitControlsProps} />
+                <CameraManager robotState={robotState} cameraMode={cameraMode} controlsRef={controlsRef} />
+                {isRulerActive && <RulerTool />}
+                <AngleChart isOpen={showAngleChart} robotPos={{ x: robotState.x, z: robotState.z }} />
+                </Canvas>
+            </div>
         </div>
       </main>
+      
       {isPythonModalOpen && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col border border-slate-700">
             <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-              <h2 className="text-xl font-bold text-white flex items-center gap-3"><FileCode className="text-blue-400" /> Python Code Output</h2>
+              <h2 className="text-xl font-bold text-slate-100 flex items-center gap-3"><FileCode className="text-blue-400" /> Python Code Output</h2>
               <button onClick={() => setIsPythonModalOpen(false)} className="p-2 hover:bg-slate-800 rounded-full text-slate-500 transition-colors"><X size={24} /></button>
             </div>
             <div className="flex-1 overflow-auto p-6 font-mono text-sm"><pre className="text-blue-300 whitespace-pre-wrap">{blocklyEditorRef.current?.getPythonCode()}</pre></div>
@@ -489,6 +645,7 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
       {projectModal.isOpen && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-slate-200">
@@ -513,8 +670,10 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
       <Numpad isOpen={numpadConfig.isOpen} initialValue={numpadConfig.value} onConfirm={(val) => { numpadConfig.onConfirm(val); setNumpadConfig(p => ({ ...p, isOpen: false })); }} onClose={() => setNumpadConfig(p => ({ ...p, isOpen: false }))} position={numpadConfig.position} />
       {showHelp && <HelpCenter onClose={() => setShowHelp(false)} />}
+      
       {showChallenges && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border-4 border-slate-200">
