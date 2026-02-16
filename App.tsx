@@ -403,7 +403,7 @@ const App: React.FC = () => {
     } catch (e: any) { 
       if (e.message !== "Simulation aborted") console.error(e);
     } finally {
-      robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
+      // **THE FIX**: Removed the automatic motor stop from here.
       setRobotState({ ...robotRef.current });
       setIsRunning(false);
       isScriptedMoving.current = false;
@@ -411,8 +411,7 @@ const App: React.FC = () => {
   }, [isRunning, generatedCode, activeChallenge, customObjects, svgConfig, viewMode]);
 
   useEffect(() => {
-    let int: any; if (isRunning) { 
-      int = setInterval(() => { 
+    const int = setInterval(() => { 
         const cur = robotRef.current; 
         
         const effectiveSpeed = Math.min(MAX_SPEED_CAP, cur.speed || 100);
@@ -441,9 +440,13 @@ const App: React.FC = () => {
         
         robotRef.current = next; setRobotState(next); 
 
-        listenersRef.current.colors.forEach(l => { const m = isColorClose(sd_f.color, l.color); if (m && !l.lastMatch) l.cb(); l.lastMatch = m; });
-        listenersRef.current.obstacles.forEach(l => { if (sd_f.isTouching && !l.lastMatch) l.cb(); l.lastMatch = sd_f.isTouching; });
-        listenersRef.current.distances.forEach(l => { const m = sd_f.distance < l.threshold; if (m && !l.lastMatch) l.cb(); l.lastMatch = m; });
+        // Run listeners only if script is active
+        if (isRunning) {
+            listenersRef.current.colors.forEach(l => { const m = isColorClose(sd_f.color, l.color); if (m && !l.lastMatch) l.cb(); l.lastMatch = m; });
+            listenersRef.current.obstacles.forEach(l => { if (sd_f.isTouching && !l.lastMatch) l.cb(); l.lastMatch = sd_f.isTouching; });
+            listenersRef.current.distances.forEach(l => { const m = sd_f.distance < l.threshold; if (m && !l.lastMatch) l.cb(); l.lastMatch = m; });
+        }
+
         if (sd_f.isTouching) historyRef.current.touchedWall = true; 
         historyRef.current.maxDistanceMoved = Math.max(historyRef.current.maxDistanceMoved, Math.sqrt((next.x - (activeChallenge?.startPosition?.x || 0))**2 + (next.z - (activeChallenge?.startPosition?.z || 0))**2) * 10);
         if (!historyRef.current.detectedColors.includes(sd_f.color)) historyRef.current.detectedColors.push(sd_f.color);
@@ -459,8 +462,8 @@ const App: React.FC = () => {
         } else if (activeDrawingRef.current) { setCompletedDrawings(o => [...o, activeDrawingRef.current!]); setActiveDrawing(null); activeDrawingRef.current = null; }
         if (activeChallenge && activeChallenge.check(cur, next, historyRef.current) && !challengeSuccess) { setChallengeSuccess(true); showToast("Mission Accomplished!", "success"); } 
       }, TICK_RATE); 
-    } return () => clearInterval(int);
-  }, [isRunning, customObjects, activeChallenge, challengeSuccess, showToast, svgConfig]);
+    return () => clearInterval(int);
+  }, [customObjects, activeChallenge, challengeSuccess, showToast, svgConfig, isRunning]);
 
   const sensorReadings = useMemo(() => calculateSensorReadings(robotState.x, robotState.z, robotState.rotation, activeChallenge?.id, customObjects, svgConfig), [robotState.x, robotState.z, robotState.rotation, activeChallenge, customObjects, svgConfig]);
 
