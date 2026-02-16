@@ -268,7 +268,7 @@ export const initBlockly = () => {
     init: function() {
       this.appendDummyInput().appendField("drive").appendField(new Blockly.FieldDropdown([["forward","FORWARD"], ["backward","BACKWARD"]]), "DIRECTION");
       this.setPreviousStatement(true, null);
-      this.setNextStatement(false, null);
+      this.setNextStatement(true, null);
       this.setStyle('motion_blocks');
     }
   };
@@ -564,9 +564,9 @@ export const initBlockly = () => {
   javascriptGenerator.forBlock['event_when_ultrasonic'] = function(block: any) { const threshold = block.getFieldValue('THRESHOLD'); const branch = javascriptGenerator.statementToCode(block, 'DO'); return `robot.onDistance(${threshold}, async () => {\n${wrapHatCode(branch)}});\n`; };
   
   javascriptGenerator.forBlock['robot_drive_simple'] = function(block: any) { 
-    const direction = block.getFieldValue('DIRECTION'); 
+    const direction = block.getFieldValue('DIRECTION');
     const power = direction === 'FORWARD' ? 100 : -100; 
-    return `await robot.setMotorPower(${power}, ${power});\nwhile(true) { await robot.wait(10); }\n`;
+    return `await robot.setMotorPower(${power}, ${power});\n`;
   };
   
   javascriptGenerator.forBlock['robot_move'] = function(block: any) { 
@@ -683,9 +683,9 @@ export const initBlockly = () => {
   pythonGenerator.forBlock['event_when_ultrasonic'] = function(block: any) { const threshold = block.getFieldValue('THRESHOLD'); const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_distance_detected():\n${branch || '  pass'}\n\nrobot.on_distance(${threshold}, on_distance_detected)\n`; };
   
   pythonGenerator.forBlock['robot_drive_simple'] = function(block: any) { 
-    const direction = block.getFieldValue('DIRECTION'); 
+    const direction = block.getFieldValue('DIRECTION');
     const power = direction === 'FORWARD' ? 100 : -100; 
-    return `robot.set_motor_power(${power}, ${power})\nwhile True:\n  robot.wait(0.01)\n`;
+    return `robot.set_motor_power(${power}, ${power})\n`;
   };
   
   pythonGenerator.forBlock['robot_move'] = function(block: any) { 
