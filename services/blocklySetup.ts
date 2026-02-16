@@ -10,32 +10,30 @@ export const HAT_BLOCKS = [
     'event_when_ultrasonic'
 ];
 
-/**
- * מפת צבעים אבסולוטית המסונכרנת עם ה-App והבמה.
- */
+// Canonical map for common color names to their representative hex values (aligned with Blockly icons)
 const CANONICAL_COLOR_MAP_FOR_BLOCKLY: Record<string, string> = {
-    'red': '#EF4D47',     // Absolute Red
-    'orange': '#EF8826',  // Absolute Orange
-    'yellow': '#FFFF00',  // Absolute Yellow
-    'green': '#00FF00',   // Absolute Green
-    'blue': '#0000FF',    // Absolute Blue
-    'purple': '#A855F7',  // Absolute Purple (Stop Line)
-    'cyan': '#06B6D4',
-    'magenta': '#EC4899',
+    'red': '#EF4444',     // From Blockly's red star
+    'green': '#22C55E',   // From Blockly's green square
+    'blue': '#3B82F6',    // From Blockly's blue circle
+    'yellow': '#EAB308',  // From Blockly's yellow triangle (Blockly's specific yellow)
+    'orange': '#F97316',  // From Blockly's orange heart
+    'purple': '#A855F7',  // From Blockly's purple moon
+    'cyan': '#06B6D4',    // From Blockly's cyan cloud
+    'magenta': '#EC4899', // From Blockly's pink diamond (using magenta as the name in code)
     'black': '#000000',
     'white': '#FFFFFF',
 };
 
 // --- MESSAGE ICONS (SVG DATA URIs) ---
 const MSG_ICONS = {
-    RED_STAR: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23EF4D47'%3E%3Cpath d='M12 1.7l3.09 6.26 6.91 1-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 6.91-1z'/%3E%3C/svg%3E`,
-    BLUE_CIRCLE: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230000FF'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3C/svg%3E`,
-    GREEN_SQUARE: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300FF00'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3C/svg%3E`,
-    YELLOW_TRIANGLE: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FFFF00'%3E%3Cpath d='M1 21h22L12 2z'/%3E%3C/svg%3E`,
-    ORANGE_HEART: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23EF8826'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E`,
-    PURPLE_MOON: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23A855F7'%3E%3Cpath d='M12 3c.132 0 .263 0 .393.007a9 9 0 0 0 9.257 9.257c.01 1.056-.11 2.115-.365 3.15a9 9 0 1 1-9.285-12.414z'/%3E%3C/svg%3E`,
-    CYAN_CLOUD: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2306B6D4'%3E%3Cpath d='M17.5 19c-3.037 0-5.5-2.463-5.5-5.5 0-.154.007-.306.021-.456a5.5 5.5 0 0 0-10.021 2.456C2 18.537 4.463 21 7.5 21h10c1.933 0 3.5-1.567 3.5-3.5S19.433 14 17.5 14c-.154 0-.306.007-.456.021a5.501 5.501 0 0 0-3.544-7.021 5.5 5.5 0 0 0-10.021 2.456'/%3E%3C/svg%3E`,
-    PINK_DIAMOND: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23EC4899'%3E%3Cpath d='M12 2L4 12l8 10 8-10L12 2z'/%3E%3C/svg%3E`
+    RED_STAR: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ef4444'%3E%3Cpath d='M12 1.7l3.09 6.26 6.91 1-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 6.91-1z'/%3E%3C/svg%3E",
+    BLUE_CIRCLE: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3C/svg%3E",
+    GREEN_SQUARE: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3C/svg%3E",
+    YELLOW_TRIANGLE: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23eab308'%3E%3Cpath d='M1 21h22L12 2z'/%3E%3C/svg%3E",
+    ORANGE_HEART: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f97316'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E",
+    PURPLE_MOON: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a855f7'%3E%3Cpath d='M12 3c.132 0 .263 0 .393.007a9 9 0 0 0 9.257 9.257c.01 1.056-.11 2.115-.365 3.15a9 9 0 1 1-9.285-12.414z'/%3E%3C/svg%3E",
+    CYAN_CLOUD: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2306b6d4'%3E%3Cpath d='M17.5 19c-3.037 0-5.5-2.463-5.5-5.5 0-.154.007-.306.021-.456a5.5 5.5 0 0 0-10.021 2.456C2 18.537 4.463 21 7.5 21h10c1.933 0 3.5-1.567 3.5-3.5S19.433 14 17.5 14c-.154 0-.306.007-.456.021a5.501 5.501 0 0 0-3.544-7.021 5.5 5.5 0 0 0-10.021 2.456'/%3E%3C/svg%3E",
+    PINK_DIAMOND: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ec4899'%3E%3Cpath d='M12 2L4 12l8 10 8-10L12 2z'/%3E%3C/svg%3E"
 };
 
 const DROPDOWN_OPTIONS = [
@@ -57,16 +55,56 @@ export const getScratchTheme = () => {
   return Blockly.Theme.defineTheme('scratch', {
     'base': Blockly.Themes.Classic,
     'blockStyles': {
-      'motion_blocks': { 'colourPrimary': '#4C97FF', 'colourSecondary': '#4280D7', 'colourTertiary': '#3373CC' },
-      'looks_blocks': { 'colourPrimary': '#9966FF', 'colourSecondary': '#855CD6', 'colourTertiary': '#774DCB' },
-      'pen_blocks': { 'colourPrimary': '#0FBD8C', 'colourSecondary': '#0DA57A', 'colourTertiary': '#0B8E69' },
-      'events_blocks': { 'colourPrimary': '#FFBF00', 'colourSecondary': '#E6AC00', 'colourTertiary': '#CC9900' },
-      'control_blocks': { 'colourPrimary': '#FFAB19', 'colourSecondary': '#EC9C13', 'colourTertiary': '#CF8B17' },
-      'sensors_blocks': { 'colourPrimary': '#00C7E5', 'colourSecondary': '#00B8D4', 'colourTertiary': '#00ACC1' },
-      'logic_blocks': { 'colourPrimary': '#59C059', 'colourSecondary': '#46B946', 'colourTertiary': '#389438' },
-      'math_blocks': { 'colourPrimary': '#59C059', 'colourSecondary': '#46B946', 'colourTertiary': '#389438' },
-      'variable_blocks': { 'colourPrimary': '#FF8C1A', 'colourSecondary': '#FF8000', 'colourTertiary': '#DB6E00' },
-      'variable_dynamic_blocks': { 'colourPrimary': '#FF8C1A', 'colourSecondary': '#FF8000', 'colourTertiary': '#DB6E00' }
+      'motion_blocks': {
+        'colourPrimary': '#4C97FF',
+        'colourSecondary': '#4280D7',
+        'colourTertiary': '#3373CC'
+      },
+      'looks_blocks': {
+        'colourPrimary': '#9966FF',
+        'colourSecondary': '#855CD6',
+        'colourTertiary': '#774DCB'
+      },
+      'pen_blocks': {
+        'colourPrimary': '#0FBD8C',
+        'colourSecondary': '#0DA57A',
+        'colourTertiary': '#0B8E69'
+      },
+      'events_blocks': {
+        'colourPrimary': '#FFBF00',
+        'colourSecondary': '#E6AC00',
+        'colourTertiary': '#CC9900'
+      },
+      'control_blocks': {
+        'colourPrimary': '#FFAB19',
+        'colourSecondary': '#EC9C13',
+        'colourTertiary': '#CF8B17'
+      },
+      'sensors_blocks': {
+        'colourPrimary': '#00C7E5',
+        'colourSecondary': '#00B8D4',
+        'colourTertiary': '#00ACC1'
+      },
+      'logic_blocks': {
+        'colourPrimary': '#59C059',
+        'colourSecondary': '#46B946',
+        'colourTertiary': '#389438'
+      },
+      'math_blocks': {
+          'colourPrimary': '#59C059',
+          'colourSecondary': '#46B946',
+          'colourTertiary': '#389438'
+      },
+      'variable_blocks': {
+          'colourPrimary': '#FF8C1A',
+          'colourSecondary': '#FF8000',
+          'colourTertiary': '#DB6E00'
+      },
+      'variable_dynamic_blocks': {
+          'colourPrimary': '#FF8C1A',
+          'colourSecondary': '#FF8000',
+          'colourTertiary': '#DB6E00'
+      }
     },
     'categoryStyles': {
       'motion_category': { 'colour': '#4C97FF' },
@@ -89,7 +127,11 @@ export const getScratchTheme = () => {
       'insertionMarkerOpacity': 0.2,
       'cursorColour': '#000000',
     },
-    'fontStyle': { 'family': '"Rubik", "Helvetica Neue", Helvetica, sans-serif', 'weight': 'bold', 'size': 11 }
+    'fontStyle': {
+      'family': '"Rubik", "Helvetica Neue", Helvetica, sans-serif',
+      'weight': 'bold',
+      'size': 11,
+    }
   });
 };
 
@@ -97,27 +139,32 @@ let blocklyInitialized = false;
 
 export const initBlockly = () => {
   if (blocklyInitialized) return;
+
   const Blockly = (window as any).Blockly;
   const javascript = (window as any).javascript;
   const python = (window as any).python;
-  if (!Blockly || !javascript || !python) return;
+  
+  if (!Blockly || !javascript || !python) {
+    console.error("Blockly generators not loaded");
+    return;
+  }
   
   const javascriptGenerator = javascript.javascriptGenerator;
   const pythonGenerator = python.pythonGenerator;
 
-  if (Blockly.Blocks['controls_repeat_ext']) {
-    const originalInit = Blockly.Blocks['controls_repeat_ext'].init;
-    Blockly.Blocks['controls_repeat_ext'].init = function() {
-      originalInit.call(this);
-      this.setStyle('control_blocks');
-    };
-  }
+  const wrapHatCode = (code: string) => {
+      return `try {\n${code}\n} catch(e) { if (e.message !== "Simulation aborted") console.error('Script error:', e); }`;
+  };
 
-  const wrapHatCode = (code: string) => `try {\n${code}\n} catch(e) { if (e.message !== "Simulation aborted") console.error('Script error:', e); }`;
-  const getSafeVarName = (block: any, fieldName: string, generator: any) => generator.nameDB_.getName(block.getFieldValue(fieldName), 'VARIABLE');
+  const getSafeVarName = (block: any, fieldName: string, generator: any) => {
+      const varId = block.getFieldValue(fieldName);
+      return generator.nameDB_.getName(varId, 'VARIABLE');
+  };
 
   class FieldNumpad extends Blockly.FieldNumber {
-    constructor(value?: any, min?: any, max?: any, precision?: any, validator?: any) { super(value, min, max, precision, validator); }
+    constructor(value?: any, min?: any, max?: any, precision?: any, validator?: any) {
+        super(value, min, max, precision, validator);
+    }
     showEditor_() {
         if (window.showBlocklyNumpad) {
             const bbox = this.getSvgRoot().getBoundingClientRect();
@@ -129,12 +176,15 @@ export const initBlockly = () => {
   class FieldDropperColor extends Blockly.FieldColour {
     constructor(value?: string, validator?: Function) { super(value, validator); }
     showEditor_() {
+        const stageColors = (typeof (window as any).getStageColors === 'function' ? (window as any).getStageColors() : []) as string[];
+        const uniqueStageColors = [...new Set(stageColors.map((c: string) => c.toLowerCase()))];
+        
         const defaultColors = [
             CANONICAL_COLOR_MAP_FOR_BLOCKLY['red'],
-            CANONICAL_COLOR_MAP_FOR_BLOCKLY['orange'],
-            CANONICAL_COLOR_MAP_FOR_BLOCKLY['yellow'],
             CANONICAL_COLOR_MAP_FOR_BLOCKLY['green'],
             CANONICAL_COLOR_MAP_FOR_BLOCKLY['blue'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['yellow'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['orange'],
             CANONICAL_COLOR_MAP_FOR_BLOCKLY['purple'],
             CANONICAL_COLOR_MAP_FOR_BLOCKLY['cyan'],
             CANONICAL_COLOR_MAP_FOR_BLOCKLY['magenta'],
@@ -142,12 +192,15 @@ export const initBlockly = () => {
             CANONICAL_COLOR_MAP_FOR_BLOCKLY['white'],
         ];
 
+        const colorsToShow = uniqueStageColors.length > 0 ? uniqueStageColors : defaultColors;
+
         const pickerDiv = document.createElement('div');
         pickerDiv.className = 'p-3 bg-white rounded-xl shadow-xl border-2 border-slate-100 flex flex-col gap-3 min-w-[160px]';
+        
         const grid = document.createElement('div');
         grid.className = 'grid grid-cols-4 gap-2';
         
-        defaultColors.forEach(c => {
+        colorsToShow.forEach(c => {
             const btn = document.createElement('button');
             btn.className = 'w-8 h-8 rounded-lg border border-slate-200 transition-transform hover:scale-110 active:scale-95 shadow-sm';
             btn.style.backgroundColor = c;
@@ -155,6 +208,7 @@ export const initBlockly = () => {
             grid.appendChild(btn);
         });
         pickerDiv.appendChild(grid);
+        
         Blockly.DropDownDiv.getContentDiv().appendChild(pickerDiv);
         Blockly.DropDownDiv.setColour('#ffffff', '#ffffff');
         Blockly.DropDownDiv.showPositionedByField(this, () => {});
@@ -163,6 +217,8 @@ export const initBlockly = () => {
 
   Blockly.fieldRegistry.register('field_numpad', FieldNumpad);
   Blockly.fieldRegistry.register('field_dropper_color', FieldDropperColor);
+
+  // --- DEFINE BLOCKS ---
 
   Blockly.Blocks['event_program_start'] = {
     init: function() {
@@ -186,7 +242,10 @@ export const initBlockly = () => {
   };
 
   Blockly.Blocks['event_when_obstacle'] = {
-      init: function() { this.appendDummyInput().appendField("when obstacle detected"); this.appendStatementInput("DO"); this.setStyle('events_blocks'); }
+      init: function() {
+          this.appendDummyInput().appendField("when obstacle detected");
+          this.appendStatementInput("DO"); this.setStyle('events_blocks');
+      }
   };
 
   Blockly.Blocks['event_when_color'] = {
@@ -203,6 +262,8 @@ export const initBlockly = () => {
     }
   };
 
+  // --- MOTION (Updated for variables/math) ---
+
   Blockly.Blocks['robot_drive_simple'] = {
     init: function() {
       this.appendDummyInput().appendField("drive").appendField(new Blockly.FieldDropdown([["forward","FORWARD"], ["backward","BACKWARD"]]), "DIRECTION");
@@ -212,21 +273,32 @@ export const initBlockly = () => {
 
   Blockly.Blocks['robot_move'] = {
     init: function() {
-      this.appendDummyInput().appendField("drive").appendField(new Blockly.FieldDropdown([["forward","FORWARD"], ["backward","BACKWARD"]]), "DIRECTION").appendField("distance").appendField(new FieldNumpad(10), "DISTANCE").appendField("cm");
+      this.appendDummyInput().appendField("drive").appendField(new Blockly.FieldDropdown([["forward","FORWARD"], ["backward","BACKWARD"]]), "DIRECTION");
+      this.appendValueInput("DISTANCE").setCheck("Number").appendField("distance");
+      this.appendDummyInput().appendField("cm");
+      this.setInputsInline(true);
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks'); 
     }
   };
 
   Blockly.Blocks['robot_move_speed'] = {
     init: function() {
-      this.appendDummyInput().appendField("drive").appendField(new Blockly.FieldDropdown([["forward","FORWARD"], ["backward","BACKWARD"]]), "DIRECTION").appendField("distance").appendField(new FieldNumpad(10), "DISTANCE").appendField("cm at speed").appendField(new FieldNumpad(50, 0, 100), "SPEED").appendField("%");
+      this.appendDummyInput().appendField("drive").appendField(new Blockly.FieldDropdown([["forward","FORWARD"], ["backward","BACKWARD"]]), "DIRECTION");
+      this.appendValueInput("DISTANCE").setCheck("Number").appendField("distance");
+      this.appendDummyInput().appendField("cm at speed");
+      this.appendValueInput("SPEED").setCheck("Number");
+      this.appendDummyInput().appendField("%");
+      this.setInputsInline(true);
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks'); 
     }
   };
 
   Blockly.Blocks['robot_motor_on'] = {
     init: function() {
-      this.appendDummyInput().appendField("set motor").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"], ["both","BOTH"]]), "MOTOR").appendField("direction").appendField(new Blockly.FieldDropdown([["forward","FORWARD"], ["backward","BACKWARD"], ["stop","STOP"]]), "DIR").appendField("power").appendField(new FieldNumpad(100, -100, 100), "POWER").appendField("%");
+      this.appendDummyInput().appendField("set motor").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"], ["both","BOTH"]]), "MOTOR").appendField("direction").appendField(new Blockly.FieldDropdown([["forward","FORWARD"], ["backward","BACKWARD"], ["stop","STOP"]]), "DIR");
+      this.appendValueInput("POWER").setCheck("Number").appendField("power");
+      this.appendDummyInput().appendField("%");
+      this.setInputsInline(true);
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks');
     }
   };
@@ -235,7 +307,9 @@ export const initBlockly = () => {
     init: function() {
       this.appendDummyInput().appendField("drive").appendField(new Blockly.FieldDropdown([["forward","FORWARD"], ["backward","BACKWARD"]]), "DIRECTION").appendField("until");
       this.appendValueInput("CONDITION").setCheck("Boolean");
-      this.appendDummyInput().appendField("at speed").appendField(new FieldNumpad(50, 0, 100), "SPEED").appendField("%");
+      this.appendDummyInput().appendField("at speed");
+      this.appendValueInput("SPEED").setCheck("Number");
+      this.appendDummyInput().appendField("%");
       this.setInputsInline(true); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks'); 
     }
   };
@@ -244,41 +318,87 @@ export const initBlockly = () => {
     init: function() {
       this.appendDummyInput().appendField("turn").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"]]), "DIRECTION").appendField("until");
       this.appendValueInput("CONDITION").setCheck("Boolean");
-      this.appendDummyInput().appendField("at speed").appendField(new FieldNumpad(50, 0, 100), "SPEED").appendField("%");
+      this.appendDummyInput().appendField("at speed");
+      this.appendValueInput("SPEED").setCheck("Number");
+      this.appendDummyInput().appendField("%");
       this.setInputsInline(true); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks');
     }
   };
   
   Blockly.Blocks['robot_stop'] = {
-      init: function() { this.appendDummyInput().appendField("stop moving"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks'); }
+      init: function() {
+          this.appendDummyInput().appendField("stop moving");
+          this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks');
+      }
   };
 
   Blockly.Blocks['robot_turn'] = {
     init: function() {
-      this.appendDummyInput().appendField("turn").appendField(new Blockly.FieldDropdown([["right","RIGHT"], ["left","LEFT"]]), "DIRECTION").appendField("by").appendField(new FieldNumpad(90), "ANGLE").appendField("degrees at speed").appendField(new FieldNumpad(100, 0, 100), "SPEED").appendField("%"); 
+      this.appendDummyInput()
+          .appendField("turn")
+          .appendField(new Blockly.FieldDropdown([["right","RIGHT"], ["left","LEFT"]]), "DIRECTION")
+          .appendField("by");
+      this.appendValueInput("ANGLE").setCheck("Number");
+      this.appendDummyInput().appendField("degrees at speed");
+      this.appendValueInput("SPEED").setCheck("Number");
+      this.appendDummyInput().appendField("%");
+      this.setInputsInline(true);
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks');
     }
   };
 
   Blockly.Blocks['robot_set_heading'] = {
     init: function() {
-      this.appendDummyInput().appendField("set heading to").appendField(new FieldNumpad(0, 0, 360), "ANGLE").appendField("degrees");
+      this.appendDummyInput().appendField("set heading to");
+      this.appendValueInput("ANGLE").setCheck("Number");
+      this.appendDummyInput().appendField("degrees");
+      this.setInputsInline(true);
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks');
     }
   };
 
   Blockly.Blocks['robot_set_speed'] = {
-      init: function() { this.appendDummyInput().appendField("set speed to").appendField(new FieldNumpad(100, 0, 100), "SPEED").appendField("%"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks'); }
+      init: function() {
+          this.appendDummyInput().appendField("set speed to");
+          this.appendValueInput("SPEED").setCheck("Number");
+          this.appendDummyInput().appendField("%");
+          this.setInputsInline(true);
+          this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks');
+      }
   };
 
-  Blockly.Blocks['robot_pen_down'] = { init: function() { this.appendDummyInput().appendField("pen down"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('pen_blocks'); } };
-  Blockly.Blocks['robot_pen_up'] = { init: function() { this.appendDummyInput().appendField("pen up"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('pen_blocks'); } };
-  Blockly.Blocks['robot_pen_set_color'] = { init: function() { this.appendDummyInput().appendField("set pen color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['black']), "COLOR"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('pen_blocks'); } };
-  Blockly.Blocks['robot_pen_clear'] = { init: function() { this.appendDummyInput().appendField("clear drawings"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('pen_blocks'); } };
+  // --- PEN BLOCKS ---
+  Blockly.Blocks['robot_pen_down'] = {
+      init: function() {
+          this.appendDummyInput().appendField("pen down");
+          this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('pen_blocks');
+      }
+  };
+
+  Blockly.Blocks['robot_pen_up'] = {
+      init: function() {
+          this.appendDummyInput().appendField("pen up");
+          this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('pen_blocks');
+      }
+  };
+
+  Blockly.Blocks['robot_pen_set_color'] = {
+      init: function() {
+          this.appendDummyInput().appendField("set pen color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['black']), "COLOR"); 
+          this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('pen_blocks');
+      }
+  };
+
+  Blockly.Blocks['robot_pen_clear'] = {
+      init: function() {
+          this.appendDummyInput().appendField("clear drawings");
+          this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('pen_blocks');
+      }
+  };
 
   Blockly.Blocks['robot_led'] = {
     init: function() {
-      this.appendDummyInput().appendField("set").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"], ["both","BOTH"]]), "SIDE").appendField("LED to color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['orange']), "COLOR"); 
+      this.appendDummyInput().appendField("set").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"], ["both","BOTH"]]), "SIDE").appendField("LED to color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['red']), "COLOR"); 
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('looks_blocks');
     }
   };
@@ -299,156 +419,237 @@ export const initBlockly = () => {
   };
   
   Blockly.Blocks['robot_wait'] = {
-    init: function() { this.appendDummyInput().appendField("wait").appendField(new FieldNumpad(1), "SECONDS").appendField("seconds"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('control_blocks'); }
+    init: function() {
+      this.appendDummyInput().appendField("wait").appendField(new FieldNumpad(1), "SECONDS").appendField("seconds");
+      this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('control_blocks');
+    }
   };
 
   Blockly.Blocks['control_forever'] = {
-    init: function() { this.appendDummyInput().appendField("forever"); this.appendStatementInput("DO"); this.setPreviousStatement(true, null); this.setNextStatement(false); this.setStyle('control_blocks'); }
+    init: function() {
+      this.appendDummyInput().appendField("forever"); this.appendStatementInput("DO");
+      this.setPreviousStatement(true, null); this.setNextStatement(false); this.setStyle('control_blocks');
+    }
   };
 
   Blockly.Blocks['control_wait_until'] = {
-    init: function() { this.appendValueInput("CONDITION").setCheck("Boolean").appendField("wait until"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('control_blocks'); }
+    init: function() {
+      this.appendValueInput("CONDITION").setCheck("Boolean").appendField("wait until");
+      this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('control_blocks');
+    }
   };
 
   Blockly.Blocks['control_stop_program'] = {
-    init: function() { this.appendDummyInput().appendField("stop program"); this.setPreviousStatement(true, null); this.setNextStatement(false); this.setStyle('control_blocks'); }
+    init: function() {
+      this.appendDummyInput().appendField("stop program");
+      this.setPreviousStatement(true, null); this.setNextStatement(false); this.setStyle('control_blocks');
+    }
   };
   
   Blockly.Blocks['custom_if'] = {
-    init: function() { this.appendValueInput('IF0').setCheck('Boolean').appendField("if"); this.appendStatementInput('DO0'); this.setPreviousStatement(true); this.setNextStatement(true); this.setStyle('control_blocks'); }
+    init: function() {
+        this.appendValueInput('IF0').setCheck('Boolean').appendField("if"); this.appendStatementInput('DO0');
+        this.setPreviousStatement(true); this.setNextStatement(true); this.setStyle('control_blocks');
+    }
   };
 
   Blockly.Blocks['custom_if_else'] = {
-    init: function() { this.appendValueInput('IF0').setCheck('Boolean').appendField("if"); this.appendStatementInput('DO0'); this.appendStatementInput('ELSE').appendField("else"); this.setPreviousStatement(true); this.setNextStatement(true); this.setStyle('control_blocks'); }
+    init: function() {
+        this.appendValueInput('IF0').setCheck('Boolean').appendField("if"); this.appendStatementInput('DO0'); this.appendStatementInput('ELSE').appendField("else");
+        this.setPreviousStatement(true); this.setNextStatement(true); this.setStyle('control_blocks');
+    }
   };
 
-  Blockly.Blocks['math_number'] = { init: function() { this.appendDummyInput().appendField(new FieldNumpad(0), 'NUM'); this.setOutput(true, 'Number'); this.setStyle('math_blocks'); } }
-  Blockly.Blocks['math_round_down'] = { init: function() { this.appendValueInput("NUM").setCheck("Number").appendField("integer of"); this.setOutput(true, "Number"); this.setStyle('logic_blocks'); } };
-  Blockly.Blocks['variables_get'] = { init: function() { this.appendDummyInput().appendField(new Blockly.FieldVariable('variable'), 'VAR'); this.setOutput(true, null); this.setStyle('variable_blocks'); } };
-  Blockly.Blocks['variables_set'] = { init: function() { this.appendValueInput('VALUE').appendField('set').appendField(new Blockly.FieldVariable('variable'), 'VAR').appendField('to'); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('variable_blocks'); } };
-  Blockly.Blocks['math_change'] = { init: function() { this.appendValueInput('DELTA').appendField('change').appendField(new Blockly.FieldVariable('variable'), 'VAR').appendField('by'); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('variable_blocks'); } };
+  Blockly.Blocks['math_number'] = {
+      init: function() {
+        this.appendDummyInput().appendField(new FieldNumpad(0), 'NUM');
+        this.setOutput(true, 'Number'); this.setStyle('math_blocks'); 
+      }
+  }
 
-  Blockly.Blocks['sensor_ultrasonic'] = { init: function() { this.appendDummyInput().appendField('distance from obstacle (cm)'); this.setOutput(true, "Number"); this.setStyle('sensors_blocks'); } };
-  Blockly.Blocks['sensor_touch'] = { init: function() { this.appendDummyInput().appendField("touch sensor pressed?"); this.setOutput(true, "Boolean"); this.setStyle('sensors_blocks'); } };
-  Blockly.Blocks['sensor_gyro'] = { init: function() { this.appendDummyInput().appendField("gyro").appendField(new Blockly.FieldDropdown([["angle", "ANGLE"], ["tilt", "TILT"]]), "MODE"); this.setOutput(true, "Number"); this.setStyle('sensors_blocks'); } };
-  Blockly.Blocks['sensor_color'] = { init: function() { this.appendDummyInput().appendField("detected color"); this.setOutput(true, "String"); this.setStyle('sensors_blocks'); } };
-
-  Blockly.Blocks['sensor_touching_color'] = {
+  Blockly.Blocks['math_round_down'] = {
     init: function() {
-      this.appendDummyInput().appendField("touching color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['orange']), "COLOR").appendField("?"); 
+      this.appendValueInput("NUM").setCheck("Number").appendField("integer of");
+      this.setOutput(true, "Number"); this.setStyle('logic_blocks');
+    }
+  };
+
+  Blockly.Blocks['variables_get'] = {
+    init: function() {
+      this.appendDummyInput().appendField(new Blockly.FieldVariable('variable'), 'VAR');
+      this.setOutput(true, null); this.setStyle('variable_blocks');
+    }
+  };
+
+  Blockly.Blocks['variables_set'] = {
+    init: function() {
+      this.appendValueInput('VALUE').appendField('set').appendField(new Blockly.FieldVariable('variable'), 'VAR').appendField('to');
+      this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('variable_blocks');
+    }
+  };
+
+  Blockly.Blocks['math_change'] = {
+    init: function() {
+      this.appendValueInput('DELTA').appendField('change').appendField(new Blockly.FieldVariable('variable'), 'VAR').appendField('by');
+      this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('variable_blocks');
+    }
+  };
+
+  Blockly.Blocks['sensor_ultrasonic'] = {
+    init: function() {
+      this.appendDummyInput().appendField('distance from obstacle (cm)');
+      this.setOutput(true, "Number"); this.setStyle('sensors_blocks');
+    }
+  };
+
+  Blockly.Blocks['sensor_touch'] = {
+    init: function() {
+      this.appendDummyInput().appendField("touch sensor pressed?");
       this.setOutput(true, "Boolean"); this.setStyle('sensors_blocks');
     }
   };
 
-  Blockly.Blocks['sensor_circumference'] = { init: function() { this.appendDummyInput().appendField('wheel circumference (cm)'); this.setOutput(true, "Number"); this.setStyle('sensors_blocks'); } };
-  Blockly.Blocks['logic_negate'] = { init: function() { this.appendValueInput("BOOL").setCheck("Boolean").appendField("not"); this.setOutput(true, "Boolean"); this.setStyle('logic_blocks'); } };
+  Blockly.Blocks['sensor_gyro'] = {
+    init: function() {
+      this.appendDummyInput().appendField("gyro").appendField(new Blockly.FieldDropdown([["angle", "ANGLE"], ["tilt", "TILT"]]), "MODE");
+      this.setOutput(true, "Number"); this.setStyle('sensors_blocks');
+    }
+  };
 
-  // --- JS GENERATORS ---
-  javascriptGenerator.forBlock['event_program_start'] = () => '';
-  javascriptGenerator.forBlock['event_when_message'] = (b: any) => `robot.onMessage('${b.getFieldValue('MESSAGE')}', async () => {\n${wrapHatCode(javascriptGenerator.statementToCode(b, 'DO'))}});\n`;
-  javascriptGenerator.forBlock['event_send_message'] = (b: any) => `await robot.sendMessage('${b.getFieldValue('MESSAGE')}');\n`;
-  javascriptGenerator.forBlock['event_when_obstacle'] = (b: any) => `robot.onObstacle(async () => {\n${wrapHatCode(javascriptGenerator.statementToCode(b, 'DO'))}});\n`;
-  javascriptGenerator.forBlock['event_when_color'] = (b: any) => `robot.onColor('${b.getFieldValue('COLOR')}', async () => {\n${wrapHatCode(javascriptGenerator.statementToCode(b, 'DO'))}});\n`;
-  javascriptGenerator.forBlock['event_when_ultrasonic'] = (b: any) => `robot.onDistance(${b.getFieldValue('THRESHOLD')}, async () => {\n${wrapHatCode(javascriptGenerator.statementToCode(b, 'DO'))}});\n`;
-  javascriptGenerator.forBlock['robot_drive_simple'] = (b: any) => `await robot.setMotorPower(${b.getFieldValue('DIRECTION') === 'FORWARD' ? 100 : -100}, ${b.getFieldValue('DIRECTION') === 'FORWARD' ? 100 : -100});\n`;
-  javascriptGenerator.forBlock['robot_move'] = (b: any) => `await robot.move(${b.getFieldValue('DIRECTION') === 'BACKWARD' ? -b.getFieldValue('DISTANCE') : b.getFieldValue('DISTANCE')});\n`;
-  javascriptGenerator.forBlock['robot_move_speed'] = (b: any) => `await robot.setSpeed(${b.getFieldValue('SPEED')});\nawait robot.move(${b.getFieldValue('DIRECTION') === 'BACKWARD' ? -b.getFieldValue('DISTANCE') : b.getFieldValue('DISTANCE')});\n`;
-  javascriptGenerator.forBlock['robot_motor_on'] = (b: any) => {
-    const p = b.getFieldValue('DIR') === 'STOP' ? 0 : (b.getFieldValue('DIR') === 'BACKWARD' ? -b.getFieldValue('POWER') : b.getFieldValue('POWER'));
-    const m = b.getFieldValue('MOTOR');
-    return m === 'LEFT' ? `await robot.setLeftMotorPower(${p});\n` : m === 'RIGHT' ? `await robot.setRightMotorPower(${p});\n` : `await robot.setMotorPower(${p}, ${p});\n`;
+  Blockly.Blocks['sensor_color'] = {
+    init: function() {
+      this.appendDummyInput().appendField("detected color");
+      this.setOutput(true, "String"); this.setStyle('sensors_blocks');
+    }
   };
-  javascriptGenerator.forBlock['robot_drive_until'] = (b: any) => `await robot.setSpeed(${b.getFieldValue('SPEED')});\nawait robot.setMotorPower(${b.getFieldValue('DIRECTION') === 'BACKWARD' ? -100 : 100}, ${b.getFieldValue('DIRECTION') === 'BACKWARD' ? -100 : 100});\nwhile (!(${javascriptGenerator.valueToCode(b, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false'})) { await robot.wait(10); }\nawait robot.stop();\n`;
-  javascriptGenerator.forBlock['robot_turn_until'] = (b: any) => `await robot.setSpeed(${b.getFieldValue('SPEED')});\nawait robot.setMotorPower(${b.getFieldValue('DIRECTION') === 'LEFT' ? -100 : 100}, ${b.getFieldValue('DIRECTION') === 'LEFT' ? 100 : -100});\nwhile (!(${javascriptGenerator.valueToCode(b, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false'})) { await robot.wait(10); }\nawait robot.stop();\n`;
-  javascriptGenerator.forBlock['robot_stop'] = () => 'await robot.stop();\n';
-  javascriptGenerator.forBlock['robot_turn'] = (b: any) => `await robot.turn(${b.getFieldValue('DIRECTION') === 'RIGHT' ? b.getFieldValue('ANGLE') : -b.getFieldValue('ANGLE')}, ${b.getFieldValue('SPEED')});\n`;
-  javascriptGenerator.forBlock['robot_set_heading'] = (b: any) => `await robot.setHeading(${b.getFieldValue('ANGLE')});\n`;
-  javascriptGenerator.forBlock['robot_set_speed'] = (b: any) => `await robot.setSpeed(${b.getFieldValue('SPEED')});\n`;
-  javascriptGenerator.forBlock['robot_pen_down'] = () => 'await robot.setPen(true);\n';
-  javascriptGenerator.forBlock['robot_pen_up'] = () => 'await robot.setPen(false);\n';
-  javascriptGenerator.forBlock['robot_pen_set_color'] = (b: any) => `await robot.setPenColor('${b.getFieldValue('COLOR')}');\n`;
-  javascriptGenerator.forBlock['robot_pen_clear'] = () => 'await robot.clearPen();\n';
-  javascriptGenerator.forBlock['robot_led'] = (b: any) => `robot.setLed('${b.getFieldValue('SIDE').toLowerCase()}', '${b.getFieldValue('COLOR')}');\n`;
-  javascriptGenerator.forBlock['robot_led_set_color'] = (b: any) => `robot.setLed('${b.getFieldValue('SIDE').toLowerCase()}', ${javascriptGenerator.valueToCode(b, 'COLOR', javascriptGenerator.ORDER_ATOMIC) || "'black'"});\n`;
-  javascriptGenerator.forBlock['robot_led_off'] = (b: any) => `robot.setLed('${b.getFieldValue('SIDE').toLowerCase()}', 'black');\n`;
-  javascriptGenerator.forBlock['robot_wait'] = (b: any) => `await robot.wait(${b.getFieldValue('SECONDS') * 1000});\n`;
-  javascriptGenerator.forBlock['control_forever'] = (b: any) => `while (true) {\n${javascriptGenerator.statementToCode(b, 'DO')}  await robot.wait(10);\n}\n`;
-  javascriptGenerator.forBlock['control_wait_until'] = (b: any) => `while (!(${javascriptGenerator.valueToCode(b, 'CONDITION', javascriptGenerator.ORDER_ATOMIC) || 'false'})) {\n  await robot.wait(10);\n}\n`;
-  javascriptGenerator.forBlock['control_stop_program'] = () => 'await robot.stopProgram();\n';
-  javascriptGenerator.forBlock['controls_repeat_ext'] = (b: any) => {
-    const repeats = javascriptGenerator.valueToCode(b, 'TIMES', javascriptGenerator.ORDER_ASSIGNMENT) || '0';
-    const loopVar = javascriptGenerator.nameDB_ ? javascriptGenerator.nameDB_.getDistinctName('count', 'VARIABLE') : 'i';
-    return `for (let ${loopVar} = 0; ${loopVar} < ${repeats}; ${loopVar}++) {\n${javascriptGenerator.statementToCode(b, 'DO')}}\n`;
-  };
-  javascriptGenerator.forBlock['custom_if'] = (b: any) => `if (${javascriptGenerator.valueToCode(b, 'IF0', javascriptGenerator.ORDER_NONE) || 'false'}) {\n${javascriptGenerator.statementToCode(b, 'DO0')}}\n`;
-  javascriptGenerator.forBlock['custom_if_else'] = (b: any) => `if (${javascriptGenerator.valueToCode(b, 'IF0', javascriptGenerator.ORDER_NONE) || 'false'}) {\n${javascriptGenerator.statementToCode(b, 'DO0')}} else {\n${javascriptGenerator.statementToCode(b, 'ELSE')}}\n`;
-  javascriptGenerator.forBlock['math_number'] = (b: any) => [parseFloat(b.getFieldValue('NUM')), b.getFieldValue('NUM') >= 0 ? javascriptGenerator.ORDER_ATOMIC : javascriptGenerator.ORDER_UNARY_NEGATION];
-  javascriptGenerator.forBlock['math_round_down'] = (b: any) => [`Math.floor(${javascriptGenerator.valueToCode(b, 'NUM', javascriptGenerator.ORDER_NONE) || '0'})`, javascriptGenerator.ORDER_FUNCTION_CALL];
-  javascriptGenerator.forBlock['variables_get'] = (b: any) => [getSafeVarName(b, 'VAR', javascriptGenerator), javascriptGenerator.ORDER_ATOMIC];
-  javascriptGenerator.forBlock['variables_set'] = (b: any) => { const v = getSafeVarName(b, 'VAR', javascriptGenerator); return `${v} = ${javascriptGenerator.valueToCode(b, 'VALUE', javascriptGenerator.ORDER_ASSIGNMENT) || '0'};\nrobot.updateVariable('${v}', ${v});\n`; };
-  javascriptGenerator.forBlock['math_change'] = (b: any) => { const v = getSafeVarName(b, 'VAR', javascriptGenerator); return `${v} = (Number(${v}) || 0) + ${javascriptGenerator.valueToCode(b, 'DELTA', javascriptGenerator.ORDER_ADDITION) || '0'};\nrobot.updateVariable('${v}', ${v});\n`; };
-  javascriptGenerator.forBlock['sensor_ultrasonic'] = () => ['await robot.getDistance()', javascriptGenerator.ORDER_AWAIT || javascriptGenerator.ORDER_ATOMIC];
-  javascriptGenerator.forBlock['sensor_touch'] = () => ['await robot.getTouch()', javascriptGenerator.ORDER_AWAIT || javascriptGenerator.ORDER_ATOMIC];
-  javascriptGenerator.forBlock['sensor_gyro'] = (b: any) => [`await robot.getGyro('${b.getFieldValue('MODE')}')`, javascriptGenerator.ORDER_AWAIT || javascriptGenerator.ORDER_ATOMIC];
-  javascriptGenerator.forBlock['sensor_color'] = () => ['await robot.getColor()', javascriptGenerator.ORDER_AWAIT || javascriptGenerator.ORDER_ATOMIC];
-  javascriptGenerator.forBlock['sensor_touching_color'] = (b: any) => [`await robot.isTouchingColor('${b.getFieldValue('COLOR')}')`, javascriptGenerator.ORDER_AWAIT || javascriptGenerator.ORDER_ATOMIC];
-  javascriptGenerator.forBlock['sensor_circumference'] = () => [`await robot.getCircumference()`, javascriptGenerator.ORDER_AWAIT || javascriptGenerator.ORDER_ATOMIC];
-  javascriptGenerator.forBlock['logic_negate'] = (b: any) => ['!' + (javascriptGenerator.valueToCode(b, 'BOOL', javascriptGenerator.ORDER_LOGICAL_NOT) || 'true'), javascriptGenerator.ORDER_LOGICAL_NOT];
 
-  // --- PYTHON GENERATORS ---
-  pythonGenerator.forBlock['event_program_start'] = () => '';
-  pythonGenerator.forBlock['event_when_message'] = (b: any) => `@robot.on_message('${b.getFieldValue('MESSAGE')}')\ndef on_msg():\n${pythonGenerator.prefixLines(pythonGenerator.statementToCode(b, 'DO') || 'pass', pythonGenerator.INDENT)}\n`;
-  pythonGenerator.forBlock['event_send_message'] = (b: any) => `robot.send_message('${b.getFieldValue('MESSAGE')}')\n`;
-  pythonGenerator.forBlock['event_when_obstacle'] = (b: any) => `@robot.on_obstacle\ndef on_obstacle():\n${pythonGenerator.prefixLines(pythonGenerator.statementToCode(b, 'DO') || 'pass', pythonGenerator.INDENT)}\n`;
-  pythonGenerator.forBlock['event_when_color'] = (b: any) => `@robot.on_color('${b.getFieldValue('COLOR')}')\ndef on_color():\n${pythonGenerator.prefixLines(pythonGenerator.statementToCode(b, 'DO') || 'pass', pythonGenerator.INDENT)}\n`;
-  pythonGenerator.forBlock['event_when_ultrasonic'] = (b: any) => `@robot.on_distance(${b.getFieldValue('THRESHOLD')})\ndef on_dist():\n${pythonGenerator.prefixLines(pythonGenerator.statementToCode(b, 'DO') || 'pass', pythonGenerator.INDENT)}\n`;
-  pythonGenerator.forBlock['robot_drive_simple'] = (b: any) => { const p = b.getFieldValue('DIRECTION') === 'FORWARD' ? 100 : -100; return `robot.set_motor_power(${p}, ${p})\n`; };
-  pythonGenerator.forBlock['robot_move'] = (b: any) => { const d = b.getFieldValue('DIRECTION') === 'BACKWARD' ? -b.getFieldValue('DISTANCE') : b.getFieldValue('DISTANCE'); return `robot.move(${d})\n`; };
-  pythonGenerator.forBlock['robot_move_speed'] = (b: any) => { const d = b.getFieldValue('DIRECTION') === 'BACKWARD' ? -b.getFieldValue('DISTANCE') : b.getFieldValue('DISTANCE'); return `robot.set_speed(${b.getFieldValue('SPEED')})\nrobot.move(${d})\n`; };
-  pythonGenerator.forBlock['robot_motor_on'] = (b: any) => {
-    const p = b.getFieldValue('DIR') === 'STOP' ? 0 : (b.getFieldValue('DIR') === 'BACKWARD' ? -b.getFieldValue('POWER') : b.getFieldValue('POWER'));
-    const m = b.getFieldValue('MOTOR');
-    if (m === 'LEFT') return `robot.set_left_motor_power(${p})\n`;
-    if (m === 'RIGHT') return `robot.set_right_motor_power(${p})\n`;
-    return `robot.set_motor_power(${p}, ${p})\n`;
+  Blockly.Blocks['sensor_touching_color'] = {
+    init: function() {
+      this.appendDummyInput().appendField("touching color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['yellow']), "COLOR").appendField("?"); 
+      this.setOutput(true, "Boolean"); this.setStyle('sensors_blocks');
+    }
   };
-  pythonGenerator.forBlock['robot_drive_until'] = (b: any) => {
-    const cond = pythonGenerator.valueToCode(b, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False';
-    return `robot.set_speed(${b.getFieldValue('SPEED')})\nrobot.set_motor_power(${b.getFieldValue('DIRECTION') === 'BACKWARD' ? -100 : 100}, ${b.getFieldValue('DIRECTION') === 'BACKWARD' ? -100 : 100})\nwhile not (${cond}):\n${pythonGenerator.INDENT}robot.wait(0.01)\nrobot.stop()\n`;
+
+  Blockly.Blocks['sensor_circumference'] = {
+    init: function() {
+      this.appendDummyInput().appendField('wheel circumference (cm)');
+      this.setOutput(true, "Number"); this.setStyle('sensors_blocks');
+    }
   };
-  pythonGenerator.forBlock['robot_turn_until'] = (b: any) => {
-    const cond = pythonGenerator.valueToCode(b, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False';
-    return `robot.set_speed(${b.getFieldValue('SPEED')})\nrobot.set_motor_power(${b.getFieldValue('DIRECTION') === 'LEFT' ? -100 : 100}, ${b.getFieldValue('DIRECTION') === 'LEFT' ? 100 : -100})\nwhile not (${cond}):\n${pythonGenerator.INDENT}robot.wait(0.01)\nrobot.stop()\n`;
+
+  Blockly.Blocks['sensor_speed'] = {
+    init: function() {
+      this.appendDummyInput().appendField('current speed (%)');
+      this.setOutput(true, "Number"); this.setStyle('sensors_blocks');
+    }
   };
-  pythonGenerator.forBlock['robot_stop'] = () => 'robot.stop()\n';
-  pythonGenerator.forBlock['robot_turn'] = (b: any) => { const a = b.getFieldValue('DIRECTION') === 'RIGHT' ? b.getFieldValue('ANGLE') : -b.getFieldValue('ANGLE'); return `robot.turn(${a}, ${b.getFieldValue('SPEED')})\n`; };
-  pythonGenerator.forBlock['robot_set_heading'] = (b: any) => `robot.set_heading(${b.getFieldValue('ANGLE')})\n`;
-  pythonGenerator.forBlock['robot_set_speed'] = (b: any) => `robot.set_speed(${b.getFieldValue('SPEED')})\n`;
-  pythonGenerator.forBlock['robot_pen_down'] = () => 'robot.set_pen(True)\n';
-  pythonGenerator.forBlock['robot_pen_up'] = () => 'robot.set_pen(False)\n';
-  pythonGenerator.forBlock['robot_pen_set_color'] = (b: any) => `robot.set_pen_color('${b.getFieldValue('COLOR')}')\n`;
-  pythonGenerator.forBlock['robot_pen_clear'] = () => 'robot.clear_drawings()\n';
-  pythonGenerator.forBlock['robot_led'] = (b: any) => `robot.set_led('${b.getFieldValue('SIDE').toLowerCase()}', '${b.getFieldValue('COLOR')}')\n`;
-  pythonGenerator.forBlock['robot_led_set_color'] = (b: any) => `robot.set_led('${b.getFieldValue('SIDE').toLowerCase()}', ${pythonGenerator.valueToCode(b, 'COLOR', pythonGenerator.ORDER_NONE) || "'black'"})\n`;
-  pythonGenerator.forBlock['robot_led_off'] = (b: any) => `robot.set_led('${b.getFieldValue('SIDE').toLowerCase()}', 'black')\n`;
-  pythonGenerator.forBlock['robot_wait'] = (b: any) => `robot.wait(${b.getFieldValue('SECONDS')})\n`;
-  pythonGenerator.forBlock['control_forever'] = (b: any) => `while True:\n${pythonGenerator.prefixLines(pythonGenerator.statementToCode(b, 'DO') || 'pass', pythonGenerator.INDENT)}\n${pythonGenerator.INDENT}robot.wait(0.01)\n`;
-  pythonGenerator.forBlock['control_wait_until'] = (b: any) => `while not (${pythonGenerator.valueToCode(b, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False'}):\n${pythonGenerator.INDENT}robot.wait(0.01)\n`;
-  pythonGenerator.forBlock['control_stop_program'] = () => 'robot.stop_program()\n';
-  pythonGenerator.forBlock['custom_if'] = (b: any) => `if ${pythonGenerator.valueToCode(b, 'IF0', pythonGenerator.ORDER_NONE) || 'False'}:\n${pythonGenerator.prefixLines(pythonGenerator.statementToCode(b, 'DO0') || 'pass', pythonGenerator.INDENT)}\n`;
-  pythonGenerator.forBlock['custom_if_else'] = (b: any) => `if ${pythonGenerator.valueToCode(b, 'IF0', pythonGenerator.ORDER_NONE) || 'False'}:\n${pythonGenerator.prefixLines(pythonGenerator.statementToCode(b, 'DO0') || 'pass', pythonGenerator.INDENT)}\nelse:\n${pythonGenerator.prefixLines(pythonGenerator.statementToCode(b, 'ELSE') || 'pass', pythonGenerator.INDENT)}\n`;
-  pythonGenerator.forBlock['math_number'] = (b: any) => [parseFloat(b.getFieldValue('NUM')), pythonGenerator.ORDER_ATOMIC];
-  pythonGenerator.forBlock['math_round_down'] = (b: any) => [`int(${pythonGenerator.valueToCode(b, 'NUM', pythonGenerator.ORDER_NONE) || '0'})`, pythonGenerator.ORDER_FUNCTION_CALL];
-  pythonGenerator.forBlock['variables_get'] = (b: any) => [getSafeVarName(b, 'VAR', pythonGenerator), pythonGenerator.ORDER_ATOMIC];
-  pythonGenerator.forBlock['variables_set'] = (b: any) => { const v = getSafeVarName(b, 'VAR', pythonGenerator); return `${v} = ${pythonGenerator.valueToCode(b, 'VALUE', pythonGenerator.ORDER_NONE) || '0'}\n`; };
-  pythonGenerator.forBlock['math_change'] = (b: any) => { const v = getSafeVarName(b, 'VAR', pythonGenerator); return `${v} += ${pythonGenerator.valueToCode(b, 'DELTA', pythonGenerator.ORDER_NONE) || '0'}\n`; };
-  pythonGenerator.forBlock['sensor_ultrasonic'] = () => ['robot.get_distance()', pythonGenerator.ORDER_FUNCTION_CALL];
-  pythonGenerator.forBlock['sensor_touch'] = () => ['robot.get_touch()', pythonGenerator.ORDER_FUNCTION_CALL];
-  pythonGenerator.forBlock['sensor_gyro'] = (b: any) => [`robot.get_gyro('${b.getFieldValue('MODE')}')`, pythonGenerator.ORDER_FUNCTION_CALL];
-  pythonGenerator.forBlock['sensor_color'] = () => ['robot.get_color()', pythonGenerator.ORDER_FUNCTION_CALL];
-  pythonGenerator.forBlock['sensor_touching_color'] = (b: any) => [`robot.is_touching_color('${b.getFieldValue('COLOR')}')`, pythonGenerator.ORDER_FUNCTION_CALL];
-  pythonGenerator.forBlock['sensor_circumference'] = () => [`robot.get_wheel_circumference()`, pythonGenerator.ORDER_FUNCTION_CALL];
-  pythonGenerator.forBlock['logic_negate'] = (b: any) => ['not ' + (pythonGenerator.valueToCode(b, 'BOOL', pythonGenerator.ORDER_LOGICAL_NOT) || 'True'), pythonGenerator.ORDER_LOGICAL_NOT];
+
+  Blockly.Blocks['logic_negate'] = {
+    init: function() {
+      this.appendValueInput("BOOL").setCheck("Boolean").appendField("not");
+      this.setOutput(true, "Boolean"); this.setStyle('logic_blocks');
+    }
+  };
+
+
+  // --- DEFINE JAVASCRIPT GENERATORS ---
+
+  javascriptGenerator.forBlock['event_program_start'] = function() { return ''; };
+  javascriptGenerator.forBlock['event_when_message'] = function(block: any) { const msg = block.getFieldValue('MESSAGE'); const branch = javascriptGenerator.statementToCode(block, 'DO'); return `robot.onMessage('${msg}', async () => {\n${wrapHatCode(branch)}});\n`; };
+  javascriptGenerator.forBlock['event_send_message'] = function(block: any) { const msg = block.getFieldValue('MESSAGE'); return `await robot.sendMessage('${msg}');\n`; };
+  javascriptGenerator.forBlock['event_when_obstacle'] = function(block: any) { const branch = javascriptGenerator.statementToCode(block, 'DO'); return `robot.onObstacle(async () => {\n${wrapHatCode(branch)}});\n`; };
+  javascriptGenerator.forBlock['event_when_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); const branch = javascriptGenerator.statementToCode(block, 'DO'); return `robot.onColor('${color}', async () => {\n${wrapHatCode(branch)}});\n`; };
+  javascriptGenerator.forBlock['event_when_ultrasonic'] = function(block: any) { const threshold = block.getFieldValue('THRESHOLD'); const branch = javascriptGenerator.statementToCode(block, 'DO'); return `robot.onDistance(${threshold}, async () => {\n${wrapHatCode(branch)}});\n`; };
+  javascriptGenerator.forBlock['robot_drive_simple'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const power = direction === 'FORWARD' ? 100 : -100; return `await robot.setMotorPower(${power}, ${power});\n`; };
+  
+  javascriptGenerator.forBlock['robot_move'] = function(block: any) { 
+      const direction = block.getFieldValue('DIRECTION'); 
+      const distance = javascriptGenerator.valueToCode(block, 'DISTANCE', javascriptGenerator.ORDER_ATOMIC) || '0';
+      return `await robot.move(${direction === 'BACKWARD' ? '-' : ''}${distance});\n`; 
+  };
+  
+  javascriptGenerator.forBlock['robot_move_speed'] = function(block: any) { 
+      const direction = block.getFieldValue('DIRECTION'); 
+      const distance = javascriptGenerator.valueToCode(block, 'DISTANCE', javascriptGenerator.ORDER_ATOMIC) || '0';
+      const speed = javascriptGenerator.valueToCode(block, 'SPEED', javascriptGenerator.ORDER_ATOMIC) || '50';
+      return `await robot.setSpeed(${speed});\nawait robot.move(${direction === 'BACKWARD' ? '-' : ''}${distance});\n`; 
+  };
+  
+  javascriptGenerator.forBlock['robot_motor_on'] = function(block: any) { 
+    const motor = block.getFieldValue('MOTOR'); 
+    const dir = block.getFieldValue('DIR'); 
+    const power = javascriptGenerator.valueToCode(block, 'POWER', javascriptGenerator.ORDER_ATOMIC) || '0';
+    const powerVal = dir === 'STOP' ? '0' : (dir === 'BACKWARD' ? `(-(${power}))` : power); 
+    
+    if (motor === 'LEFT') return `await robot.setLeftMotorPower(${powerVal});\n`; 
+    if (motor === 'RIGHT') return `await robot.setRightMotorPower(${powerVal});\n`; 
+    return `await robot.setMotorPower(${powerVal}, ${powerVal});\n`; 
+  };
+
+  javascriptGenerator.forBlock['robot_drive_until'] = function(block: any) { 
+      const direction = block.getFieldValue('DIRECTION'); 
+      const speed = javascriptGenerator.valueToCode(block, 'SPEED', javascriptGenerator.ORDER_ATOMIC) || '50';
+      const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false'; 
+      const motorPower = direction === 'BACKWARD' ? -100 : 100; 
+      return `await robot.setSpeed(${speed});\nawait robot.setMotorPower(${motorPower}, ${motorPower});\nwhile (!(${condition})) { await robot.wait(10); }\nawait robot.stop();\n`; 
+  };
+  
+  javascriptGenerator.forBlock['robot_turn_until'] = function(block: any) { 
+      const direction = block.getFieldValue('DIRECTION'); 
+      const speed = javascriptGenerator.valueToCode(block, 'SPEED', javascriptGenerator.ORDER_ATOMIC) || '50';
+      const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false'; 
+      const leftPower = direction === 'LEFT' ? -100 : 100; 
+      const rightPower = direction === 'LEFT' ? 100 : -100; 
+      return `await robot.setSpeed(${speed});\nawait robot.setMotorPower(${leftPower}, ${rightPower});\nwhile (!(${condition})) { await robot.wait(10); }\nawait robot.stop();\n`; 
+  };
+  
+  javascriptGenerator.forBlock['robot_stop'] = function() { return 'await robot.stop();\n'; };
+  
+  javascriptGenerator.forBlock['robot_turn'] = function(block: any) { 
+    const direction = block.getFieldValue('DIRECTION'); 
+    const angle = javascriptGenerator.valueToCode(block, 'ANGLE', javascriptGenerator.ORDER_ATOMIC) || '0';
+    const speed = javascriptGenerator.valueToCode(block, 'SPEED', javascriptGenerator.ORDER_ATOMIC) || '100';
+    const angVal = direction === 'RIGHT' ? angle : `(-(${angle}))`; 
+    return `await robot.setSpeed(${speed});\nawait robot.turn(${angVal});\n`; 
+  };
+  
+  javascriptGenerator.forBlock['robot_set_heading'] = function(block: any) { 
+      const angle = javascriptGenerator.valueToCode(block, 'ANGLE', javascriptGenerator.ORDER_ATOMIC) || '0';
+      return `await robot.setHeading(${angle});\n`; 
+  };
+  
+  javascriptGenerator.forBlock['robot_set_speed'] = function(block: any) { 
+      const speed = javascriptGenerator.valueToCode(block, 'SPEED', javascriptGenerator.ORDER_ATOMIC) || '100';
+      return `await robot.setSpeed(${speed});\n`; 
+  };
+
+  javascriptGenerator.forBlock['robot_pen_down'] = function() { return 'await robot.setPen(true);\n'; };
+  javascriptGenerator.forBlock['robot_pen_up'] = function() { return 'await robot.setPen(false);\n'; };
+  javascriptGenerator.forBlock['robot_pen_set_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); return `await robot.setPenColor('${color}');\n`; };
+  javascriptGenerator.forBlock['robot_pen_clear'] = function() { return 'await robot.clearPen();\n'; };
+  javascriptGenerator.forBlock['robot_led'] = function(block: any) { const side = block.getFieldValue('SIDE'); const color = block.getFieldValue('COLOR'); const sideVal = side ? side.toLowerCase() : 'both'; return `robot.setLed('${sideVal}', '${color}');\n`; };
+  javascriptGenerator.forBlock['robot_led_set_color'] = function(block: any) { const side = block.getFieldValue('SIDE'); const color = javascriptGenerator.valueToCode(block, 'COLOR', javascriptGenerator.ORDER_ATOMIC) || "'black'"; const sideVal = side ? side.toLowerCase() : 'both'; return `robot.setLed('${sideVal}', ${color});\n`; };
+  javascriptGenerator.forBlock['robot_led_off'] = function(block: any) { const side = block.getFieldValue('SIDE'); const sideVal = side ? side.toLowerCase() : 'both'; return `robot.setLed('${sideVal}', 'black');\n`; };
+  javascriptGenerator.forBlock['robot_wait'] = function(block: any) { const seconds = block.getFieldValue('SECONDS'); return `await robot.wait(${seconds * 1000});\n`; };
+  javascriptGenerator.forBlock['control_forever'] = function(block: any) { const branch = javascriptGenerator.statementToCode(block, 'DO'); return `while (true) {\n${branch}  await robot.wait(10);\n}\n`; };
+  javascriptGenerator.forBlock['control_wait_until'] = function(block: any) { const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_ATOMIC) || 'false'; return `while (!(${condition})) {\n  await robot.wait(10);\n}\n`; };
+  javascriptGenerator.forBlock['control_stop_program'] = function() { return 'await robot.stopProgram();\n'; };
+  javascriptGenerator.forBlock['controls_repeat_ext'] = function(block: any) { const repeats = javascriptGenerator.valueToCode(block, 'TIMES', javascriptGenerator.ORDER_ASSIGNMENT) || '0'; const branch = javascriptGenerator.statementToCode(block, 'DO'); const gen = javascriptGenerator; const loopVar = gen.nameDB_ ? gen.nameDB_.getDistinctName('count', 'VARIABLE') : 'i'; return `for (let ${loopVar} = 0; ${loopVar} < ${repeats}; ${loopVar}++) {\n${branch}}\n`; };
+  javascriptGenerator.forBlock['custom_if'] = function(block: any) { const condition = javascriptGenerator.valueToCode(block, 'IF0', javascriptGenerator.ORDER_NONE) || 'false'; const branchDo = javascriptGenerator.statementToCode(block, 'DO0'); return `if (${condition}) {\n${branchDo}}\n`; };
+  javascriptGenerator.forBlock['custom_if_else'] = function(block: any) { const condition = javascriptGenerator.valueToCode(block, 'IF0', javascriptGenerator.ORDER_NONE) || 'false'; const branchDo = javascriptGenerator.statementToCode(block, 'DO0'); const branchElse = javascriptGenerator.statementToCode(block, 'ELSE'); return `if (${condition}) {\n${branchDo}} else {\n${branchElse}}\n`; };
+  javascriptGenerator.forBlock['math_number'] = function(block: any) { const code = parseFloat(block.getFieldValue('NUM')); const order = code >= 0 ? javascriptGenerator.ORDER_ATOMIC : javascriptGenerator.ORDER_UNARY_NEGATION; return [code, order]; }
+  javascriptGenerator.forBlock['math_round_down'] = function(block: any) { const num = javascriptGenerator.valueToCode(block, 'NUM', javascriptGenerator.ORDER_NONE) || '0'; return [`Math.floor(${num})`, javascriptGenerator.ORDER_FUNCTION_CALL]; };
+  javascriptGenerator.forBlock['variables_get'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', javascriptGenerator); return [varName, javascriptGenerator.ORDER_ATOMIC]; };
+  javascriptGenerator.forBlock['variables_set'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', javascriptGenerator); const argument0 = javascriptGenerator.valueToCode(block, 'VALUE', javascriptGenerator.ORDER_ASSIGNMENT) || '0'; return `${varName} = ${argument0};\nrobot.updateVariable('${varName}', ${varName});\n`; };
+  javascriptGenerator.forBlock['math_change'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', javascriptGenerator); const argument0 = javascriptGenerator.valueToCode(block, 'DELTA', javascriptGenerator.ORDER_ADDITION) || '0'; return `${varName} = (Number(${varName}) || 0) + ${argument0};\nrobot.updateVariable('${varName}', ${varName});\n`; };
+  javascriptGenerator.forBlock['sensor_ultrasonic'] = function() { return ['await robot.getDistance()', javascriptGenerator.ORDER_AWAIT || javascriptGenerator.ORDER_ATOMIC]; };
+  javascriptGenerator.forBlock['sensor_touch'] = function() { return ['await robot.getTouch()', javascriptGenerator.ORDER_AWAIT || javascriptGenerator.ORDER_ATOMIC]; };
+  javascriptGenerator.forBlock['sensor_gyro'] = function(block: any) { const mode = block.getFieldValue('MODE'); return [`await robot.getGyro('${mode}')`, javascriptGenerator.ORDER_AWAIT || javascriptGenerator.ORDER_ATOMIC]; };
+  javascriptGenerator.forBlock['sensor_color'] = function() { return ['await robot.getColor()', javascriptGenerator.ORDER_AWAIT || javascriptGenerator.ORDER_ATOMIC]; };
+  javascriptGenerator.forBlock['sensor_touching_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); return [`await robot.isTouchingColor('${color}')`, javascriptGenerator.ORDER_AWAIT || javascriptGenerator.ORDER_ATOMIC]; };
+  javascriptGenerator.forBlock['sensor_circumference'] = function() { return ['await robot.getCircumference()', javascriptGenerator.ORDER_AWAIT || javascriptGenerator.ORDER_ATOMIC]; };
+  javascriptGenerator.forBlock['sensor_speed'] = function() { return ['await robot.getSpeed()', javascriptGenerator.ORDER_AWAIT || javascriptGenerator.ORDER_ATOMIC]; };
+  javascriptGenerator.forBlock['logic_negate'] = function(block: any) { const argument0 = javascriptGenerator.valueToCode(block, 'BOOL', javascriptGenerator.ORDER_LOGICAL_NOT) || 'true'; const code = '!' + argument0; return [code, javascriptGenerator.ORDER_LOGICAL_NOT]; };
 
   javascriptGenerator.workspaceToCode = function(workspace: any) {
     this.init(workspace);
@@ -466,19 +667,274 @@ export const initBlockly = () => {
     return this.finish(combinedCode);
   };
 
+  // --- DEFINE PYTHON GENERATORS ---
+  pythonGenerator.forBlock['event_program_start'] = function() { return `# Program starts here\n`; };
+  pythonGenerator.forBlock['event_when_message'] = function(block: any) { const msg = block.getFieldValue('MESSAGE'); const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_message_${msg}():\n${branch || '  pass'}\n\nrobot.on_message('${msg}', on_message_${msg})\n`; };
+  pythonGenerator.forBlock['event_send_message'] = function(block: any) { const msg = block.getFieldValue('MESSAGE'); return `robot.send_message('${msg}')\n`; };
+  pythonGenerator.forBlock['event_when_obstacle'] = function(block: any) { const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_obstacle():\n${branch || '  pass'}\n\nrobot.on_obstacle(on_obstacle)\n`; };
+  pythonGenerator.forBlock['event_when_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); const branch = pythonGenerator.statementToCode(block, 'DO'); const funcSuffix = color.startsWith('#') ? color.replace('#', '') : color; return `def on_color_${funcSuffix}():\n${branch || '  pass'}\n\nrobot.on_color('${color}', on_color_${funcSuffix})\n`; };
+  pythonGenerator.forBlock['event_when_ultrasonic'] = function(block: any) { const threshold = block.getFieldValue('THRESHOLD'); const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_distance_detected():\n${branch || '  pass'}\n\nrobot.on_distance(${threshold}, on_distance_detected)\n`; };
+  pythonGenerator.forBlock['robot_drive_simple'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const power = direction === 'FORWARD' ? 100 : -100; return `robot.set_motor_power(${power}, ${power})\n`; };
+  
+  pythonGenerator.forBlock['robot_move'] = function(block: any) { 
+      const direction = block.getFieldValue('DIRECTION'); 
+      const distance = pythonGenerator.valueToCode(block, 'DISTANCE', pythonGenerator.ORDER_ATOMIC) || '0';
+      return `robot.move(${direction === 'BACKWARD' ? '-' : ''}${distance})\n`; 
+  };
+  
+  pythonGenerator.forBlock['robot_move_speed'] = function(block: any) { 
+      const direction = block.getFieldValue('DIRECTION'); 
+      const distance = pythonGenerator.valueToCode(block, 'DISTANCE', pythonGenerator.ORDER_ATOMIC) || '0';
+      const speed = pythonGenerator.valueToCode(block, 'SPEED', pythonGenerator.ORDER_ATOMIC) || '50';
+      return `robot.set_speed(${speed})\nrobot.move(${direction === 'BACKWARD' ? '-' : ''}${distance})\n`; 
+  };
+  
+  pythonGenerator.forBlock['robot_motor_on'] = function(block: any) { 
+    const motor = block.getFieldValue('MOTOR'); 
+    const dir = block.getFieldValue('DIR'); 
+    const power = pythonGenerator.valueToCode(block, 'POWER', pythonGenerator.ORDER_ATOMIC) || '0';
+    const powerVal = dir === 'STOP' ? '0' : (dir === 'BACKWARD' ? `(-(${power}))` : power); 
+    
+    if (motor === 'LEFT') return `robot.set_left_motor_power(${powerVal})\n`; 
+    if (motor === 'RIGHT') return `robot.set_right_motor_power(${powerVal})\n`; 
+    return `robot.set_motor_power(${powerVal}, ${powerVal})\n`; 
+  };
+
+  pythonGenerator.forBlock['robot_drive_until'] = function(block: any) { 
+      const direction = block.getFieldValue('DIRECTION'); 
+      const speed = pythonGenerator.valueToCode(block, 'SPEED', pythonGenerator.ORDER_ATOMIC) || '50';
+      const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False'; 
+      const motorPower = direction === 'BACKWARD' ? -100 : 100; 
+      return `robot.set_speed(${speed})\nrobot.set_motor_power(${motorPower}, ${motorPower})\nwhile not (${condition}):\n  robot.wait(0.01)\nrobot.stop()\n`; 
+  };
+  
+  pythonGenerator.forBlock['robot_turn_until'] = function(block: any) { 
+      const direction = block.getFieldValue('DIRECTION'); 
+      const speed = pythonGenerator.valueToCode(block, 'SPEED', pythonGenerator.ORDER_ATOMIC) || '50';
+      const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False'; 
+      const leftPower = direction === 'LEFT' ? -100 : 100; 
+      const rightPower = direction === 'LEFT' ? 100 : -100; 
+      return `robot.set_speed(${speed})\nrobot.set_motor_power(${leftPower}, ${rightPower})\nwhile not (${condition}):\n  robot.wait(0.01)\nrobot.stop()\n`; 
+  };
+  
+  pythonGenerator.forBlock['robot_stop'] = function() { return 'robot.stop()\n'; };
+  
+  pythonGenerator.forBlock['robot_turn'] = function(block: any) { 
+    const direction = block.getFieldValue('DIRECTION'); 
+    const angle = pythonGenerator.valueToCode(block, 'ANGLE', pythonGenerator.ORDER_ATOMIC) || '0';
+    const speed = pythonGenerator.valueToCode(block, 'SPEED', pythonGenerator.ORDER_ATOMIC) || '100';
+    const angVal = direction === 'RIGHT' ? angle : `(-(${angle}))`; 
+    return `robot.set_speed(${speed})\nrobot.turn(${angVal})\n`; 
+  };
+  
+  pythonGenerator.forBlock['robot_set_heading'] = function(block: any) { 
+      const angle = pythonGenerator.valueToCode(block, 'ANGLE', pythonGenerator.ORDER_ATOMIC) || '0';
+      return `robot.set_heading(${angle})\n`; 
+  };
+  
+  pythonGenerator.forBlock['robot_set_speed'] = function(block: any) { 
+      const speed = pythonGenerator.valueToCode(block, 'SPEED', pythonGenerator.ORDER_ATOMIC) || '100';
+      return `robot.set_speed(${speed})\n`; 
+  };
+
+  pythonGenerator.forBlock['robot_pen_down'] = function() { return 'robot.pen_down()\n'; };
+  pythonGenerator.forBlock['robot_pen_up'] = function() { return 'robot.pen_up()\n'; };
+  pythonGenerator.forBlock['robot_pen_set_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); return `robot.set_pen_color('${color}')\n`; };
+  pythonGenerator.forBlock['robot_pen_clear'] = function() { return 'robot.clear_pen()\n'; };
+  pythonGenerator.forBlock['robot_led'] = function(block: any) { const side = block.getFieldValue('SIDE'); const color = block.getFieldValue('COLOR'); const sideLower = side ? side.toLowerCase() : 'both'; return `robot.set_led('${sideLower}', '${color}')\n`; };
+  pythonGenerator.forBlock['robot_led_set_color'] = function(block: any) { const side = block.getFieldValue('SIDE'); const color = pythonGenerator.valueToCode(block, 'COLOR', pythonGenerator.ORDER_ATOMIC) || "'black'"; const sideLower = side ? side.toLowerCase() : 'both'; return `robot.set_led('${sideLower}', ${color})\n`; };
+  pythonGenerator.forBlock['robot_led_off'] = function(block: any) { const side = block.getFieldValue('SIDE'); const sideLower = side ? side.toLowerCase() : 'both'; return `robot.set_led('${sideLower}', 'black')\n`; };
+  pythonGenerator.forBlock['robot_wait'] = function(block: any) { const seconds = block.getFieldValue('SECONDS'); return `robot.wait(${seconds})\n`; };
+  pythonGenerator.forBlock['control_forever'] = function(block: any) { const branch = pythonGenerator.statementToCode(block, 'DO'); return `while True:\n${branch || '  pass'}\n  robot.wait(0.01)\n`; };
+  pythonGenerator.forBlock['control_wait_until'] = function(block: any) { const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_ATOMIC) || 'False'; return `while not (${condition}):\n  robot.wait(0.01)\n`; };
+  pythonGenerator.forBlock['control_stop_program'] = function() { return 'robot.stop_program()\n'; };
+  pythonGenerator.forBlock['controls_repeat_ext'] = function(block: any) { const repeats = pythonGenerator.valueToCode(block, 'TIMES', pythonGenerator.ORDER_NONE) || '0'; const branch = pythonGenerator.statementToCode(block, 'DO'); const loopVar = (this.nameDB_) ? this.nameDB_.getDistinctName('count', 'VARIABLE') : 'i'; return `for ${loopVar} in range(${repeats}):\n${branch || '  pass'}\n`; };
+  pythonGenerator.forBlock['custom_if'] = function(block: any) { const condition = pythonGenerator.valueToCode(block, 'IF0', pythonGenerator.ORDER_NONE) || 'False'; const branchDo = pythonGenerator.statementToCode(block, 'DO0'); return `if ${condition}:\n${branchDo || '  pass'}\n`; };
+  pythonGenerator.forBlock['custom_if_else'] = function(block: any) { const condition = pythonGenerator.valueToCode(block, 'IF0', pythonGenerator.ORDER_NONE) || 'False'; const branchDo = pythonGenerator.statementToCode(block, 'DO0'); const branchElse = pythonGenerator.statementToCode(block, 'ELSE'); return `if ${condition}:\n${branchDo || '  pass'}\nelse:\n${branchElse || '  pass'}\n`; };
+  pythonGenerator.forBlock['math_number'] = function(block: any) { const code = parseFloat(block.getFieldValue('NUM')); const order = code >= 0 ? pythonGenerator.ORDER_ATOMIC : pythonGenerator.ORDER_UNARY_SIGN; return [code, order]; }
+  pythonGenerator.forBlock['math_round_down'] = function(block: any) { const num = pythonGenerator.valueToCode(block, 'NUM', pythonGenerator.ORDER_NONE) || '0'; return [`int(${num})`, pythonGenerator.ORDER_FUNCTION_CALL]; };
+  pythonGenerator.forBlock['variables_get'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', pythonGenerator); return [varName, pythonGenerator.ORDER_ATOMIC]; };
+  pythonGenerator.forBlock['variables_set'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', pythonGenerator); const argument0 = pythonGenerator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_NONE) || '0'; return `${varName} = ${argument0}\n`; };
+  pythonGenerator.forBlock['math_change'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', pythonGenerator); const argument0 = pythonGenerator.valueToCode(block, 'DELTA', pythonGenerator.ORDER_NONE) || '0'; return `${varName} += ${argument0}\n`; };
+  pythonGenerator.forBlock['sensor_ultrasonic'] = function() { return ['robot.get_distance()', pythonGenerator.ORDER_FUNCTION_CALL || pythonGenerator.ORDER_ATOMIC]; };
+  pythonGenerator.forBlock['sensor_touch'] = function() { return ['robot.is_touching()', pythonGenerator.ORDER_FUNCTION_CALL || pythonGenerator.ORDER_ATOMIC]; };
+  pythonGenerator.forBlock['sensor_gyro'] = function(block: any) { const mode = block.getFieldValue('MODE'); const modeLower = mode ? mode.toLowerCase() : 'angle'; return [`robot.get_gyro('${modeLower}')`, pythonGenerator.ORDER_FUNCTION_CALL || pythonGenerator.ORDER_ATOMIC]; };
+  pythonGenerator.forBlock['sensor_color'] = function() { return ['robot.get_color()', pythonGenerator.ORDER_FUNCTION_CALL || pythonGenerator.ORDER_ATOMIC]; };
+  pythonGenerator.forBlock['sensor_touching_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); return [`robot.is_touching_color('${color}')`, pythonGenerator.ORDER_FUNCTION_CALL || pythonGenerator.ORDER_ATOMIC]; };
+  pythonGenerator.forBlock['sensor_circumference'] = function() { return ['robot.get_wheel_circumference()', pythonGenerator.ORDER_FUNCTION_CALL || pythonGenerator.ORDER_ATOMIC]; };
+  pythonGenerator.forBlock['sensor_speed'] = function() { return ['robot.get_speed()', pythonGenerator.ORDER_FUNCTION_CALL || pythonGenerator.ORDER_ATOMIC]; };
+  pythonGenerator.forBlock['logic_negate'] = function(block: any) { const argument0 = pythonGenerator.valueToCode(block, 'BOOL', pythonGenerator.ORDER_LOGICAL_NOT) || 'True'; const code = 'not ' + argument0; return [code, pythonGenerator.ORDER_LOGICAL_NOT]; };
+
+  pythonGenerator.workspaceToCode = function(workspace: any) {
+      this.init(workspace); let initCode = 'import robot\n\n'; const vars = workspace.getAllVariables();
+      if (vars.length > 0) { vars.forEach((v: any) => { const name = this.nameDB_.getName(v.name, 'VARIABLE'); initCode += `${name} = 0\n`; }); initCode += '\n'; }
+      let contentCode = ''; const topBlocks = workspace.getTopBlocks(true); const hatBlocks = topBlocks.filter((b: any) => HAT_BLOCKS.includes(b.type));
+      hatBlocks.forEach((b: any) => { contentCode += this.blockToCode(b) + '\n'; });
+      return (initCode + contentCode).trim();
+  };
+
   blocklyInitialized = true;
 };
 
 export const toolbox = {
   kind: "categoryToolbox",
   contents: [
-    { kind: "category", name: "Events", categorystyle: "events_category", cssConfig: { "container": "category-events" }, contents: [{ kind: "block", type: "event_program_start" }, { kind: "block", type: "event_when_message" }, { kind: "block", type: "event_send_message" }, { kind: "block", type: "event_when_obstacle" }, { kind: "block", type: "event_when_color" }, { kind: "block", type: "event_when_ultrasonic" }] },
-    { kind: "category", name: "Motion", categorystyle: "motion_category", cssConfig: { "container": "category-motion" }, contents: [{ kind: "block", type: "robot_drive_simple" }, { kind: "block", type: "robot_move" }, { kind: "block", type: "robot_move_speed" }, { kind: "block", type: "robot_motor_on" }, { kind: "block", type: "robot_drive_until" }, { kind: "block", type: "robot_turn_until" }, { kind: "block", type: "robot_stop" }, { kind: "block", type: "robot_turn" }, { kind: "block", type: "robot_set_heading" }, { kind: "block", type: "robot_set_speed" }] },
-    { kind: "category", name: "Pen", categorystyle: "pen_category", cssConfig: { "container": "category-pen" }, contents: [{ kind: "block", type: "robot_pen_down" }, { kind: "block", type: "robot_pen_up" }, { kind: "block", type: "robot_pen_set_color" }, { kind: "block", type: "robot_pen_clear" }] },
-    { kind: "category", name: "Looks", categorystyle: "looks_category", cssConfig: { "container": "category-looks" }, contents: [{ kind: "block", type: "robot_led" }, { kind: "block", type: "robot_led_set_color", inputs: { COLOR: { shadow: { type: "sensor_color" } } } }, { kind: "block", type: "robot_led_off" }] },
-    { kind: "category", name: "Sensors", categorystyle: "sensors_category", cssConfig: { "container": "category-sensors" }, contents: [{ kind: "block", type: "sensor_ultrasonic" }, { kind: "block", type: "sensor_touch" }, { kind: "block", type: "sensor_gyro" }, { kind: "block", type: "sensor_color" }, { kind: "block", type: "sensor_touching_color" }, { kind: "block", type: "sensor_circumference" }] },
-    { kind: "category", name: "Control", categorystyle: "control_category", cssConfig: { "container": "category-control" }, contents: [{ kind: "block", type: "robot_wait" }, { kind: "block", type: "control_forever" }, { kind: "block", type: "control_wait_until" }, { kind: "block", type: "control_stop_program" }, { kind: "block", type: "controls_repeat_ext", inputs: { TIMES: { shadow: { type: "math_number", fields: { NUM: 5 } } } } }, { kind: "block", type: "custom_if" }, { kind: "block", type: "custom_if_else" }] },
-    { kind: "category", name: "Logic", categorystyle: "logic_category", cssConfig: { "container": "category-logic" }, contents: [{ kind: "block", type: "logic_compare", inputs: { A: { shadow: { type: "math_number", fields: { NUM: 10 } } }, B: { shadow: { type: "math_number", fields: { NUM: 10 } } } } }, { kind: "block", type: "logic_operation" }, { kind: "block", type: "logic_boolean" }, { kind: "block", type: "logic_negate" }, { kind: "block", type: "math_round_down", inputs: { NUM: { shadow: { type: "math_number", fields: { NUM: 12.7 } } } } }, { kind: "block", type: "math_arithmetic", inputs: { A: { shadow: { type: "math_number", fields: { NUM: 1 } } }, B: { shadow: { type: "math_number", fields: { NUM: 1 } } } } }, { kind: "block", type: "math_number" }] },
-    { kind: "category", name: "Variables", categorystyle: "variables_category", custom: "VARIABLE", cssConfig: { "container": "category-variables" } }
+    {
+      kind: "category",
+      name: "Events",
+      categorystyle: "events_category",
+      cssConfig: { "container": "category-events" },
+      contents: [
+          { kind: "block", type: "event_program_start" },
+          { kind: "block", type: "event_when_message" },
+          { kind: "block", type: "event_send_message" },
+          { kind: "block", type: "event_when_obstacle" },
+          { kind: "block", type: "event_when_color" },
+          { kind: "block", type: "event_when_ultrasonic" }
+      ]
+    },
+    {
+      kind: "category",
+      name: "Motion",
+      categorystyle: "motion_category",
+      cssConfig: { "container": "category-motion" },
+      contents: [
+        { kind: "block", type: "robot_drive_simple" },
+        { 
+            kind: "block", 
+            type: "robot_move", 
+            inputs: { 
+                DISTANCE: { shadow: { type: "math_number", fields: { NUM: 10 } } } 
+            } 
+        },
+        { 
+            kind: "block", 
+            type: "robot_move_speed", 
+            inputs: { 
+                DISTANCE: { shadow: { type: "math_number", fields: { NUM: 10 } } },
+                SPEED: { shadow: { type: "math_number", fields: { NUM: 50 } } }
+            } 
+        }, 
+        { 
+            kind: "block", 
+            type: "robot_motor_on",
+            inputs: {
+                POWER: { shadow: { type: "math_number", fields: { NUM: 100 } } }
+            }
+        },
+        { 
+            kind: "block", 
+            type: "robot_drive_until",
+            inputs: {
+                SPEED: { shadow: { type: "math_number", fields: { NUM: 50 } } }
+            }
+        },
+        { 
+            kind: "block", 
+            type: "robot_turn_until",
+            inputs: {
+                SPEED: { shadow: { type: "math_number", fields: { NUM: 50 } } }
+            }
+        },
+        { kind: "block", type: "robot_stop" },
+        { 
+            kind: "block", 
+            type: "robot_turn",
+            inputs: {
+                ANGLE: { shadow: { type: "math_number", fields: { NUM: 90 } } },
+                SPEED: { shadow: { type: "math_number", fields: { NUM: 100 } } }
+            }
+        },
+        { 
+            kind: "block", 
+            type: "robot_set_heading",
+            inputs: {
+                ANGLE: { shadow: { type: "math_number", fields: { NUM: 0 } } }
+            }
+        },
+        { 
+            kind: "block", 
+            type: "robot_set_speed",
+            inputs: {
+                SPEED: { shadow: { type: "math_number", fields: { NUM: 100 } } }
+            }
+        },
+      ]
+    },
+    {
+      kind: "category",
+      name: "Pen",
+      categorystyle: "pen_category",
+      cssConfig: { "container": "category-pen" },
+      contents: [
+        { kind: "block", type: "robot_pen_down" },
+        { kind: "block", type: "robot_pen_up" },
+        { kind: "block", type: "robot_pen_set_color" },
+        { kind: "block", type: "robot_pen_clear" },
+      ]
+    },
+    {
+      kind: "category",
+      name: "Looks",
+      categorystyle: "looks_category",
+      cssConfig: { "container": "category-looks" },
+      contents: [
+        { kind: "block", type: "robot_led" },
+        { kind: "block", type: "robot_led_set_color", inputs: { COLOR: { shadow: { type: "sensor_color" } } } },
+        { kind: "block", type: "robot_led_off" },
+      ]
+    },
+    {
+      kind: "category",
+      name: "Sensors",
+      categorystyle: "sensors_category",
+      cssConfig: { "container": "category-sensors" },
+      contents: [
+        { kind: "block", type: "sensor_ultrasonic" },
+        { kind: "block", type: "sensor_touch" },
+        { kind: "block", type: "sensor_gyro" },
+        { kind: "block", type: "sensor_color" },
+        { kind: "block", type: "sensor_touching_color" },
+        { kind: "block", type: "sensor_circumference" },
+        { kind: "block", type: "sensor_speed" },
+      ]
+    },
+    {
+      kind: "category",
+      name: "Control",
+      categorystyle: "control_category",
+      cssConfig: { "container": "category-control" },
+      contents: [
+        { kind: "block", type: "robot_wait" },
+        { kind: "block", type: "control_forever" },
+        { kind: "block", type: "control_wait_until" },
+        { kind: "block", type: "control_stop_program" },
+        { kind: "block", type: "controls_repeat_ext", inputs: { TIMES: { shadow: { type: "math_number", fields: { NUM: 5 } } } } },
+        { kind: "block", type: "custom_if" },
+        { kind: "block", type: "custom_if_else" },
+      ]
+    },
+    {
+        kind: "category",
+        name: "Logic",
+        categorystyle: "logic_category",
+        cssConfig: { "container": "category-logic" },
+        contents: [
+            { kind: "block", type: "logic_compare", inputs: { A: { shadow: { type: "math_number", fields: { NUM: 10 } } }, B: { shadow: { type: "math_number", fields: { NUM: 10 } } } } },
+            { kind: "block", type: "logic_operation" },
+            { kind: "block", type: "logic_boolean" },
+            { kind: "block", type: "logic_negate" },
+            { kind: "block", type: "math_round_down", inputs: { NUM: { shadow: { type: "math_number", fields: { NUM: 12.7 } } } } },
+            { kind: "block", type: "math_arithmetic", inputs: { A: { shadow: { type: "math_number", fields: { NUM: 1 } } }, B: { shadow: { type: "math_number", fields: { NUM: 1 } } } } },
+            { kind: "block", type: "math_number" },
+        ]
+    },
+    {
+      kind: "category",
+      name: "Variables",
+      categorystyle: "variables_category",
+      custom: "VARIABLE",
+      cssConfig: { "container": "category-variables" }
+    }
   ]
 };
