@@ -267,7 +267,9 @@ export const initBlockly = () => {
   Blockly.Blocks['robot_drive_simple'] = {
     init: function() {
       this.appendDummyInput().appendField("drive").appendField(new Blockly.FieldDropdown([["forward","FORWARD"], ["backward","BACKWARD"]]), "DIRECTION");
-      this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(false, null);
+      this.setStyle('motion_blocks');
     }
   };
 
@@ -560,7 +562,12 @@ export const initBlockly = () => {
   javascriptGenerator.forBlock['event_when_obstacle'] = function(block: any) { const branch = javascriptGenerator.statementToCode(block, 'DO'); return `robot.onObstacle(async () => {\n${wrapHatCode(branch)}});\n`; };
   javascriptGenerator.forBlock['event_when_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); const branch = javascriptGenerator.statementToCode(block, 'DO'); return `robot.onColor('${color}', async () => {\n${wrapHatCode(branch)}});\n`; };
   javascriptGenerator.forBlock['event_when_ultrasonic'] = function(block: any) { const threshold = block.getFieldValue('THRESHOLD'); const branch = javascriptGenerator.statementToCode(block, 'DO'); return `robot.onDistance(${threshold}, async () => {\n${wrapHatCode(branch)}});\n`; };
-  javascriptGenerator.forBlock['robot_drive_simple'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const power = direction === 'FORWARD' ? 100 : -100; return `await robot.setMotorPower(${power}, ${power});\n`; };
+  
+  javascriptGenerator.forBlock['robot_drive_simple'] = function(block: any) { 
+    const direction = block.getFieldValue('DIRECTION'); 
+    const power = direction === 'FORWARD' ? 100 : -100; 
+    return `await robot.setMotorPower(${power}, ${power});\nwhile(true) { await robot.wait(10); }\n`;
+  };
   
   javascriptGenerator.forBlock['robot_move'] = function(block: any) { 
       const direction = block.getFieldValue('DIRECTION'); 
@@ -674,7 +681,12 @@ export const initBlockly = () => {
   pythonGenerator.forBlock['event_when_obstacle'] = function(block: any) { const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_obstacle():\n${branch || '  pass'}\n\nrobot.on_obstacle(on_obstacle)\n`; };
   pythonGenerator.forBlock['event_when_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); const branch = pythonGenerator.statementToCode(block, 'DO'); const funcSuffix = color.startsWith('#') ? color.replace('#', '') : color; return `def on_color_${funcSuffix}():\n${branch || '  pass'}\n\nrobot.on_color('${color}', on_color_${funcSuffix})\n`; };
   pythonGenerator.forBlock['event_when_ultrasonic'] = function(block: any) { const threshold = block.getFieldValue('THRESHOLD'); const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_distance_detected():\n${branch || '  pass'}\n\nrobot.on_distance(${threshold}, on_distance_detected)\n`; };
-  pythonGenerator.forBlock['robot_drive_simple'] = function(block: any) { const direction = block.getFieldValue('DIRECTION'); const power = direction === 'FORWARD' ? 100 : -100; return `robot.set_motor_power(${power}, ${power})\n`; };
+  
+  pythonGenerator.forBlock['robot_drive_simple'] = function(block: any) { 
+    const direction = block.getFieldValue('DIRECTION'); 
+    const power = direction === 'FORWARD' ? 100 : -100; 
+    return `robot.set_motor_power(${power}, ${power})\nwhile True:\n  robot.wait(0.01)\n`;
+  };
   
   pythonGenerator.forBlock['robot_move'] = function(block: any) { 
       const direction = block.getFieldValue('DIRECTION'); 
