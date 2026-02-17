@@ -80,6 +80,11 @@ export const getScratchTheme = () => {
         'colourSecondary': '#EC9C13',
         'colourTertiary': '#CF8B17'
       },
+      'loop_blocks': {
+        'colourPrimary': '#FFAB19',
+        'colourSecondary': '#EC9C13',
+        'colourTertiary': '#CF8B17'
+      },
       'sensors_blocks': {
         'colourPrimary': '#00C7E5',
         'colourSecondary': '#00B8D4',
@@ -938,6 +943,14 @@ export const toolbox = {
             { kind: "block", type: "logic_negate" },
             { kind: "block", type: "math_round_down", inputs: { NUM: { shadow: { type: "math_number", fields: { NUM: 12.7 } } } } },
             { kind: "block", type: "math_arithmetic", inputs: { A: { shadow: { type: "math_number", fields: { NUM: 1 } } }, B: { shadow: { type: "math_number", fields: { NUM: 1 } } } } },
+            { 
+                kind: "block", 
+                type: "math_random_int",
+                inputs: {
+                    FROM: { shadow: { type: "math_number", fields: { NUM: 1 } } },
+                    TO: { shadow: { type: "math_number", fields: { NUM: 10 } } }
+                }
+            },
             { kind: "block", type: "math_number" },
         ]
     },
