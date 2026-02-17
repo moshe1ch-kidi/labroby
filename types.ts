@@ -1,10 +1,9 @@
 
 import React from 'react';
-import { ThreeElements } from '@react-three/fiber';
 
 export type CameraMode = 'HOME' | 'TOP' | 'FOLLOW';
 export type EditorTool = 'NONE' | 'ROTATE' | 'PAN' | 'WALL' | 'RAMP' | 'COLOR_LINE' | 'PATH' | 'ROBOT_MOVE';
-export type PathShape = 'STRAIGHT' | 'CORNER' | 'CURVED';
+export type PathShape = 'STRAIGHT' | 'CORNER' | 'CURVED' | 'CURVED_RIGHT';
 
 export interface CustomObject {
     id: string;
@@ -12,11 +11,13 @@ export interface CustomObject {
     shape?: PathShape;
     x: number;
     z: number;
+    y?: number;
     width: number;
     length: number;
     color?: string;
     height?: number;
     rotation?: number; 
+    xRotation?: number;
     opacity?: number;
 }
 
@@ -59,12 +60,7 @@ export interface SimulationHistory {
     totalRotation: number;
 }
 
-// Global augmentation to register Three.js intrinsic elements for JSX
 declare global {
-  namespace JSX {
-    interface IntrinsicElements extends ThreeElements {}
-  }
-
   interface Window {
     showBlocklyNumpad: (
       initialValue: string | number, 
