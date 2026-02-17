@@ -1,4 +1,3 @@
-
 import { RobotState, CustomObject, SimulationHistory } from '../types';
 
 export interface Challenge {
@@ -16,6 +15,14 @@ export interface Challenge {
         worldHeight: number;
     };
 }
+
+const normalizeAngle = (angle: number) => (angle % 360 + 360) % 360;
+
+const getAngleDifference = (angle1: number, angle2: number) => {
+    let diff = normalizeAngle(angle1 - angle2);
+    if (diff > 180) diff -= 360;
+    return diff;
+};
 
 export const CHALLENGES: Challenge[] = [
     // --- EASY CHALLENGES ---
@@ -202,7 +209,7 @@ export const CHALLENGES: Challenge[] = [
         svgMap: {
             worldWidth: 24,
             worldHeight: 18,
-            svgString: `<svg version="1.1" viewBox="0.0 0.0 960.0 720.0" fill="none" stroke="none" stroke-linecap="square" stroke-miterlimit="10" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg"><clipPath id="p.0"><path d="m0 0l960.0 0l0 720.0l-960.0 0l0 -720.0z" clip-rule="nonzero"/></clipPath><g clip-path="url(#p.0)" shape-rendering="geometricPrecision"><path fill="#000000" fill-opacity="0.0" d="m0 0l960.0 0l0 720.0l-960.0 0z" fill-rule="evenodd"/><path fill="#000000" d="m328.79355 432.82886l0 0c-56.877106 0 -102.98511 49.780273 -102.98511 111.18732c0 61.407104 46.108 111.18732 102.98511 111.18732l0 -51.492493c-28.438568 0 -51.492554 -26.726318 -51.492554 -59.694824c0 -32.968506 23.053986 -59.694763 51.492554 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m140.32236 262.3746l189.53802 0l0 51.374786l-189.53802 0z" fill-rule="evenodd"/><path fill="#000000" d="m328.79355 262.3746l0 0c56.877075 0 102.98508 49.780273 102.98508 111.18732c0 61.407074 -46.108 111.18735 -102.98508 111.18735l0 -51.492554c28.438538 0 51.492523 -26.726257 51.492523 -59.694794c0 -32.968506 -23.053986 -59.694763 -51.492523 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m329.0173 603.8287l441.39633 0l0 51.374817l-441.39633 0z" fill-rule="evenodd"/><path fill="#000000" d="m149.13191 91.3741l0 0c-56.877098 0 -102.98509 49.78026 -102.98509 111.18733c0 61.407043 46.107998 111.18732 102.98509 111.18732l0 -51.492554c-28.438553 0 -51.492554 -26.726257 -51.492554 -59.694763c0 -32.96852 23.054 -59.69478 51.492554 -59.69478z" fill-rule="evenodd"/><path fill="#000000" d="m148.5085 91.91903l621.9008 0l0 51.37478l-621.9008 0z" fill-rule="evenodd"/><path fill="#000000" d="m768.26404 91.37474l0 0c56.877075 0 102.98511 49.78026 102.98511 111.18732c0 61.40706 -46.108032 111.18733 -102.98511 111.18733l0 -51.492554c28.438538 0 51.492554 -26.726257 51.492554 -59.69478c0 -32.968506 -23.054016 -59.694763 -51.492554 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m768.26404 262.1323l0 0c-56.877136 0 -102.98511 49.780273 -102.98511 111.18732c0 61.407074 46.10797 111.18732 102.98511 111.18732l0 -51.492523c-28.438538 0 -51.492554 -26.726288 -51.492554 -59.694794c0 -32.968506 23.054016 -59.694763 51.492554 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m768.26404 655.2043l0 0c56.877075 0 102.98511 -49.780212 102.98511 -111.18732c0 -61.407043 -46.108032 -111.18732 -102.98511 -111.18732l0 51.492554c28.438538 0 51.492554 26.726257 51.492554 59.694763c0 32.968506 -23.054016 59.694763 -51.492554 59.694763z" fill-rule="evenodd"/><path fill="#4a86e8" d="m453.8294 93.49009l35.433075 0l0 49.79528l-35.433075 0z" fill-rule="evenodd"/><path fill="#ff0000" d="m605.7874 605.40875l35.433044 0l0 49.795227l-35.433044 0z" fill-rule="evenodd"/><path fill="#00ff00" d="m241.68242 263.66403l35.43306 0l0 49.795288l-35.43306 0z" fill-rule="evenodd"/><path fill="#ffff00" d="m318.00262 605.4094l35.433075 0l0 49.795288l-35.433075 0z" fill-rule="evenodd"/></g></svg>`
+            svgString: `<svg version="1.1" viewBox="0.0 0.0 960.0 720.0" fill="none" stroke="none" stroke-linecap="square" stroke-miterlimit="10" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg"><clipPath id="p.0"><path d="m0 0l960.0 0l0 720.0l-960.0 0l0 -720.0z" clip-rule="nonzero"/></clipPath><g clip-path="url(#p.0)" shape-rendering="geometricPrecision"><path fill="#000000" fill-opacity="0.0" d="m0 0l960.0 0l0 720.0l-960.0 0z" fill-rule="evenodd"/><path fill="#000000" d="m328.79355 432.82886l0 0c-56.877106 0 -102.98511 49.780273 -102.98511 111.18732c0 61.407104 46.108 111.18732 102.98511 111.18732l0 -51.492493c-28.438568 0 -51.492554 -26.726318 -51.492554 -59.694824c0 -32.968506 23.053986 -59.694763 51.492554 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m140.32236 262.3746l189.53802 0l0 51.374786l-189.53802 0z" fill-rule="evenodd"/><path fill="#000000" d="m328.79355 262.3746l0 0c56.877075 0 102.98508 49.780273 102.98508 111.18732c0 61.407074 -46.108 111.18735 -102.98508 111.18735l0 -51.492554c28.438538 0 51.492523 -26.726257 51.492523 -59.694794c0 -32.968506 -23.053986 -59.694763 -51.492523 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m329.0173 603.8287l441.39633 0l0 51.374817l-441.39633 0z" fill-rule="evenodd"/><path fill="#000000" d="m149.13191 91.3741l0 0c-56.877098 0 -102.98509 49.78026 -102.98509 111.18733c0 61.407043 46.107998 111.18732 102.98509 111.18732l0 -51.492554c-28.438553 0 -51.492554 -26.726257 -51.492554 -59.694763c0 -32.96852 23.054 -59.69478 51.492554 -59.69478z" fill-rule="evenodd"/><path fill="#000000" d="m148.5085 91.91903l621.9008 0l0 51.37478l-621.9008 0z" fill-rule="evenodd"/><path fill="#000000" d="m768.26404 91.37474l0 0c56.877075 0 102.98511 49.78026 102.98511 111.18732c0 61.40706 -46.108032 -111.18733 -102.98511 111.18733l0 -51.492554c28.438538 0 51.492554 -26.726257 51.492554 -59.69478c0 -32.968506 -23.054016 -59.694763 -51.492554 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m768.26404 262.1323l0 0c-56.877136 0 -102.98511 49.780273 -102.98511 111.18732c0 61.407074 46.10797 111.18732 102.98511 111.18732l0 -51.492523c-28.438538 0 -51.492554 -26.726288 -51.492554 -59.694794c0 -32.968506 23.054016 -59.694763 51.492554 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m768.26404 655.2043l0 0c56.877075 0 102.98511 -49.780212 102.98511 -111.18732c0 -61.407043 -46.108032 -111.18732 -102.98511 -111.18732l0 51.492554c28.438538 0 51.492554 26.726257 51.492554 59.694763c0 32.968506 -23.054016 59.694763 -51.492554 59.694763z" fill-rule="evenodd"/><path fill="#4a86e8" d="m453.8294 93.49009l35.433075 0l0 49.79528l-35.433075 0z" fill-rule="evenodd"/><path fill="#ff0000" d="m605.7874 605.40875l35.433044 0l0 49.795227l-35.433044 0z" fill-rule="evenodd"/><path fill="#00ff00" d="m241.68242 263.66403l35.43306 0l0 49.795288l-35.43306 0z" fill-rule="evenodd"/><path fill="#ffff00" d="m318.00262 605.4094l35.433075 0l0 49.795288l-35.433075 0z" fill-rule="evenodd"/></g></svg>`
         }
     },
 
@@ -255,7 +262,43 @@ export const CHALLENGES: Challenge[] = [
         title: '16. Gyro - Auto Leveling',
         description: 'Climb a ramp, cross the platform, and descend safely.',
         difficulty: 'Hard',
-        check: (start, end, history) => history.maxDistanceMoved > 14,
-        startRotation: 0
+        check: (start, end, history) => history.detectedColors.some(c => c.toLowerCase() === 'red') && end.z < -16 && !end.isMoving,
+        startRotation: 0,
+        environmentObjects: [
+            // Uphill Ramp (20 degrees)
+            { id: 'c18_up', type: 'WALL', x: 0, y: 0.865, z: -4.375, width: 4.2, length: 5.05, height: 0.1, xRotation: 0.349, color: '#334155' },
+            // Top Platform
+            { id: 'c18_top', type: 'WALL', x: 0, y: 1.73, z: -8.75, width: 4.2, length: 4, height: 0.1, xRotation: 0, color: '#475569' },
+            // Downhill Ramp (20 degrees)
+            { id: 'c18_down', type: 'WALL', x: 0, y: 0.865, z: -13.125, width: 4.2, length: 5.05, height: 0.1, xRotation: -0.349, color: '#334155' },
+            // Finish line
+            { id: 'c18_finish', type: 'COLOR_LINE', x: 0, z: -17.5, width: 4.2, length: 0.5, color: '#ff0000' }
+        ]
+    },
+    {
+        id: 'c22_ramp_uturn',
+        title: '17. Ramp U-Turn',
+        description: 'Climb the ramp. When you detect the red line at the top, turn 180 degrees and drive back down.',
+        difficulty: 'Hard',
+        check: (start, end, history) => {
+            const detectedRed = history.detectedColors.some(c => c.toLowerCase() === 'red');
+            // FIX: The 'start' parameter is of type RobotState and contains the initial robot state.
+            // Access 'rotation' directly from the 'start' object.
+            const turnedAround = Math.abs(getAngleDifference(end.rotation, start.rotation)) > 170;
+            // FIX: The 'start' parameter is of type RobotState and contains the initial robot state.
+            // Access 'z' directly from the 'start' object.
+            const returnedClose = Math.abs(end.z - start.z) < 2.0;
+            return detectedRed && turnedAround && returnedClose && !end.isMoving;
+        },
+        startRotation: 0,
+        startPosition: { x: 0, y: 0, z: 2 },
+        environmentObjects: [
+            // Ramp (Height: 2, Length: 16)
+            { id: 'ramp_main', type: 'WALL', x: 0, y: 1, z: -6, width: 4.2, length: 16.12, height: 0.1, xRotation: Math.atan(2/16), color: '#475569' },
+            // Top platform
+            { id: 'ramp_top', type: 'WALL', x: 0, y: 2, z: -15, width: 4.2, length: 2, height: 0.1, color: '#64748b' },
+            // Red line on top platform
+            { id: 'ramp_line', type: 'COLOR_LINE', x: 0, z: -15, width: 4.2, length: 0.5, color: '#ef4444' }
+        ]
     }
 ];
