@@ -471,11 +471,10 @@ const App: React.FC = () => {
         
         robotRef.current = next; setRobotState(next); 
 
-        if (isRunning) {
-            listenersRef.current.colors.forEach(l => { const m = isColorClose(sd_f.color, l.color); if (m && !l.lastMatch) l.cb(); l.lastMatch = m; });
-            listenersRef.current.obstacles.forEach(l => { if (sd_f.isTouching && !l.lastMatch) l.cb(); l.lastMatch = sd_f.isTouching; });
-            listenersRef.current.distances.forEach(l => { const m = sd_f.distance < l.threshold; if (m && !l.lastMatch) l.cb(); l.lastMatch = m; });
-        }
+        // Always check for hat block events, not just when a script is running.
+        listenersRef.current.colors.forEach(l => { const m = isColorClose(sd_f.color, l.color); if (m && !l.lastMatch) l.cb(); l.lastMatch = m; });
+        listenersRef.current.obstacles.forEach(l => { if (sd_f.isTouching && !l.lastMatch) l.cb(); l.lastMatch = sd_f.isTouching; });
+        listenersRef.current.distances.forEach(l => { const m = sd_f.distance < l.threshold; if (m && !l.lastMatch) l.cb(); l.lastMatch = m; });
 
         if (sd_f.isTouching) historyRef.current.touchedWall = true; 
         historyRef.current.maxDistanceMoved = Math.max(historyRef.current.maxDistanceMoved, Math.sqrt((next.x - (activeChallenge?.startPosition?.x || 0))**2 + (next.z - (activeChallenge?.startPosition?.z || 0))**2) * 10);
@@ -493,7 +492,7 @@ const App: React.FC = () => {
         if (activeChallenge && activeChallenge.check(cur, next, historyRef.current) && !challengeSuccess) { setChallengeSuccess(true); showToast("Mission Accomplished!", "success"); } 
       }, TICK_RATE); 
     return () => clearInterval(int);
-  }, [customObjects, activeChallenge, challengeSuccess, showToast, svgConfig, isRunning]);
+  }, [customObjects, activeChallenge, challengeSuccess, showToast, svgConfig]);
 
   const sensorReadings = useMemo(() => calculateSensorReadings(robotState.x, robotState.z, robotState.rotation, activeChallenge?.id, customObjects, svgConfig), [robotState.x, robotState.z, robotState.rotation, activeChallenge, customObjects, svgConfig]);
 
