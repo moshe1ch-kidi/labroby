@@ -1,4 +1,4 @@
-
+ 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -137,14 +137,42 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
              }
         }
     } else {
-        for (const z of customObjects) {
-            if (z.type === 'PATH' || z.type === 'COLOR_LINE') {
-                const dx = cx - z.x; const dz = cz - z.z;
-                const cR = Math.cos(-(z.rotation || 0)); const sR = Math.sin(-(z.rotation || 0));
+        let detectedHexColor: string | null = null;
+
+        // First pass for COLOR_LINE (top layer)
+        for (const obj of customObjects) {
+            if (obj.type === 'COLOR_LINE') {
+                const dx = cx - obj.x; const dz = cz - obj.z;
+                const cR = Math.cos(-(obj.rotation || 0)); const sR = Math.sin(-(obj.rotation || 0));
                 const lX = dx * cR - dz * sR; const lZ = dx * sR + dz * cR;
-                if (Math.abs(lX) <= (z.width/2 + 0.1) && Math.abs(lZ) <= (z.length/2 + 0.1)) {
-                    color = z.color || "#000000";
-                    for (const name in CANONICAL_COLOR_MAP) if (isColorClose(color, CANONICAL_COLOR_MAP[name])) { color = name; break; }
+                if (Math.abs(lX) <= (obj.width/2 + 0.1) && Math.abs(lZ) <= (obj.length/2 + 0.1)) {
+                    detectedHexColor = obj.color || "#000000";
+                    break; // Found a color line, it has priority.
+                }
+            }
+        }
+
+        // Second pass for PATH (bottom layer), only if no COLOR_LINE was found
+        if (detectedHexColor === null) {
+            for (const obj of customObjects) {
+                if (obj.type === 'PATH') {
+                    const dx = cx - obj.x; const dz = cz - obj.z;
+                    const cR = Math.cos(-(obj.rotation || 0)); const sR = Math.sin(-(obj.rotation || 0));
+                    const lX = dx * cR - dz * sR; const lZ = dx * sR + dz * cR;
+                    if (Math.abs(lX) <= (obj.width/2 + 0.1) && Math.abs(lZ) <= (obj.length/2 + 0.1)) {
+                        detectedHexColor = obj.color || "#000000";
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (detectedHexColor !== null) {
+            color = detectedHexColor;
+            // Convert to name if possible
+            for (const name in CANONICAL_COLOR_MAP) {
+                if (isColorClose(color, CANONICAL_COLOR_MAP[name])) {
+                    color = name;
                     break;
                 }
             }
@@ -193,12 +221,18 @@ const App: React.FC = () => {
   
   const isScriptedMoving = useRef(false);
 
+  const getStageColors = useCallback(() => {
+    if (!customObjects) return [];
+    const colors = customObjects
+        .map(obj => obj.color)
+        .filter((c): c is string => !!c);
+    return Array.from(new Set(colors));
+  }, [customObjects]);
+
   useEffect(() => {
-    // A small delay after view mode changes to allow container to resize before triggering
-    // a global resize event. This helps Blockly and the 3D canvas to adjust their dimensions.
     const resizeTimer = setTimeout(() => {
         window.dispatchEvent(new Event('resize'));
-    }, 550); // Slightly longer than the 500ms CSS transition
+    }, 550); 
 
     return () => clearTimeout(resizeTimer);
   }, [viewMode]);
@@ -297,8 +331,6 @@ const App: React.FC = () => {
         setViewMode('SPLIT');
     }
 
-    // Allow React to commit state updates and re-render before starting the simulation logic.
-    // This prevents a race condition where the simulation tries to run while the UI is still updating.
     await new Promise(resolve => setTimeout(resolve, 1));
     
     const curId = ++executionId.current; const ctrl = new AbortController(); abortControllerRef.current = ctrl;
@@ -403,7 +435,6 @@ const App: React.FC = () => {
     } catch (e: any) { 
       if (e.message !== "Simulation aborted") console.error(e);
     } finally {
-      // **THE FIX**: Removed the automatic motor stop from here.
       setRobotState({ ...robotRef.current });
       setIsRunning(false);
       isScriptedMoving.current = false;
@@ -440,7 +471,6 @@ const App: React.FC = () => {
         
         robotRef.current = next; setRobotState(next); 
 
-        // Run listeners only if script is active
         if (isRunning) {
             listenersRef.current.colors.forEach(l => { const m = isColorClose(sd_f.color, l.color); if (m && !l.lastMatch) l.cb(); l.lastMatch = m; });
             listenersRef.current.obstacles.forEach(l => { if (sd_f.isTouching && !l.lastMatch) l.cb(); l.lastMatch = sd_f.isTouching; });
@@ -560,7 +590,14 @@ const App: React.FC = () => {
         }`}>
             <div className="w-full h-full relative flex flex-col bg-white text-left text-sm">
                 <div className="flex-1 relative">
-                    <BlocklyEditor ref={blocklyEditorRef} onCodeChange={useCallback((c, n) => { setGeneratedCode(c); setStartBlockCount(n); }, [])} visibleVariables={visibleVariables} onToggleVariable={useCallback((n) => setVisibleVariables(v => { const x = new Set(v); if (x.has(n)) x.delete(n); else x.add(n); return x; }), [])} onShowNumpad={showBlocklyNumpad} />
+                    <BlocklyEditor 
+                        ref={blocklyEditorRef} 
+                        onCodeChange={useCallback((c, n) => { setGeneratedCode(c); setStartBlockCount(n); }, [])} 
+                        visibleVariables={visibleVariables} 
+                        onToggleVariable={useCallback((n) => setVisibleVariables(v => { const x = new Set(v); if (x.has(n)) x.delete(n); else x.add(n); return x; }), [])} 
+                        onShowNumpad={showBlocklyNumpad}
+                        getStageColors={getStageColors}
+                    />
                 </div>
             </div>
         </div>
