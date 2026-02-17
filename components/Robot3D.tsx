@@ -139,12 +139,20 @@ const Robot3D: React.FC<Robot3DProps> = ({ state, isPlacementMode }) => {
   
   useFrame(() => {
     if (groupRef.current) {
+      // Set rotation order to 'YXZ'. This is crucial for vehicle-like objects.
+      // It applies the heading (yaw) first, then the local pitch (tilt) and roll.
+      // This prevents gimbal lock and ensures tilt/roll behave consistently regardless of heading.
+      groupRef.current.rotation.order = 'YXZ';
+      
       groupRef.current.position.y = state.y + 0.02; 
       groupRef.current.position.x = state.x;
       groupRef.current.position.z = state.z;
       groupRef.current.rotation.y = (180 - state.rotation) * (Math.PI / 180);
-      groupRef.current.rotation.x = state.tilt * (Math.PI / 180);
-      groupRef.current.rotation.z = state.roll * (Math.PI / 180);
+      
+      // Apply tilt (pitch) and roll to the local X and Z axes.
+      // The negation correctly orients the model (e.g., nose up for positive tilt).
+      groupRef.current.rotation.x = -state.tilt * (Math.PI / 180);
+      groupRef.current.rotation.z = -state.roll * (Math.PI / 180);
     }
   });
 

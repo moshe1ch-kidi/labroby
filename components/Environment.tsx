@@ -1,4 +1,4 @@
- 
+
 import React, { useMemo, useEffect, useState } from 'react';
 import { Grid, Environment as DreiEnvironment, ContactShadows, Text } from '@react-three/drei';
 import * as THREE from 'three';

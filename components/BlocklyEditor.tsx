@@ -9,8 +9,8 @@ interface BlocklyEditorProps {
   visibleVariables: Set<string>;
   onToggleVariable: (name: string) => void;
   onVariablesChanged?: (allVarNames: string[], renameInfo?: {oldName: string, newName: string}) => void;
-  // FIX: Added the `position` argument to match the signature of the callback passed from App.tsx.
   onShowNumpad: (initialValue: string | number, onConfirm: (newValue: number) => void, position: DOMRect) => void;
+  getStageColors: () => string[];
 }
 
 export interface BlocklyEditorHandle {
@@ -90,7 +90,7 @@ const VariableModal = ({ isOpen, mode, initialValue, onClose, onConfirm }: { isO
     );
 };
 
-const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onCodeChange, onEval, visibleVariables, onToggleVariable, onVariablesChanged, onShowNumpad }, ref) => {
+const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onCodeChange, onEval, visibleVariables, onToggleVariable, onVariablesChanged, onShowNumpad, getStageColors }, ref) => {
   const blocklyDiv = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<any>(null);
   const [isBlocklyReady, setIsBlocklyReady] = useState(false);
@@ -103,15 +103,12 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
   useEffect(() => {
     const interval = setInterval(() => {
         const Blockly = (window as any).Blockly;
-        // Check for specific properties to be more certain it's fully loaded.
-        // `Blockly.inject` is a core function, and `Blockly.Msg` ensures language files are ready.
         if (Blockly && Blockly.inject && Blockly.Msg) {
             clearInterval(interval);
             setIsBlocklyReady(true);
         }
     }, 100);
 
-    // Set a timeout to prevent infinite loops in case of loading failure
     const timeout = setTimeout(() => {
         clearInterval(interval);
         if (!(window as any).Blockly) {
@@ -227,13 +224,12 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
     const python = (window as any).python;
     if (!Blockly || !javascript || !python) return;
 
-    // Expose these functions globally for Blockly to use, before initBlockly
     window.showBlocklyNumpad = onShowNumpad;
+    window.getStageColors = getStageColors;
 
     initBlockly();
     const scratchTheme = getScratchTheme();
 
-    // Override Blockly dialogs to use our React Modal
     Blockly.dialog.setPrompt((message: string, defaultValue: string, callback: (res: string | null) => void) => {
         const isRename = message.toLowerCase().includes('rename');
         setModalConfig({
@@ -360,10 +356,10 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
           workspaceRef.current.dispose();
           workspaceRef.current = null;
         }
-        // Clean up on unmount
         delete (window as any).showBlocklyNumpad;
+        delete (window as any).getStageColors;
     };
-  }, [isBlocklyReady, generateAndNotify, notifyVariablesChange, onShowNumpad]);
+  }, [isBlocklyReady, generateAndNotify, notifyVariablesChange, onShowNumpad, getStageColors]);
 
   useEffect(() => {
     const timer = setTimeout(updateCheckboxPositions, 50);
@@ -374,7 +370,6 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
     <div className="w-full h-full relative">
       <div ref={blocklyDiv} className="absolute inset-0" />
       
-      {/* Variable Action Overlay - Monitor Only */}
       {activeCategory === 'Variables' && variablePositions.map((pos) => (
           <div 
             key={pos.id}
@@ -385,7 +380,6 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
             }}
             onPointerDown={(e) => e.stopPropagation()} 
           >
-            {/* Monitor Toggle */}
             <div 
                 onClick={() => onToggleVariable(pos.name)}
                 className={`p-2 cursor-pointer bg-white shadow-md border rounded-xl transition-all flex items-center justify-center hover:scale-110 active:scale-95 ${visibleVariables.has(pos.name) ? 'border-orange-400 text-orange-600' : 'border-slate-200 text-slate-400'}`}
