@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
@@ -18,10 +19,13 @@ import { CHALLENGES, Challenge } from './data/challenges';
 import { ThreeEvent } from '@react-three/fiber';
 
 const TICK_RATE = 16; 
-const BASE_VELOCITY = 0.165;
-const BASE_TURN_SPEED = 0.78; 
+// New physically-based constants
+const WHEEL_BASE = 1.9; // World units, from Robot3D: 2 * 0.95 wheel offset
+const SPEED_FACTOR = 0.09; // Balances forward speed and turn rate for a good feel.
+const RAD_TO_DEG = 180 / Math.PI;
+const GRAVITY_ACCELERATION_FACTOR = 0.15; // Models the effect of gravity on slopes
 
-const MAX_SPEED_CAP = 60; // המהירות המקסימלית המותרת במערכת
+const MAX_SPEED_CAP = 100;
 
 const PHYSICS_RADIUS = 1.6; 
 const TOUCH_RADIUS = 2.15;  
@@ -80,7 +84,7 @@ const getSurfaceHeightAt = (qx: number, qz: number, customObjects: CustomObject[
                 else currentY = h - (((lz - downhillStart) / section) * h);
                 maxHeight = Math.max(maxHeight, currentY);
             }
-        } else if (obj.type === 'WALL' && obj.y !== undefined) {
+        } else if (obj.type === 'WALL') {
             const dx = qx - obj.x;
             const dz = qz - obj.z;
             const yRot = obj.rotation || 0;
@@ -90,10 +94,9 @@ const getSurfaceHeightAt = (qx: number, qz: number, customObjects: CustomObject[
             const localZ = dx * sY + dz * cY;
             
             const xRot = obj.xRotation || 0;
-            const projectedLength = (obj.length || 0) * Math.cos(xRot);
             
-            if (Math.abs(localX) <= obj.width / 2 && Math.abs(localZ) <= projectedLength / 2) {
-                const center_y = obj.y;
+            if (Math.abs(localX) <= obj.width / 2 && Math.abs(localZ) <= (obj.length || 0) / 2) {
+                const center_y = obj.y || ((obj.height || 1) / 2);
                 const yAtPoint = center_y - localZ * Math.tan(xRot);
                 // Add half the thickness to get the top surface height, accounting for rotation
                 const surfaceY = yAtPoint + (obj.height || 0.1) / 2 * Math.cos(xRot);
@@ -116,28 +119,35 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     });
 
     const checkHit = (px: number, pz: number) => {
+        const groundHeightAtPoint = getSurfaceHeightAt(px, pz, customObjects);
         for (const obj of customObjects) {
             if (obj.type === 'WALL') {
-                // Ignore sloped ramps for 2D collision, as they are handled by height calculation.
-                if (obj.xRotation && obj.xRotation !== 0) {
-                    continue;
-                }
-
-                // For flat walls, check if they are elevated (i.e., platforms).
-                // If an object's center is significantly higher than a ground object's center would be,
-                // treat it as a platform and ignore it for ground-level collision detection.
-                const objectHeight = obj.height || 1;
-                const assumedGroundCenterY = objectHeight / 2;
-                const actualCenterY = obj.y !== undefined ? obj.y : assumedGroundCenterY;
-
-                if (Math.abs(actualCenterY - assumedGroundCenterY) > 0.1) {
-                    continue; // This is a platform, not a wall.
-                }
-
                 const dx = px - obj.x; const dz = pz - obj.z;
                 const cR = Math.cos(-(obj.rotation || 0)); const sR = Math.sin(-(obj.rotation || 0));
                 const lx = dx * cR - dz * sR; const lz = dx * sR + dz * cR;
-                if (Math.abs(lx) <= obj.width/2 && Math.abs(lz) <= obj.length/2) return true;
+                
+                if (Math.abs(lx) <= obj.width/2 && Math.abs(lz) <= obj.length/2) {
+                    
+                    const isDrivableSurface = (obj.xRotation && obj.xRotation !== 0) || (obj.height && obj.height < 0.2);
+
+                    if (isDrivableSurface) {
+                        const thisObjSurfaceHeight = getSurfaceHeightAt(px, pz, [obj]);
+                        if (Math.abs(thisObjSurfaceHeight - groundHeightAtPoint) < 0.05) {
+                            continue;
+                        }
+                    }
+
+                    const objCenterY = obj.y || (obj.height || 1) / 2;
+                    const objHeight = obj.height || 1;
+                    const objMinY = objCenterY - objHeight / 2;
+                    const objMaxY = objCenterY + objHeight / 2;
+
+                    if (groundHeightAtPoint > objMaxY || (groundHeightAtPoint + 0.2) < objMinY) {
+                        continue;
+                    }
+                    
+                    return true;
+                }
             }
         }
         if (['c10', 'c16', 'c19', 'c20'].includes(challengeId || '')) {
@@ -161,7 +171,7 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     const cx = x + sin * 0.9; const cz = z - cos * 0.9;
     let color = "white"; let intensity = 100;
 
-    if (svgConfig) {
+    if (svgConfig && svgConfig.pixelData) {
         const halfW = svgConfig.worldWidth / 2; const halfH = svgConfig.worldHeight / 2;
         if (cx >= -halfW && cx <= halfW && cz >= -halfH && cz <= halfH) {
              const px = Math.floor(((cx + halfW) / svgConfig.worldWidth) * svgConfig.width);
@@ -176,23 +186,23 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
     } else {
         let detectedHexColor: string | null = null;
         let colorLineDetected = false;
+        const sensorSurfaceY = getSurfaceHeightAt(cx, cz, customObjects);
 
-        // First pass for COLOR_LINE (top layer). 
-        // No break; last one found at coordinate wins, simulating layers.
         for (const obj of customObjects) {
             if (obj.type === 'COLOR_LINE') {
                 const dx = cx - obj.x; const dz = cz - obj.z;
                 const cR = Math.cos(-(obj.rotation || 0)); const sR = Math.sin(-(obj.rotation || 0));
                 const lX = dx * cR - dz * sR; const lZ = dx * sR + dz * cR;
                 if (Math.abs(lX) <= (obj.width/2 + 0.1) && Math.abs(lZ) <= (obj.length/2 + 0.1)) {
-                    detectedHexColor = obj.color || "#000000";
-                    colorLineDetected = true;
+                    const lineY = obj.y || 0;
+                    if (Math.abs(sensorSurfaceY - lineY) < 0.2) { // 2cm tolerance
+                        detectedHexColor = obj.color || "#000000";
+                        colorLineDetected = true;
+                    }
                 }
             }
         }
 
-        // Second pass for PATH (bottom layer), only if no COLOR_LINE was found.
-        // No break; last one found wins.
         if (!colorLineDetected) {
             for (const obj of customObjects) {
                 if (obj.type === 'PATH') {
@@ -200,7 +210,10 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
                     const cR = Math.cos(-(obj.rotation || 0)); const sR = Math.sin(-(obj.rotation || 0));
                     const lX = dx * cR - dz * sR; const lZ = dx * sR + dz * cR;
                     if (Math.abs(lX) <= (obj.width/2 + 0.1) && Math.abs(lZ) <= (obj.length/2 + 0.1)) {
-                        detectedHexColor = obj.color || "#000000";
+                         const pathY = obj.y || 0;
+                         if (Math.abs(sensorSurfaceY - pathY) < 0.2) {
+                            detectedHexColor = obj.color || "#000000";
+                        }
                     }
                 }
             }
@@ -208,7 +221,6 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
         
         if (detectedHexColor !== null) {
             color = detectedHexColor;
-            // Convert to name if possible
             for (const name in CANONICAL_COLOR_MAP) {
                 if (isColorClose(color, CANONICAL_COLOR_MAP[name])) {
                     color = name;
@@ -257,16 +269,16 @@ const App: React.FC = () => {
   
   const [homePosition, setHomePosition] = useState<{x: number, z: number} | null>(null);
   const [isDraggingRobot, setIsDraggingRobot] = useState(false);
-  
-  const isScriptedMoving = useRef(false);
+
+  const customObjectsRef = useRef(customObjects);
+  customObjectsRef.current = customObjects;
 
   const getStageColors = useCallback(() => {
-    if (!customObjects) return [];
-    const colors = customObjects
+    const colors = (customObjectsRef.current || [])
         .map(obj => obj.color)
         .filter((c): c is string => !!c);
     return Array.from(new Set(colors));
-  }, [customObjects]);
+  }, []); // Stable callback
 
   useEffect(() => {
     const resizeTimer = setTimeout(() => {
@@ -290,38 +302,72 @@ const App: React.FC = () => {
   
   const [robotState, setRobotState] = useState<RobotState>(robotRef.current);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const listenersRef = useRef<{ messages: Record<string, (() => Promise<void>)[]>, colors: { color: string, cb: () => Promise<void>, lastMatch: boolean }[], obstacles: { cb: () => Promise<void>, lastMatch: boolean }[], distances: { threshold: number, cb: () => Promise<void>, lastMatch: boolean }[], variables: Record<string, any> }>({ messages: {}, colors: [], obstacles: [], distances: [], variables: {} });
+  const listenersRef = useRef<{ 
+      messages: Record<string, (() => Promise<void>)[]>, 
+      colors: { color: string, cb: () => Promise<void>, lastMatch: boolean }[], 
+      obstacles: { cb: () => Promise<void>, lastMatch: boolean }[], 
+      distances: { threshold: number, cb: () => Promise<void>, lastMatch: boolean }[],
+      gyros: { mode: 'ANGLE' | 'TILT', operator: 'GT' | 'LT' | 'EQ', value: number, cb: () => Promise<void>, lastMatch: boolean }[],
+      variables: Record<string, any> 
+  }>({ messages: {}, colors: [], obstacles: [], distances: [], gyros: [], variables: {} });
 
   const handleReset = useCallback(() => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     executionId.current++; 
     const env = activeChallenge?.environmentObjects || []; 
     setCustomObjects(env);
-    
-    const sX = homePosition?.x ?? activeChallenge?.startPosition?.x ?? 0; 
-    const sZ = homePosition?.z ?? activeChallenge?.startPosition?.z ?? 0; 
-    const sR = activeChallenge?.startRotation ?? 0;
-    
-    const sd = calculateSensorReadings(sX, sZ, sR, activeChallenge?.id, env, svgConfig);
-    const d = { 
-        ...robotRef.current, x: sX, y: sd.y, z: sZ, rotation: sR, 
-        motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', 
-        ledRightColor: 'black', tilt: sd.tilt, roll: sd.roll, 
-        penDown: false, isTouching: sd.isTouching 
+
+    const finishReset = (currentSvgConfig?: any) => {
+        const sX = homePosition?.x ?? activeChallenge?.startPosition?.x ?? 0; 
+        const sZ = homePosition?.z ?? activeChallenge?.startPosition?.z ?? 0; 
+        const sR = activeChallenge?.startRotation ?? 0;
+        
+        const sd = calculateSensorReadings(sX, sZ, sR, activeChallenge?.id, env, currentSvgConfig);
+        const d = { 
+            ...robotRef.current, x: sX, y: sd.y, z: sZ, rotation: sR, 
+            motorLeftSpeed: 0, motorRightSpeed: 0, ledLeftColor: 'black', 
+            ledRightColor: 'black', tilt: sd.tilt, roll: sd.roll, 
+            penDown: false, isTouching: sd.isTouching 
+        };
+        robotRef.current = d; 
+        setRobotState(d); 
+        setIsRunning(false); 
+        setChallengeSuccess(false); 
+        setMonitoredValues({}); 
+        setCompletedDrawings([]); 
+        setActiveDrawing(null); 
+        activeDrawingRef.current = null;
+        historyRef.current = { maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 }; 
+        listenersRef.current = { messages: {}, colors: [], obstacles: [], distances: [], gyros: [], variables: {} };
+        setCameraMode('HOME');
     };
-    robotRef.current = d; 
-    setRobotState(d); 
-    setIsRunning(false); 
-    setChallengeSuccess(false); 
-    setMonitoredValues({}); 
-    setCompletedDrawings([]); 
-    setActiveDrawing(null); 
-    activeDrawingRef.current = null;
-    isScriptedMoving.current = false;
-    historyRef.current = { maxDistanceMoved: 0, touchedWall: false, detectedColors: [], totalRotation: 0 }; 
-    listenersRef.current = { messages: {}, colors: [], obstacles: [], distances: [], variables: {} };
-    setCameraMode('HOME');
-  }, [activeChallenge, svgConfig, homePosition]);
+
+    if (activeChallenge?.svgMap) {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width; canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.drawImage(img, 0, 0);
+                const pixelData = ctx.getImageData(0, 0, img.width, img.height).data;
+                const newSvgConfig = { pixelData, width: img.width, height: img.height, worldWidth: activeChallenge.svgMap.worldWidth, worldHeight: activeChallenge.svgMap.worldHeight };
+                setSvgConfig(newSvgConfig);
+                finishReset(newSvgConfig);
+            } else {
+                finishReset();
+            }
+        };
+        img.onerror = () => {
+            setSvgConfig(undefined);
+            finishReset(undefined);
+        };
+        img.src = `data:image/svg+xml;base64,${btoa(activeChallenge.svgMap.svgString)}`;
+    } else {
+        setSvgConfig(undefined);
+        finishReset(undefined);
+    }
+  }, [activeChallenge, homePosition]);
 
   useEffect(() => {
     setHomePosition(null);
@@ -379,7 +425,6 @@ const App: React.FC = () => {
       move: async (dist: number) => {
         check(); 
         const sX = robotRef.current.x; const sZ = robotRef.current.z; const tD = Math.abs(dist) * 0.1; const dir = dist > 0 ? 1 : -1;
-        isScriptedMoving.current = true;
         
         const targetPower = Math.min(MAX_SPEED_CAP, robotRef.current.speed || 100);
         
@@ -391,54 +436,55 @@ const App: React.FC = () => {
           await new Promise(r => setTimeout(r, TICK_RATE)); 
         }
         robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
-        isScriptedMoving.current = false;
       },
-      turn: async (angle: number) => {
-        check(); 
-        isScriptedMoving.current = true;
+      turn: async (angle: number, style: 'PIVOT' | 'SWING' = 'PIVOT') => {
+        check();
         const startR = robotRef.current.rotation;
         const targetAngle = normalizeAngle(startR + angle);
-        const dir = angle > 0 ? 1 : -1;
-        const totalAngleToRotate = Math.abs(angle);
+        const dir = getAngleDifference(targetAngle, startR) >= 0 ? 1 : -1;
 
-        const stepSize = 1; 
-        const numSteps = Math.floor(totalAngleToRotate / stepSize);
-        const remainingFraction = totalAngleToRotate % stepSize;
-        
         const currentSpeed = Math.min(MAX_SPEED_CAP, robotRef.current.speed || 100);
-        const STEP_DELAY = Math.max(16, Math.floor(1800 / Math.max(currentSpeed, 1))); 
+        
+        let leftPower = 0;
+        let rightPower = 0;
 
-        robotRef.current = { 
-            ...robotRef.current, 
-            motorLeftSpeed: currentSpeed * dir, 
-            motorRightSpeed: -currentSpeed * dir 
-        };
-
-        for (let i = 0; i < numSteps; i++) {
-            check();
-            const nextR = normalizeAngle(robotRef.current.rotation + (stepSize * dir));
-            robotRef.current = { ...robotRef.current, rotation: nextR };
-            setRobotState({ ...robotRef.current });
-            await new Promise(r => setTimeout(r, STEP_DELAY));
-        }
-
-        if (remainingFraction > 0) {
-            check();
-            robotRef.current = { ...robotRef.current, rotation: targetAngle };
-            setRobotState({ ...robotRef.current });
-            await new Promise(r => setTimeout(r, STEP_DELAY));
+        if (style === 'SWING') {
+            if (dir > 0) { // Turn Right
+                leftPower = currentSpeed;
+                rightPower = 0;
+            } else { // Turn Left
+                leftPower = 0;
+                rightPower = currentSpeed;
+            }
+        } else { // PIVOT (default)
+            leftPower = currentSpeed * dir;
+            rightPower = -currentSpeed * dir;
         }
         
         robotRef.current = { 
-            ...robotRef.current, 
-            motorLeftSpeed: 0, 
-            motorRightSpeed: 0, 
-            rotation: targetAngle 
+          ...robotRef.current, 
+          motorLeftSpeed: leftPower,
+          motorRightSpeed: rightPower,
         };
-        setRobotState({ ...robotRef.current });
-        isScriptedMoving.current = false;
+        
+        while (true) {
+            check();
+            const diff = getAngleDifference(targetAngle, robotRef.current.rotation);
+            if (Math.abs(diff) <= 3.0) break;
+            
+            const currentTurnDir = Math.sign(getAngleDifference(robotRef.current.rotation, startR));
+            if (currentTurnDir !== 0 && currentTurnDir !== dir && Math.abs(diff) < 180) break;
+
+            await new Promise(r => setTimeout(r, TICK_RATE));
+        }
+
+        robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
+        setRobotState({...robotRef.current});
       },
-      setHeading: async (tA: number) => { check(); await robotApi.turn(getAngleDifference(normalizeAngle(tA), normalizeAngle(robotRef.current.rotation))); },
+      setHeading: async (tA: number, style: 'PIVOT' | 'SWING' = 'PIVOT') => { 
+          check(); 
+          await robotApi.turn(getAngleDifference(normalizeAngle(tA), normalizeAngle(robotRef.current.rotation)), style); 
+      },
       wait: (ms: number) => new Promise((res, rej) => { const t = setTimeout(res, ms); ctrl.signal.addEventListener('abort', () => { clearTimeout(t); rej(new Error("Simulation aborted")); }); }),
       setMotorPower: async (l: number, r: number) => { check(); robotRef.current = { ...robotRef.current, motorLeftSpeed: Math.min(MAX_SPEED_CAP, l), motorRightSpeed: Math.min(MAX_SPEED_CAP, r) }; },
       setLeftMotorPower: async (p: number) => { check(); robotRef.current.motorLeftSpeed = Math.min(MAX_SPEED_CAP, p); },
@@ -459,6 +505,9 @@ const App: React.FC = () => {
       onColor: (c: string, cb: () => Promise<void>) => listenersRef.current.colors.push({ color: c, cb, lastMatch: false }),
       onObstacle: (cb: () => Promise<void>) => listenersRef.current.obstacles.push({ cb, lastMatch: false }),
       onDistance: (t: number, cb: () => Promise<void>) => listenersRef.current.distances.push({ threshold: t, cb, lastMatch: false }),
+      onGyro: (config: { mode: 'ANGLE' | 'TILT', operator: 'GT' | 'LT' | 'EQ', value: number }, cb: () => Promise<void>) => {
+          listenersRef.current.gyros.push({ ...config, cb, lastMatch: false });
+      },
       updateVariable: (n: string, v: any) => setMonitoredValues(p => ({ ...p, [n]: v })),
       stopProgram: async () => { 
         robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
@@ -476,7 +525,6 @@ const App: React.FC = () => {
     } finally {
       setRobotState({ ...robotRef.current });
       setIsRunning(false);
-      isScriptedMoving.current = false;
     }
   }, [isRunning, generatedCode, activeChallenge, customObjects, svgConfig, viewMode]);
 
@@ -490,11 +538,18 @@ const App: React.FC = () => {
         const pL = (cur.motorLeftSpeed || 0) / 100.0; 
         const pR = (cur.motorRightSpeed || 0) / 100.0;
         
-        let fV = ((pL + pR) / 2.0) * BASE_VELOCITY * f; 
-        const rV = isScriptedMoving.current ? 0 : (pL - pR) * BASE_TURN_SPEED * f; 
+        const v_L = pL * SPEED_FACTOR * f;
+        const v_R = pR * SPEED_FACTOR * f;
+        
+        const commanded_fV = (v_L + v_R) / 2.0;
+        const rV_rad = (v_L - v_R) / WHEEL_BASE;
+        const rV = rV_rad * RAD_TO_DEG;
         
         const sd_c = calculateSensorReadings(cur.x, cur.z, cur.rotation, activeChallenge?.id, customObjects, svgConfig);
-        if (Math.abs(sd_c.tilt) > 3) fV *= Math.max(0.2, 1 - (Math.min(Math.abs(sd_c.tilt)/25, 1)) * 0.8);
+
+        // New Gravity Model: applies force based on slope angle (tilt)
+        const gravityEffect = Math.sin(sd_c.tilt * (Math.PI / 180)) * GRAVITY_ACCELERATION_FACTOR;
+        const fV = commanded_fV - gravityEffect;
         
         const nR = cur.rotation + rV; 
         const nX = cur.x + Math.sin(nR * Math.PI/180) * fV; 
@@ -510,10 +565,24 @@ const App: React.FC = () => {
         
         robotRef.current = next; setRobotState(next); 
 
-        // Always check for hat block events, not just when a script is running.
         listenersRef.current.colors.forEach(l => { const m = isColorClose(sd_f.color, l.color); if (m && !l.lastMatch) l.cb(); l.lastMatch = m; });
         listenersRef.current.obstacles.forEach(l => { if (sd_f.isTouching && !l.lastMatch) l.cb(); l.lastMatch = sd_f.isTouching; });
         listenersRef.current.distances.forEach(l => { const m = sd_f.distance < l.threshold; if (m && !l.lastMatch) l.cb(); l.lastMatch = m; });
+        listenersRef.current.gyros.forEach(l => {
+            const val = l.mode === 'ANGLE' ? sd_f.gyro : sd_f.tilt;
+            let m = false;
+            if (l.operator === 'GT') {
+                m = val > l.value;
+            } else if (l.operator === 'LT') {
+                m = val < l.value;
+            } else { // EQ
+                m = Math.round(val) === l.value;
+            }
+            if (m && !l.lastMatch) {
+                l.cb();
+            }
+            l.lastMatch = m;
+        });
 
         if (sd_f.isTouching) historyRef.current.touchedWall = true; 
         historyRef.current.maxDistanceMoved = Math.max(historyRef.current.maxDistanceMoved, Math.sqrt((next.x - (activeChallenge?.startPosition?.x || 0))**2 + (next.z - (activeChallenge?.startPosition?.z || 0))**2) * 10);
