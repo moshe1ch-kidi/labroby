@@ -1,4 +1,5 @@
 
+
 // Initialize Blockly Setup
 
 // --- CONSTANTS ---
@@ -7,7 +8,8 @@ export const HAT_BLOCKS = [
     'event_when_message', 
     'event_when_obstacle', 
     'event_when_color', 
-    'event_when_ultrasonic'
+    'event_when_ultrasonic',
+    'event_when_gyro'
 ];
 
 // Canonical map for common color names to their representative hex values (aligned with Blockly icons)
@@ -220,8 +222,45 @@ export const initBlockly = () => {
     }
   }
 
+  class FieldLedColorPalette extends Blockly.FieldColour {
+    constructor(value?: string, validator?: Function) { super(value, validator); }
+    showEditor_() {
+        const colors = [
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['red'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['green'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['blue'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['orange'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['yellow'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['purple'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['cyan'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['white'],
+            CANONICAL_COLOR_MAP_FOR_BLOCKLY['black'],
+        ];
+
+        const pickerDiv = document.createElement('div');
+        pickerDiv.className = 'p-3 bg-white rounded-xl shadow-xl border-2 border-slate-100 flex flex-col gap-3 min-w-[130px]';
+        
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-3 gap-2';
+        
+        colors.forEach(c => {
+            const btn = document.createElement('button');
+            btn.className = 'w-8 h-8 rounded-lg border border-slate-200 transition-transform hover:scale-110 active:scale-95 shadow-sm';
+            btn.style.backgroundColor = c;
+            btn.onclick = () => { this.setValue(c); Blockly.DropDownDiv.hideIfOwner(this); };
+            grid.appendChild(btn);
+        });
+        pickerDiv.appendChild(grid);
+        
+        Blockly.DropDownDiv.getContentDiv().appendChild(pickerDiv);
+        Blockly.DropDownDiv.setColour('#ffffff', '#ffffff');
+        Blockly.DropDownDiv.showPositionedByField(this, () => {});
+    }
+  }
+
   Blockly.fieldRegistry.register('field_numpad', FieldNumpad);
   Blockly.fieldRegistry.register('field_dropper_color', FieldDropperColor);
+  Blockly.fieldRegistry.register('field_led_palette', FieldLedColorPalette);
 
   // --- DEFINE BLOCKS ---
 
@@ -264,6 +303,18 @@ export const initBlockly = () => {
     init: function() {
         this.appendDummyInput().appendField("when distance <").appendField(new FieldNumpad(20), "THRESHOLD").appendField("cm");
         this.appendStatementInput("DO"); this.setStyle('events_blocks');
+    }
+  };
+
+  Blockly.Blocks['event_when_gyro'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("when gyro")
+          .appendField(new Blockly.FieldDropdown([["angle", "ANGLE"], ["tilt", "TILT"]]), "MODE")
+          .appendField(new Blockly.FieldDropdown([['>', 'GT'], ['<', 'LT'], ['=', 'EQ']]), "OPERATOR")
+          .appendField(new FieldNumpad(90), "VALUE");
+      this.appendStatementInput("DO");
+      this.setStyle('events_blocks');
     }
   };
 
@@ -323,12 +374,18 @@ export const initBlockly = () => {
 
   Blockly.Blocks['robot_turn_until'] = {
     init: function() {
-      this.appendDummyInput().appendField("turn").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"]]), "DIRECTION").appendField("until");
+      this.appendDummyInput()
+          .appendField("turn")
+          .appendField(new Blockly.FieldDropdown([["left", "LEFT"], ["right", "RIGHT"]]), "DIRECTION")
+          .appendField("until");
       this.appendValueInput("CONDITION").setCheck("Boolean");
       this.appendDummyInput().appendField("at speed");
       this.appendValueInput("SPEED").setCheck("Number");
       this.appendDummyInput().appendField("%");
-      this.setInputsInline(true); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motion_blocks');
     }
   };
   
@@ -405,7 +462,7 @@ export const initBlockly = () => {
 
   Blockly.Blocks['robot_led'] = {
     init: function() {
-      this.appendDummyInput().appendField("set").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"], ["both","BOTH"]]), "SIDE").appendField("LED to color").appendField(new FieldDropperColor(CANONICAL_COLOR_MAP_FOR_BLOCKLY['red']), "COLOR"); 
+      this.appendDummyInput().appendField("set").appendField(new Blockly.FieldDropdown([["left","LEFT"], ["right","RIGHT"], ["both","BOTH"]]), "SIDE").appendField("LED to color").appendField(new FieldLedColorPalette(CANONICAL_COLOR_MAP_FOR_BLOCKLY['red']), "COLOR"); 
       this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('looks_blocks');
     }
   };
@@ -567,6 +624,13 @@ export const initBlockly = () => {
   javascriptGenerator.forBlock['event_when_obstacle'] = function(block: any) { const branch = javascriptGenerator.statementToCode(block, 'DO'); return `robot.onObstacle(async () => {\n${wrapHatCode(branch)}});\n`; };
   javascriptGenerator.forBlock['event_when_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); const branch = javascriptGenerator.statementToCode(block, 'DO'); return `robot.onColor('${color}', async () => {\n${wrapHatCode(branch)}});\n`; };
   javascriptGenerator.forBlock['event_when_ultrasonic'] = function(block: any) { const threshold = block.getFieldValue('THRESHOLD'); const branch = javascriptGenerator.statementToCode(block, 'DO'); return `robot.onDistance(${threshold}, async () => {\n${wrapHatCode(branch)}});\n`; };
+  javascriptGenerator.forBlock['event_when_gyro'] = function(block: any) {
+      const mode = block.getFieldValue('MODE');
+      const operator = block.getFieldValue('OPERATOR');
+      const value = block.getFieldValue('VALUE');
+      const branch = javascriptGenerator.statementToCode(block, 'DO');
+      return `robot.onGyro({ mode: '${mode}', operator: '${operator}', value: ${value} }, async () => {\n${wrapHatCode(branch)}});\n`;
+  };
   
   javascriptGenerator.forBlock['robot_drive_simple'] = function(block: any) { 
     const direction = block.getFieldValue('DIRECTION');
@@ -609,9 +673,13 @@ export const initBlockly = () => {
   javascriptGenerator.forBlock['robot_turn_until'] = function(block: any) { 
       const direction = block.getFieldValue('DIRECTION'); 
       const speed = javascriptGenerator.valueToCode(block, 'SPEED', javascriptGenerator.ORDER_ATOMIC) || '50';
-      const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false'; 
-      const leftPower = direction === 'LEFT' ? -100 : 100; 
-      const rightPower = direction === 'LEFT' ? 100 : -100; 
+      const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false';
+      const dir = direction === 'RIGHT' ? 1 : -1;
+      
+      // Force SWING style
+      const leftPower = dir > 0 ? 100 : 0;
+      const rightPower = dir < 0 ? 100 : 0;
+      
       return `await robot.setSpeed(${speed});\nawait robot.setMotorPower(${leftPower}, ${rightPower});\nwhile (!(${condition})) { await robot.wait(10); }\nawait robot.stop();\n`; 
   };
   
@@ -622,7 +690,7 @@ export const initBlockly = () => {
     const angle = javascriptGenerator.valueToCode(block, 'ANGLE', javascriptGenerator.ORDER_ATOMIC) || '0';
     const speed = javascriptGenerator.valueToCode(block, 'SPEED', javascriptGenerator.ORDER_ATOMIC) || '100';
     const angVal = direction === 'RIGHT' ? angle : `(-(${angle}))`; 
-    return `await robot.setSpeed(${speed});\nawait robot.turn(${angVal});\n`; 
+    return `await robot.setSpeed(${speed});\nawait robot.turn(${angVal}, 'PIVOT');\n`; 
   };
   
   javascriptGenerator.forBlock['robot_set_heading'] = function(block: any) { 
@@ -649,7 +717,10 @@ export const initBlockly = () => {
   javascriptGenerator.forBlock['controls_repeat_ext'] = function(block: any) { const repeats = javascriptGenerator.valueToCode(block, 'TIMES', javascriptGenerator.ORDER_ASSIGNMENT) || '0'; const branch = javascriptGenerator.statementToCode(block, 'DO'); const gen = javascriptGenerator; const loopVar = gen.nameDB_ ? gen.nameDB_.getDistinctName('count', 'VARIABLE') : 'i'; return `for (let ${loopVar} = 0; ${loopVar} < ${repeats}; ${loopVar}++) {\n${branch}}\n`; };
   javascriptGenerator.forBlock['custom_if'] = function(block: any) { const condition = javascriptGenerator.valueToCode(block, 'IF0', javascriptGenerator.ORDER_NONE) || 'false'; const branchDo = javascriptGenerator.statementToCode(block, 'DO0'); return `if (${condition}) {\n${branchDo}}\n`; };
   javascriptGenerator.forBlock['custom_if_else'] = function(block: any) { const condition = javascriptGenerator.valueToCode(block, 'IF0', javascriptGenerator.ORDER_NONE) || 'false'; const branchDo = javascriptGenerator.statementToCode(block, 'DO0'); const branchElse = javascriptGenerator.statementToCode(block, 'ELSE'); return `if (${condition}) {\n${branchDo}} else {\n${branchElse}}\n`; };
-  javascriptGenerator.forBlock['math_number'] = function(block: any) { const code = parseFloat(block.getFieldValue('NUM')); const order = code >= 0 ? javascriptGenerator.ORDER_ATOMIC : javascriptGenerator.ORDER_UNARY_NEGATION; return [code, order]; }
+// FIX: The generator for 'math_number' was returning a number for the code, but the Blockly API
+// requires a string. This converts the number to a string to ensure type correctness, which may
+// resolve downstream errors related to type mismatches.
+  javascriptGenerator.forBlock['math_number'] = function(block: any) { const code = parseFloat(block.getFieldValue('NUM')); const order = code >= 0 ? javascriptGenerator.ORDER_ATOMIC : javascriptGenerator.ORDER_UNARY_NEGATION; return [String(code), order]; }
   javascriptGenerator.forBlock['math_round_down'] = function(block: any) { const num = javascriptGenerator.valueToCode(block, 'NUM', javascriptGenerator.ORDER_NONE) || '0'; return [`Math.floor(${num})`, javascriptGenerator.ORDER_FUNCTION_CALL]; };
   javascriptGenerator.forBlock['variables_get'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', javascriptGenerator); return [varName, javascriptGenerator.ORDER_ATOMIC]; };
   javascriptGenerator.forBlock['variables_set'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', javascriptGenerator); const argument0 = javascriptGenerator.valueToCode(block, 'VALUE', javascriptGenerator.ORDER_ASSIGNMENT) || '0'; return `${varName} = ${argument0};\nrobot.updateVariable('${varName}', ${varName});\n`; };
@@ -686,6 +757,15 @@ export const initBlockly = () => {
   pythonGenerator.forBlock['event_when_obstacle'] = function(block: any) { const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_obstacle():\n${branch || '  pass'}\n\nrobot.on_obstacle(on_obstacle)\n`; };
   pythonGenerator.forBlock['event_when_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); const branch = pythonGenerator.statementToCode(block, 'DO'); const funcSuffix = color.startsWith('#') ? color.replace('#', '') : color; return `def on_color_${funcSuffix}():\n${branch || '  pass'}\n\nrobot.on_color('${color}', on_color_${funcSuffix})\n`; };
   pythonGenerator.forBlock['event_when_ultrasonic'] = function(block: any) { const threshold = block.getFieldValue('THRESHOLD'); const branch = pythonGenerator.statementToCode(block, 'DO'); return `def on_distance_detected():\n${branch || '  pass'}\n\nrobot.on_distance(${threshold}, on_distance_detected)\n`; };
+  pythonGenerator.forBlock['event_when_gyro'] = function(block: any) {
+    const mode = block.getFieldValue('MODE').toLowerCase();
+    const op = block.getFieldValue('OPERATOR');
+    const value = block.getFieldValue('VALUE');
+    const branch = pythonGenerator.statementToCode(block, 'DO') || '  pass';
+    const op_str = op === 'GT' ? 'gt' : (op === 'LT' ? 'lt' : 'eq');
+    const funcName = `on_gyro_${mode}_${op_str}_${String(value).replace(/[.-]/g, '_')}`;
+    return `def ${funcName}():\n${branch}\n\nrobot.on_gyro(mode='${mode}', operator='${op}', value=${value}, callback=${funcName})\n`;
+  };
   
   pythonGenerator.forBlock['robot_drive_simple'] = function(block: any) { 
     const direction = block.getFieldValue('DIRECTION');
@@ -729,8 +809,12 @@ export const initBlockly = () => {
       const direction = block.getFieldValue('DIRECTION'); 
       const speed = pythonGenerator.valueToCode(block, 'SPEED', pythonGenerator.ORDER_ATOMIC) || '50';
       const condition = pythonGenerator.valueToCode(block, 'CONDITION', pythonGenerator.ORDER_NONE) || 'False'; 
-      const leftPower = direction === 'LEFT' ? -100 : 100; 
-      const rightPower = direction === 'LEFT' ? 100 : -100; 
+      const dir = direction === 'RIGHT' ? 1 : -1;
+
+      // Force SWING style
+      const leftPower = dir > 0 ? '100' : '0';
+      const rightPower = dir < 0 ? '100' : '0';
+
       return `robot.set_speed(${speed})\nrobot.set_motor_power(${leftPower}, ${rightPower})\nwhile not (${condition}):\n  robot.wait(0.01)\nrobot.stop()\n`; 
   };
   
@@ -740,8 +824,8 @@ export const initBlockly = () => {
     const direction = block.getFieldValue('DIRECTION'); 
     const angle = pythonGenerator.valueToCode(block, 'ANGLE', pythonGenerator.ORDER_ATOMIC) || '0';
     const speed = pythonGenerator.valueToCode(block, 'SPEED', pythonGenerator.ORDER_ATOMIC) || '100';
-    const angVal = direction === 'RIGHT' ? angle : `(-(${angle}))`; 
-    return `robot.set_speed(${speed})\nrobot.turn(${angVal})\n`; 
+    const angVal = direction === 'RIGHT' ? angle : `-${angle}`; 
+    return `robot.set_speed(${speed})\nrobot.turn(angle=${angVal}, style='PIVOT')\n`; 
   };
   
   pythonGenerator.forBlock['robot_set_heading'] = function(block: any) { 
@@ -768,7 +852,10 @@ export const initBlockly = () => {
   pythonGenerator.forBlock['controls_repeat_ext'] = function(block: any) { const repeats = pythonGenerator.valueToCode(block, 'TIMES', pythonGenerator.ORDER_NONE) || '0'; const branch = pythonGenerator.statementToCode(block, 'DO'); const loopVar = (this.nameDB_) ? this.nameDB_.getDistinctName('count', 'VARIABLE') : 'i'; return `for ${loopVar} in range(${repeats}):\n${branch || '  pass'}\n`; };
   pythonGenerator.forBlock['custom_if'] = function(block: any) { const condition = pythonGenerator.valueToCode(block, 'IF0', pythonGenerator.ORDER_NONE) || 'False'; const branchDo = pythonGenerator.statementToCode(block, 'DO0'); return `if ${condition}:\n${branchDo || '  pass'}\n`; };
   pythonGenerator.forBlock['custom_if_else'] = function(block: any) { const condition = pythonGenerator.valueToCode(block, 'IF0', pythonGenerator.ORDER_NONE) || 'False'; const branchDo = pythonGenerator.statementToCode(block, 'DO0'); const branchElse = pythonGenerator.statementToCode(block, 'ELSE'); return `if ${condition}:\n${branchDo || '  pass'}\nelse:\n${branchElse || '  pass'}\n`; };
-  pythonGenerator.forBlock['math_number'] = function(block: any) { const code = parseFloat(block.getFieldValue('NUM')); const order = code >= 0 ? pythonGenerator.ORDER_ATOMIC : pythonGenerator.ORDER_UNARY_SIGN; return [code, order]; }
+// FIX: The generator for 'math_number' was returning a number for the code, but the Blockly API
+// requires a string. This converts the number to a string to ensure type correctness, which may
+// resolve downstream errors related to type mismatches.
+  pythonGenerator.forBlock['math_number'] = function(block: any) { const code = parseFloat(block.getFieldValue('NUM')); const order = code >= 0 ? pythonGenerator.ORDER_ATOMIC : pythonGenerator.ORDER_UNARY_SIGN; return [String(code), order]; }
   pythonGenerator.forBlock['math_round_down'] = function(block: any) { const num = pythonGenerator.valueToCode(block, 'NUM', pythonGenerator.ORDER_NONE) || '0'; return [`int(${num})`, pythonGenerator.ORDER_FUNCTION_CALL]; };
   pythonGenerator.forBlock['variables_get'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', pythonGenerator); return [varName, pythonGenerator.ORDER_ATOMIC]; };
   pythonGenerator.forBlock['variables_set'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', pythonGenerator); const argument0 = pythonGenerator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_NONE) || '0'; return `${varName} = ${argument0}\n`; };
@@ -807,7 +894,8 @@ export const toolbox = {
           { kind: "block", type: "event_send_message" },
           { kind: "block", type: "event_when_obstacle" },
           { kind: "block", type: "event_when_color" },
-          { kind: "block", type: "event_when_ultrasonic" }
+          { kind: "block", type: "event_when_ultrasonic" },
+          { kind: "block", type: "event_when_gyro" }
       ]
     },
     {
