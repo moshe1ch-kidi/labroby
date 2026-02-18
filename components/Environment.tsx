@@ -205,7 +205,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                     </group>
                 )}
                 {obj.type === 'COLOR_LINE' && (
-                    <mesh name="custom-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.026 + yOffset, 0]} onClick={handleSelect}>
+                    <mesh name="custom-marker" rotation={[-Math.PI / 2, 0, 0]} position={[0, (obj.y || 0) + 0.026 + yOffset, 0]} onClick={handleSelect}>
                         <planeGeometry args={[obj.width, obj.length]} />
                         <meshBasicMaterial color={obj.color || '#FF0000'} transparent opacity={obj.opacity ?? 1} />
                     </mesh>

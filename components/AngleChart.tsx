@@ -31,14 +31,14 @@ const AngleChart: React.FC<AngleChartProps> = ({ isOpen, robotPos }) => {
     return (
         <group position={[robotPos.x, 0.05, robotPos.z]}>
             {/* Primary Compass Ring */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                <ringGeometry args={[3.45, 3.55, 64]} />
+            <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
+                <ringGeometry args={[3.45, 3.55, 128]} />
                 <meshBasicMaterial color="#3b82f6" transparent opacity={0.5} />
             </mesh>
             
-            {/* Secondary Outer Ring */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                <ringGeometry args={[3.8, 3.82, 64]} />
+            {/* Secondary Outer Ring - made thicker and smoother */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
+                <ringGeometry args={[3.8, 3.84, 128]} />
                 <meshBasicMaterial color="#3b82f6" transparent opacity={0.2} />
             </mesh>
 
@@ -57,10 +57,11 @@ const AngleChart: React.FC<AngleChartProps> = ({ isOpen, robotPos }) => {
                             anchorX="center"
                             anchorY="middle"
                             depthOffset={-2}
+                            sdfGlyphSize={256} // Increase font texture resolution for sharpness
+                            renderOrder={999}
                         >
                             {label.text}
                         </Text>
-                        {/* FIX: Replaced 'opacity' and 'transparent' props with 'fillOpacity' which is supported by the Text component */}
                         <Text
                             position={[0, 0, 0.5]}
                             rotation={[-Math.PI / 2, 0, 0]}
@@ -70,6 +71,8 @@ const AngleChart: React.FC<AngleChartProps> = ({ isOpen, robotPos }) => {
                             anchorX="center"
                             anchorY="middle"
                             depthOffset={-2}
+                            sdfGlyphSize={128} // Increase font texture resolution for sharpness
+                            renderOrder={999}
                         >
                             {label.sub}
                         </Text>
@@ -77,7 +80,7 @@ const AngleChart: React.FC<AngleChartProps> = ({ isOpen, robotPos }) => {
                 );
             })}
 
-            {/* Small Degree Ticks */}
+            {/* Small Degree Ticks - made thicker */}
             {ticks.map((angle) => {
                 const rad = (angle * Math.PI) / 180;
                 const lx = Math.sin(rad) * 3.5;
@@ -87,26 +90,27 @@ const AngleChart: React.FC<AngleChartProps> = ({ isOpen, robotPos }) => {
                         key={angle} 
                         position={[lx, 0, lz]} 
                         rotation={[0, -rad, 0]}
+                        renderOrder={1}
                     >
-                        <boxGeometry args={[0.02, 0.01, 0.4]} />
+                        <boxGeometry args={[0.03, 0.01, 0.4]} />
                         <meshBasicMaterial color="#3b82f6" transparent opacity={0.3} />
                     </mesh>
                 );
             })}
 
             {/* Red North Pointer to 0 degrees */}
-            <mesh position={[0, 0, -2.8]} rotation={[-Math.PI / 2, 0, 0]}>
+            <mesh position={[0, 0, -2.8]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={2}>
                 <coneGeometry args={[0.2, 0.8, 4]} />
                 <meshBasicMaterial color="#ff3b3b" />
             </mesh>
 
-            {/* Subtle Crosshair center lines */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                <planeGeometry args={[0.02, 6.8]} />
+            {/* Subtle Crosshair center lines - made thicker */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={0}>
+                <planeGeometry args={[0.03, 6.8]} />
                 <meshBasicMaterial color="#3b82f6" transparent opacity={0.15} />
             </mesh>
-            <mesh rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
-                <planeGeometry args={[0.02, 6.8]} />
+            <mesh rotation={[-Math.PI / 2, 0, Math.PI / 2]} renderOrder={0}>
+                <planeGeometry args={[0.03, 6.8]} />
                 <meshBasicMaterial color="#3b82f6" transparent opacity={0.15} />
             </mesh>
         </group>
