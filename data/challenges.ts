@@ -276,29 +276,22 @@ export const CHALLENGES: Challenge[] = [
         ]
     },
     {
-        id: 'c22_ramp_uturn',
-        title: '17. Ramp U-Turn',
-        description: 'Climb the ramp. When you detect the red line at the top, turn 180 degrees and drive back down.',
+        id: 'c22_figure_eight',
+        title: '17. מסלול מורכב',
+        description: "תכנת את הרובוט לעקוב אחר קו ההפרדה הלבן הרציף במסלול המורכב. השלם סיבוב מלא וחזור לנקודת ההתחלה.",
         difficulty: 'Hard',
         check: (start, end, history) => {
-            const detectedRed = history.detectedColors.some(c => c.toLowerCase() === 'red');
-            // FIX: The 'start' parameter is of type RobotState and contains the initial robot state.
-            // Access 'rotation' directly from the 'start' object.
-            const turnedAround = Math.abs(getAngleDifference(end.rotation, start.rotation)) > 170;
-            // FIX: The 'start' parameter is of type RobotState and contains the initial robot state.
-            // Access 'z' directly from the 'start' object.
-            const returnedClose = Math.abs(end.z - start.z) < 2.0;
-            return detectedRed && turnedAround && returnedClose && !end.isMoving;
+            const completedLap = history.maxDistanceMoved > 600;
+            const returnedToStart = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.z - start.z, 2)) < 2.0;
+            const hasFollowedTrack = history.detectedColors.includes('white') && history.detectedColors.includes('black');
+            return completedLap && returnedToStart && !end.isMoving && hasFollowedTrack;
         },
-        startRotation: 0,
-        startPosition: { x: 0, y: 0, z: 2 },
-        environmentObjects: [
-            // Ramp (Height: 2, Length: 16)
-            { id: 'ramp_main', type: 'WALL', x: 0, y: 1, z: -6, width: 4.2, length: 16.12, height: 0.1, xRotation: Math.atan(2/16), color: '#475569' },
-            // Top platform
-            { id: 'ramp_top', type: 'WALL', x: 0, y: 2, z: -15, width: 4.2, length: 2, height: 0.1, color: '#64748b' },
-            // Red line on top platform
-            { id: 'ramp_line', type: 'COLOR_LINE', x: 0, z: -15, width: 4.2, length: 0.5, color: '#ef4444' }
-        ]
+        startPosition: { x: 8.33, y: 0, z: 0 },
+        startRotation: 180, 
+        svgMap: {
+            worldWidth: 20,
+            worldHeight: 34.17,
+            svgString: `<svg viewBox="0 0 240 410" xmlns="http://www.w3.org/2000/svg"><path d="M 220 20 L 220 380 A 20 20 0 0 1 200 400 L 40 400 A 20 20 0 0 1 20 380 L 20 350 A 40 40 0 0 1 60 310 L 130 310 A 30 30 0 0 0 100 280 L 40 280 L 40 250 A 30 30 0 0 1 70 220 L 70 180 A 30 30 0 0 1 40 150 L 40 90 A 40 40 0 0 1 80 50 L 160 50 A 30 30 0 0 1 190 20 L 220 20 Z" stroke="black" stroke-width="35" fill="black" stroke-linejoin="round" /><path d="M 220 20 L 220 380 A 20 20 0 0 1 200 400 L 40 400 A 20 20 0 0 1 20 380 L 20 350 A 40 40 0 0 1 60 310 L 130 310 A 30 30 0 0 0 100 280 L 40 280 L 40 250 A 30 30 0 0 1 70 220 L 70 180 A 30 30 0 0 1 40 150 L 40 90 A 40 40 0 0 1 80 50 L 160 50 A 30 30 0 0 1 190 20 L 220 20 Z" stroke="white" stroke-width="6" fill="none" stroke-linejoin="round" /></svg>`
+        }
     }
 ];
