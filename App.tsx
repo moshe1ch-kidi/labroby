@@ -1,8 +1,12 @@
 
 
+
+
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
+// FIX: Add missing LayoutGrid import from lucide-react.
 import { RotateCcw, Code2, Ruler, Trophy, X, Flag, Save, FolderOpen, Check, AlertCircle, Info, Terminal, Home, Eye, Move, Hand, Bot, Target, FileCode, ZoomIn, ZoomOut, Navigation, HelpCircle, Layout, PlayCircle, LayoutGrid } from 'lucide-react';
 import * as THREE from 'three';
 import BlocklyEditor, { BlocklyEditorHandle } from './components/BlocklyEditor';
@@ -209,10 +213,58 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
                     const dx = cx - obj.x; const dz = cz - obj.z;
                     const cR = Math.cos(-(obj.rotation || 0)); const sR = Math.sin(-(obj.rotation || 0));
                     const lX = dx * cR - dz * sR; const lZ = dx * sR + dz * cR;
-                    if (Math.abs(lX) <= (obj.width/2 + 0.1) && Math.abs(lZ) <= (obj.length/2 + 0.1)) {
+                    
+                    let inBounds = false;
+                    const shape = obj.shape || 'STRAIGHT';
+
+                    if (shape === 'STRAIGHT') {
+                         if (Math.abs(lX) <= (obj.width/2 + 0.1) && Math.abs(lZ) <= (obj.length/2 + 0.1)) inBounds = true;
+                    } else if (shape === 'CORNER') {
+                         if (Math.abs(lX) <= (obj.width/2 + 0.1) && Math.abs(lZ) <= (obj.width/2 + 0.1)) inBounds = true;
+                    } else { // Curved paths
+                        const radius = obj.length/2;
+                        const fullWidth = radius + obj.width/2;
+                        if (Math.abs(lX) <= fullWidth && Math.abs(lZ) <= fullWidth) inBounds = true;
+                    }
+
+                    if (inBounds) {
                          const pathY = obj.y || 0;
                          if (Math.abs(sensorSurfaceY - pathY) < 0.2) {
-                            detectedHexColor = obj.color || "#000000";
+                            let onStripe = false;
+                            const stripeHalfWidth = obj.width / 4;
+
+                            switch(shape) {
+                                case 'STRAIGHT':
+                                    if (Math.abs(lX) <= stripeHalfWidth) onStripe = true;
+                                    break;
+                                case 'CORNER':
+                                     const onHStripe = lX >= -stripeHalfWidth && lX <= obj.width/2 && Math.abs(lZ) <= stripeHalfWidth;
+                                     const onVStripe = lZ >= -obj.width/2 && lZ <= stripeHalfWidth && Math.abs(lX) <= stripeHalfWidth;
+                                     if (onHStripe || onVStripe) onStripe = true;
+                                     break;
+                                case 'CURVED': {
+                                    const radius = obj.length/2;
+                                    const centerX = -radius;
+                                    const distFromCenter = Math.sqrt(Math.pow(lX - centerX, 2) + Math.pow(lZ, 2));
+                                    if (lX <= 0 && lZ <= 0 && Math.abs(distFromCenter - radius) <= stripeHalfWidth) onStripe = true;
+                                    break;
+                                }
+                                case 'CURVED_RIGHT': {
+                                    const radius = obj.length/2;
+                                    const centerX = radius;
+                                    const distFromCenter = Math.sqrt(Math.pow(lX - centerX, 2) + Math.pow(lZ, 2));
+                                    if (lX >= 0 && lZ <= 0 && Math.abs(distFromCenter - radius) <= stripeHalfWidth) onStripe = true;
+                                    break;
+                                }
+                                default:
+                                    if (Math.abs(lX) <= stripeHalfWidth) onStripe = true;
+                                    break;
+                            }
+
+                            const detectedColor = onStripe ? (obj.color || "#000000") : "#000000";
+                            if (onStripe || !detectedHexColor) {
+                                detectedHexColor = detectedColor;
+                            }
                         }
                     }
                 }
@@ -226,6 +278,55 @@ const calculateSensorReadings = (x: number, z: number, rotation: number, challen
                     color = name;
                     break;
                 }
+            }
+        }
+
+        // Special handling for hardcoded Ellipse Track (c12)
+        if (challengeId === 'c12') {
+            const centerX = 0; const centerZ = -8;
+            const radiusX = 9; const radiusZ = 6;
+            const width = 0.4;
+            const dx = cx - centerX; const dz = cz - centerZ;
+            
+            // Normalize coordinates to check ellipse distance
+            const normalizedDist = Math.sqrt(Math.pow(dx / radiusX, 2) + Math.pow(dz / radiusZ, 2));
+            // We need the actual distance from the ellipse boundary. 
+            // A simple approximation: check if the point is within the 'width' of the ellipse curve.
+            // For a more accurate check, we can use the gradient or just check a range of normalized distance.
+            // Since width is 0.4 and radii are 9/6, a small epsilon around normalizedDist=1 should work.
+            const ellipseWidthFactor = width / ((radiusX + radiusZ) / 2); 
+            if (Math.abs(normalizedDist - 1) < ellipseWidthFactor) {
+                color = "black";
+                
+                // Check for markers on the ellipse
+                const angle = Math.atan2(dz, dx);
+                const markers = [
+                    { angle: 0, color: "red" },
+                    { angle: Math.PI / 2, color: "blue" },
+                    { angle: Math.PI, color: "green" },
+                    { angle: -Math.PI / 2, color: "yellow" }
+                ];
+                
+                for (const m of markers) {
+                    let diff = Math.abs(angle - m.angle);
+                    if (diff > Math.PI) diff = 2 * Math.PI - diff;
+                    if (diff < 0.05) { // Roughly 0.08 width in radians
+                        color = m.color;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Special handling for hardcoded Circle Track (c21)
+        if (challengeId === 'c21') {
+            const centerX = -6; const centerZ = 0;
+            const radius = 6;
+            const width = 0.4;
+            const dx = cx - centerX; const dz = cz - centerZ;
+            const distFromCenter = Math.sqrt(dx * dx + dz * dz);
+            if (Math.abs(distFromCenter - radius) <= width / 2) {
+                color = "black";
             }
         }
     }
@@ -274,9 +375,16 @@ const App: React.FC = () => {
   customObjectsRef.current = customObjects;
 
   const getStageColors = useCallback(() => {
-    const colors = (customObjectsRef.current || [])
+    const currentObjects = customObjectsRef.current || [];
+    const colors = currentObjects
         .map(obj => obj.color)
         .filter((c): c is string => !!c);
+    
+    // If there's any PATH object, it implies a black road exists.
+    if (currentObjects.some(obj => obj.type === 'PATH')) {
+        colors.push('#000000'); // Add black
+    }
+
     return Array.from(new Set(colors));
   }, []); // Stable callback
 
@@ -310,6 +418,19 @@ const App: React.FC = () => {
       gyros: { mode: 'ANGLE' | 'TILT', operator: 'GT' | 'LT' | 'EQ', value: number, cb: () => Promise<void>, lastMatch: boolean }[],
       variables: Record<string, any> 
   }>({ messages: {}, colors: [], obstacles: [], distances: [], gyros: [], variables: {} });
+
+  const pidStateRef = useRef({
+      active: false,
+      error: 0,
+      lastError: 0,
+      integral: 0,
+      derivative: 0,
+      kp: 60,
+      ki: 0.02,
+      kd: 45,
+      baseSpeed: 40,
+      edge: 'left', // 'left' or 'right'
+  });
 
   const handleReset = useCallback(() => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -467,18 +588,27 @@ const App: React.FC = () => {
           motorRightSpeed: rightPower,
         };
         
-        while (true) {
-            check();
-            const diff = getAngleDifference(targetAngle, robotRef.current.rotation);
-            if (Math.abs(diff) <= 3.0) break;
-            
-            const currentTurnDir = Math.sign(getAngleDifference(robotRef.current.rotation, startR));
-            if (currentTurnDir !== 0 && currentTurnDir !== dir && Math.abs(diff) < 180) break;
-
-            await new Promise(r => setTimeout(r, TICK_RATE));
+        while (true) { 
+          check(); 
+          const diff = getAngleDifference(targetAngle, robotRef.current.rotation);
+          
+          // Break if we are very close, or if we have overshot the target.
+          // Overshoot is detected if the sign of the remaining angle difference flips.
+          if (Math.abs(diff) < 1.0 || (Math.sign(diff) !== dir && Math.abs(diff) < 45)) {
+              break;
+          }
+          
+          await new Promise(r => setTimeout(r, TICK_RATE)); 
         }
-
-        robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
+        
+        // Stop motors and snap to the exact target angle for perfect precision.
+        robotRef.current = { 
+            ...robotRef.current, 
+            motorLeftSpeed: 0, 
+            motorRightSpeed: 0,
+            rotation: targetAngle, // Snap to target
+        };
+        // It's important to update the React state immediately to reflect the snap.
         setRobotState({...robotRef.current});
       },
       setHeading: async (tA: number, style: 'PIVOT' | 'SWING' = 'PIVOT') => { 
@@ -493,6 +623,44 @@ const App: React.FC = () => {
       stop: async () => { check(); robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 }; },
       setPen: async (d: boolean) => { check(); robotRef.current.penDown = d; setRobotState(p => ({ ...p, penDown: d })); },
       setPenColor: async (c: string) => { check(); robotRef.current.penColor = c; },
+      // Snake case aliases for Python compatibility
+      set_motor_power: async (l: number, r: number) => { check(); robotRef.current = { ...robotRef.current, motorLeftSpeed: Math.min(MAX_SPEED_CAP, l), motorRightSpeed: Math.min(MAX_SPEED_CAP, r) }; },
+      set_left_motor_power: async (p: number) => { check(); robotRef.current.motorLeftSpeed = Math.min(MAX_SPEED_CAP, p); },
+      set_right_motor_power: async (p: number) => { check(); robotRef.current.motorRightSpeed = Math.min(MAX_SPEED_CAP, p); },
+      set_speed: async (s: number) => { check(); robotRef.current.speed = Math.min(MAX_SPEED_CAP, s); },
+      is_touching_color: async (h: string) => isColorClose(calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig).color, h),
+      get_distance: async () => calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig).distance,
+      get_touch: async () => calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig).isTouching,
+      get_gyro: async (m: 'ANGLE' | 'TILT') => { const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig); return m === 'TILT' ? sd.tilt : sd.gyro; },
+      get_color: async () => calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig).color,
+      get_speed: async () => robotRef.current.speed,
+      set_led: (s: 'left' | 'right' | 'both', c: string) => { check(); if (s === 'left' || s === 'both') robotRef.current.ledLeftColor = c; if (s === 'right' || s === 'both') robotRef.current.ledRightColor = c; setRobotState({ ...robotRef.current }); },
+      stop_program: async () => { 
+        robotRef.current = { ...robotRef.current, motorLeftSpeed: 0, motorRightSpeed: 0 };
+        setRobotState({...robotRef.current});
+        ctrl.abort(); 
+        setIsRunning(false); 
+      },
+      follow_line_edge: async (config: { active: boolean, speed?: number, kp?: number, ki?: number, kd?: number, edge?: 'left' | 'right' }) => {
+          check();
+          if (!config.active) {
+              pidStateRef.current.active = false;
+              robotRef.current.motorLeftSpeed = 0;
+              robotRef.current.motorRightSpeed = 0;
+              return;
+          }
+          pidStateRef.current = {
+              ...pidStateRef.current,
+              active: true,
+              baseSpeed: config.speed ?? 40,
+              kp: config.kp ?? 60,
+              ki: config.ki ?? 0.02,
+              kd: config.kd ?? 45,
+              edge: config.edge ?? 'left',
+          };
+          pidStateRef.current.integral = 0;
+          pidStateRef.current.lastError = 0;
+      },
       getDistance: async () => calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig).distance,
       getTouch: async () => calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig).isTouching,
       getGyro: async (m: 'ANGLE' | 'TILT') => { const sd = calculateSensorReadings(robotRef.current.x, robotRef.current.z, robotRef.current.rotation, activeChallenge?.id, customObjects, svgConfig); return m === 'TILT' ? sd.tilt : sd.gyro; },
@@ -514,7 +682,27 @@ const App: React.FC = () => {
         setRobotState({...robotRef.current});
         ctrl.abort(); 
         setIsRunning(false); 
-      }
+      },
+      followLineEdge: async (config: { active: boolean, speed?: number, kp?: number, ki?: number, kd?: number, edge?: 'left' | 'right' }) => {
+          check();
+          if (!config.active) {
+              pidStateRef.current.active = false;
+              robotRef.current.motorLeftSpeed = 0;
+              robotRef.current.motorRightSpeed = 0;
+              return;
+          }
+          pidStateRef.current = {
+              ...pidStateRef.current,
+              active: true,
+              baseSpeed: config.speed ?? 40,
+              kp: config.kp ?? 60,
+              ki: config.ki ?? 0.02,
+              kd: config.kd ?? 45,
+              edge: config.edge ?? 'left',
+          };
+          pidStateRef.current.integral = 0;
+          pidStateRef.current.lastError = 0;
+      },
     };
     
     try { 
@@ -535,8 +723,32 @@ const App: React.FC = () => {
         const effectiveSpeed = Math.min(MAX_SPEED_CAP, cur.speed || 100);
         const f = effectiveSpeed / 100.0; 
         
-        const pL = (cur.motorLeftSpeed || 0) / 100.0; 
-        const pR = (cur.motorRightSpeed || 0) / 100.0;
+        let pL = (cur.motorLeftSpeed || 0) / 100.0; 
+        let pR = (cur.motorRightSpeed || 0) / 100.0;
+
+        if (pidStateRef.current.active) {
+            const sd_pid = calculateSensorReadings(cur.x, cur.z, cur.rotation, activeChallenge?.id, customObjects, svgConfig);
+            const isBlack = isColorClose(sd_pid.color, 'black');
+            
+            const error = isBlack ? -1 : 1;
+            const signedError = pidStateRef.current.edge === 'left' ? error : -error;
+            
+            pidStateRef.current.integral += signedError;
+            pidStateRef.current.integral = Math.max(-200, Math.min(200, pidStateRef.current.integral));
+
+            pidStateRef.current.derivative = signedError - pidStateRef.current.lastError;
+            pidStateRef.current.lastError = signedError;
+            
+            const { kp, ki, kd, baseSpeed, integral, derivative } = pidStateRef.current;
+            
+            const turn = (kp * signedError) + (ki * integral) + (kd * derivative);
+            
+            const motorLeft = baseSpeed + turn;
+            const motorRight = baseSpeed - turn;
+
+            pL = motorLeft / 100.0;
+            pR = motorRight / 100.0;
+        }
         
         const v_L = pL * SPEED_FACTOR * f;
         const v_R = pR * SPEED_FACTOR * f;
