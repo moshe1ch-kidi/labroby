@@ -94,67 +94,47 @@ const EditorObjectMesh: React.FC<{ data: CustomObject, isSelected: boolean, onSe
 
             {data.type === 'PATH' && (
                 <group>
-                    {/* Visual Logic matching Environment.tsx */}
-                    {(!data.shape || data.shape === 'STRAIGHT') && (
-                        <>
-                            {/* Base */}
-                            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow>
-                                <planeGeometry args={[data.width, data.length]} />
-                                <meshBasicMaterial color="black" />
-                            </mesh>
-                            {/* Stripe */}
-                            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-                                <planeGeometry args={[data.width * 0.1, data.length]} />
-                                <meshBasicMaterial color={data.color} />
-                            </mesh>
-                        </>
-                    )}
-                    {data.shape === 'CORNER' && (
-                        <>
-                            {/* Base */}
-                            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow>
-                                <planeGeometry args={[data.width, data.width]} />
-                                <meshBasicMaterial color="black" />
-                            </mesh>
-                            {/* Stripes (L Shape) */}
-                            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[data.width/4, 0.02, 0]}>
-                                <planeGeometry args={[data.width * 0.1, data.width/2 + 0.1]} />
-                                <meshBasicMaterial color={data.color} />
-                            </mesh>
-                            <mesh rotation={[-Math.PI / 2, 0, Math.PI/2]} position={[0, 0.02, -data.width/4]}>
-                                <planeGeometry args={[data.width * 0.1, data.width/2 + 0.1]} />
-                                <meshBasicMaterial color={data.color} />
-                            </mesh>
-                        </>
-                    )}
-                    {data.shape === 'CURVED' && (
-                        <>
-                            {/* Base Ring Segment */}
-                            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-data.length/2, 0.01, 0]}>
-                                <ringGeometry args={[data.length/2 - data.width/2, data.length/2 + data.width/2, 32, 1, 0, Math.PI/2]} />
-                                <meshBasicMaterial color="black" side={THREE.DoubleSide} />
-                            </mesh>
-                            {/* Stripe Arc */}
-                            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-data.length/2, 0.02, 0]}>
-                                <ringGeometry args={[data.length/2 - 0.1, data.length/2 + 0.1, 32, 1, 0, Math.PI/2]} />
-                                <meshBasicMaterial color={data.color} side={THREE.DoubleSide} />
-                            </mesh>
-                        </>
-                    )}
-                    {data.shape === 'CURVED_RIGHT' && (
-                        <>
-                            {/* Base Ring Segment */}
-                            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[data.length/2, 0.01, 0]}>
-                                <ringGeometry args={[data.length/2 - data.width/2, data.length/2 + data.width/2, 32, 1, Math.PI/2, Math.PI/2]} />
-                                <meshBasicMaterial color="black" side={THREE.DoubleSide} />
-                            </mesh>
-                            {/* Stripe Arc */}
-                            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[data.length/2, 0.02, 0]}>
-                                <ringGeometry args={[data.length/2 - 0.1, data.length/2 + 0.1, 32, 1, Math.PI/2, Math.PI/2]} />
-                                <meshBasicMaterial color={data.color} side={THREE.DoubleSide} />
-                            </mesh>
-                        </>
-                    )}
+                    {(() => {
+                        const stripeWidth = data.width / 2;
+                        const stripeHalfWidth = stripeWidth / 2;
+
+                        if (!data.shape || data.shape === 'STRAIGHT') {
+                            return (
+                                <>
+                                    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow><planeGeometry args={[data.width, data.length]} /><meshBasicMaterial color="black" /></mesh>
+                                    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}><planeGeometry args={[stripeWidth, data.length]} /><meshBasicMaterial color={data.color} /></mesh>
+                                </>
+                            );
+                        }
+                        if (data.shape === 'CORNER') {
+                            return (
+                                <>
+                                    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow><planeGeometry args={[data.width, data.width]} /><meshBasicMaterial color="black" /></mesh>
+                                    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[data.width/4 - stripeWidth/4, 0.02, 0]}><planeGeometry args={[data.width/2 + stripeHalfWidth, stripeWidth]} /><meshBasicMaterial color={data.color} /></mesh>
+                                    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, -data.width/4 + stripeWidth/4]}><planeGeometry args={[stripeWidth, data.width/2 + stripeHalfWidth]} /><meshBasicMaterial color={data.color} /></mesh>
+                                </>
+                            );
+                        }
+                        if (data.shape === 'CURVED') {
+                            const radius = data.length / 2;
+                            return (
+                                <>
+                                    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-radius, 0.01, 0]}><ringGeometry args={[radius - data.width/2, radius + data.width/2, 32, 1, 0, Math.PI/2]} /><meshBasicMaterial color="black" side={THREE.DoubleSide} /></mesh>
+                                    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-radius, 0.02, 0]}><ringGeometry args={[radius - stripeHalfWidth, radius + stripeHalfWidth, 32, 1, 0, Math.PI/2]} /><meshBasicMaterial color={data.color} side={THREE.DoubleSide} /></mesh>
+                                </>
+                            );
+                        }
+                        if (data.shape === 'CURVED_RIGHT') {
+                            const radius = data.length / 2;
+                            return (
+                                <>
+                                    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[radius, 0.01, 0]}><ringGeometry args={[radius - data.width/2, radius + data.width/2, 32, 1, Math.PI/2, Math.PI/2]} /><meshBasicMaterial color="black" side={THREE.DoubleSide} /></mesh>
+                                    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[radius, 0.02, 0]}><ringGeometry args={[radius - stripeHalfWidth, radius + stripeHalfWidth, 32, 1, Math.PI/2, Math.PI/2]} /><meshBasicMaterial color={data.color} side={THREE.DoubleSide} /></mesh>
+                                </>
+                            );
+                        }
+                        return null;
+                    })()}
                 </group>
             )}
             

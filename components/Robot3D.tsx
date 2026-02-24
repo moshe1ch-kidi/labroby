@@ -66,12 +66,12 @@ const LegoLight = ({ position, color, isPlacementMode }: { position: [number, nu
   const c = color.toLowerCase();
   const isOff = c === 'black' || c === '#000000' || c === '#000';
   const displayColor = isOff ? '#333' : color;
-  const intensity = isOff ? 0 : 3;
+  const intensity = isOff ? 0 : 2.5;
   return (
     <group position={position} userData={{ isRobotPart: true }}>
-      <mesh position={[0, 0.25, 0]} castShadow userData={{ isRobotPart: true }} raycast={isPlacementMode ? () => null : undefined}><boxGeometry args={[0.25, 0.3, 0.25]} /><meshStandardMaterial color="#ffffff" transparent opacity={0.3} roughness={0.1} metalness={0.1} /></mesh>
+      <mesh position={[0, 0.25, 0]} castShadow userData={{ isRobotPart: true }} raycast={isPlacementMode ? () => null : undefined}><boxGeometry args={[0.25, 0.3, 0.25]} /><meshStandardMaterial color="#ffffff" transparent opacity={0.15} roughness={0.05} metalness={0.5} /></mesh>
       <mesh position={[0, 0.25, 0]} userData={{ isRobotPart: true }} raycast={isPlacementMode ? () => null : undefined}><boxGeometry args={[0.18, 0.22, 0.18]} /><meshStandardMaterial color={displayColor} emissive={displayColor} emissiveIntensity={intensity} toneMapped={false} /></mesh>
-      {!isOff && <pointLight position={[0, 0.3, 0]} color={displayColor} intensity={1.5} distance={3} decay={2} />}
+      {!isOff && <pointLight position={[0, 0.3, 0]} color={displayColor} intensity={8} distance={4} decay={1.5} />}
     </group>
   );
 };

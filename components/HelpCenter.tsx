@@ -270,6 +270,129 @@ const COURSE_UNITS: Unit[] = [
             }
         ],
         keyBlocks: ["control_forever.svg", "repeatornge.svg", "control_ifelse.svg", "logic_compare.svg", "logic_and.svg", "control_if.svg"]
+    },
+    {
+        id: 6,
+        title: "Challenge Missions Guide",
+        subtitle: "Advanced Robotics Challenges",
+        description: "A comprehensive guide to solving all challenge missions in the lab.",
+        details: "This section provides visual solutions and code structures for the various challenges available in the simulator. Use these as a reference to build your own autonomous algorithms.",
+        technicalConcepts: [
+            { title: "Challenge Logic", content: "Each challenge requires a unique combination of sensors and control logic to achieve the goal efficiently." }
+        ],
+        color: "#10B981",
+        icon: <Trophy size={32} />,
+        lessons: [
+            { title: "Visual Solutions", description: "Explore the visual guides and code structures for each challenge." }
+        ],
+        missions: [
+            {
+                title: "Magic Square - Loops",
+                objective: "Programming the robot to drive on a white square path using a \"repeat 4 times\" loop.",
+                hint: "Use the repeat block to minimize code length.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes2square.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/smes2quare.mp4"
+            },
+            {
+                title: "Drive on Line & Turn",
+                objective: "Driving on a 120 cm black track, performing a 360-degree turn at the red finish line, and stopping.",
+                hint: "Detect the red color to trigger the turn.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes3driveonlone.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes3driveonlone.mp4"
+            },
+            {
+                title: "The Dancing Robot",
+                objective: "Creating a \"dance\" for the robot that combines forward and backward movements, turns at random angles, and flashing LED lights in changing colors.",
+                hint: "Use random number blocks for variety.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes4danceingrobot.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes4dancingrobot.mp4"
+            },
+            {
+                title: "T-Junction",
+                objective: "Driving straight until a T-junction, turning right, and continuing to the end of the track.",
+                hint: "Wait until a white path is detected on the right.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes5tblinker.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes5tblinker.mp4"
+            },
+            {
+                title: "Speed by Color",
+                objective: "Adjusting the robot's speed according to the track color (Red: 20%, Green: 100%, Yellow: 50%, Blue: 80%) and stopping at the purple line.",
+                hint: "Use nested If-Else blocks for color detection.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes66linecolor.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes66linecolor.mp4"
+            },
+            {
+                title: "Room Navigation - Wall Course",
+                objective: "Navigating through a corridor of walls to reach the green target area without touching obstacles.",
+                hint: "Use the distance sensor to maintain distance from walls.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes7wallright.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes7wallright.mp4"
+            },
+            {
+                title: "U-Turn Path",
+                objective: "מעקב אחר מסלול בצורת U עד לקיר אדום, ביצוע פניית פרסה (180 מעלות), חזרה לקו ההתחלה וביצוע פנייה נוספת.",
+                hint: "Follow the black U-shaped track until you reach the red wall. When you arrive, perform a 180-degree turn, return along the path to the green start line, and perform another 180-degree turn to face the wall again.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes8linetrace.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes8linetrace.mp4"
+            },
+            {
+                title: "Slalom - Obstacle Course",
+                objective: "Navigating a slalom around 4 colorful obstacles and reaching the end of the track.",
+                hint: "Use the distance sensor to detect obstacles and turn accordingly.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes9slalombox.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes9slalombox.mp4"
+            },
+            {
+                title: "Touch Sensor - Obstacle Retreat",
+                objective: "Driving forward until hitting a wall (detected by a touch sensor) and driving backward to the green line.",
+                hint: "Use the touch sensor block.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes10wall.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes10wall.mp4"
+            },
+            {
+                title: "Sensors - Line Counting",
+                objective: "Counting 5 black lines along the track and stopping at the red line.",
+                hint: "Use a variable to count the lines.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes11cpountlines.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes11cpountlines.mp4"
+            },
+            {
+                title: "The Snake Path",
+                objective: "Following a white dashed line on a winding path, identifying colored markers along the way, and stopping at the yellow square.",
+                hint: "Line following logic with color detection.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes12snak.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes12snak.mp4"
+            },
+            {
+                title: "The Great Maze",
+                objective: "Navigating a complex maze through openings in internal walls until reaching the green finish area.",
+                hint: "Wall following or distance-based navigation.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes13maze.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes13maze.mp4"
+            },
+            {
+                title: "Line Following - Ellipse Track (14)",
+                objective: "Following a black elliptical line for one full lap.",
+                hint: "Use line following sensors.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes14elipsa.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes14elipsa.mp4"
+            },
+            {
+                title: "Line Following - Ellipse Track (15)",
+                objective: "Following a black elliptical line for one full lap.",
+                hint: "Use line following sensors.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes15elipase.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes15elipase.mp4"
+            },
+            {
+                title: "Gyro - Auto Leveling",
+                objective: "Climbing a ramp, crossing an elevated platform, and safely descending on the other side (using a gyro sensor).",
+                hint: "Use the gyro tilt sensor.",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes16rampa.svg",
+                video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes16rampa.mp4"
+            }
+        ],
+        keyBlocks: ["sensor_distance.svg", "sensor_gyro.svg", "sensor_touch.svg", "sensor_touchingcolor.svg"]
     }
 ];
 
@@ -633,12 +756,12 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                                         {selectedUnit.missions.map((mission, mIdx) => {
                                             const isExpanded = expandedMissionIdx === mIdx;
                                             return (
-                                                <div key={mIdx} className={`bg-slate-50 rounded-[3rem] border-2 transition-all duration-300 overflow-hidden ${isExpanded ? 'border-blue-400 shadow-xl' : 'border-slate-100 shadow-sm hover:bg-slate-100'}`}>
+                                                <div key={mIdx} className={`bg-slate-50 rounded-[3rem] border-2 transition-all duration-300 overflow-hidden ${isExpanded ? 'shadow-xl' : 'border-slate-100 shadow-sm hover:bg-slate-100'}`} style={isExpanded ? { borderColor: selectedUnit.color } : {}}>
                                                     <button onClick={() => setExpandedMissionIdx(isExpanded ? null : mIdx)} className="w-full p-8 flex items-center justify-between group text-left">
-                                                        <h4 className={`text-2xl font-black uppercase tracking-tight transition-colors ${isExpanded ? 'text-blue-600' : 'text-slate-700'}`}>
+                                                        <h4 className={`text-2xl font-black uppercase tracking-tight transition-colors`} style={isExpanded ? { color: selectedUnit.color } : {}}>
                                                             {mIdx + 1}. {mission.title.replace(/Mission\s*\d*:\s*/i, '')}
                                                         </h4>
-                                                        <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180 text-blue-500' : 'text-slate-300 group-hover:text-slate-500'}`}><ChevronDown size={28} strokeWidth={3} /></div>
+                                                        <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : 'text-slate-300 group-hover:text-slate-500'}`} style={isExpanded ? { color: selectedUnit.color } : {}}><ChevronDown size={28} strokeWidth={3} /></div>
                                                     </button>
                                                     {isExpanded && (
                                                         <div className="p-8 pt-0 space-y-10 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -646,11 +769,11 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                                                             <div className="flex flex-col gap-10">
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                                                     <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-inner flex flex-col gap-3">
-                                                                        <span className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-[0.2em]"><Target size={14} className="text-blue-500" /> Mission Objective</span>
+                                                                        <span className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-[0.2em]"><Target size={14} className="text-blue-500" /> {selectedUnit.id === 6 ? 'הסבר קצר' : 'Mission Objective'}</span>
                                                                         <p className="text-slate-700 font-bold text-2xl leading-tight italic">{mission.objective}</p>
                                                                     </div>
                                                                     <div className="bg-amber-50 p-8 rounded-3xl border border-amber-200 shadow-inner flex flex-col gap-3">
-                                                                        <span className="flex items-center gap-2 text-xs font-black text-amber-500 uppercase tracking-[0.2em]"><LightbulbIcon size={14} /> Engineer Hint</span>
+                                                                        <span className="flex items-center gap-2 text-xs font-black text-amber-500 uppercase tracking-[0.2em]"><LightbulbIcon size={14} /> {selectedUnit.id === 6 ? 'טיפ מהנדס' : 'Engineer Hint'}</span>
                                                                         <p className="text-amber-900 font-bold text-xl leading-snug">{mission.hint}</p>
                                                                     </div>
                                                                 </div>
@@ -687,7 +810,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                                                                 
                                                                 {(mission.imgCode || mission.videoCode) && (
                                                                     <div className="space-y-4">
-                                                                        <div className="flex items-center gap-2 text-indigo-500 font-black text-[10px] uppercase tracking-[0.3em] pl-4"><Code size={16} /> Official Program Solution</div>
+                                                                        <div className="flex items-center gap-2 text-indigo-500 font-black text-[10px] uppercase tracking-[0.3em] pl-4"><Code size={16} /> {selectedUnit.id === 6 ? 'קישור לקוד המשימה' : 'Official Program Solution'}</div>
                                                                         <div className="p-8 bg-slate-900 rounded-[3rem] border-4 border-indigo-500/30 shadow-2xl relative overflow-hidden min-h-[300px] flex items-center justify-center group-hover:border-indigo-500 transition-all duration-500">
                                                                             {mission.videoCode ? (
                                                                                 <video src={mission.videoCode} autoPlay loop muted playsInline className="w-full h-auto object-contain rounded-lg shadow-2xl" />
@@ -699,7 +822,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
                                                                 )}
 
                                                                 <div className="space-y-4">
-                                                                    <div className="flex items-center gap-2 text-emerald-500 font-black text-[10px] uppercase tracking-[0.3em] pl-4"><MonitorPlay size={16} /> Live Visual Guide</div>
+                                                                    <div className="flex items-center gap-2 text-emerald-500 font-black text-[10px] uppercase tracking-[0.3em] pl-4"><MonitorPlay size={16} /> {selectedUnit.id === 6 ? 'סרטון למשימה' : 'Live Visual Guide'}</div>
                                                                     <div className="bg-slate-900 rounded-[3.5rem] overflow-hidden shadow-2xl flex flex-col border-8 border-slate-800">
                                                                         <div className="flex-1 flex items-center justify-center bg-black min-h-[450px]">
                                                                             {mission.video ? (

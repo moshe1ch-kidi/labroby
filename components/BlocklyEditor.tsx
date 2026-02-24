@@ -100,6 +100,38 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [variablePositions, setVariablePositions] = useState<{name: string, id: string, top: number, left: number}[]>([]);
 
+  const saveToLocalStorage = useCallback(() => {
+    const Blockly = (window as any).Blockly;
+    if (!workspaceRef.current || !Blockly) return;
+    const xmlDom = Blockly.Xml.workspaceToDom(workspaceRef.current);
+    const xmlText = Blockly.Xml.domToText(xmlDom);
+    localStorage.setItem('robocode_autosave_workspace', xmlText);
+  }, []);
+
+  const loadFromLocalStorage = useCallback(() => {
+    const Blockly = (window as any).Blockly;
+    if (!workspaceRef.current || !Blockly) return;
+    const xmlText = localStorage.getItem('robocode_autosave_workspace');
+    if (xmlText) {
+      try {
+        const xml = Blockly.utils.xml.textToDom(xmlText);
+        Blockly.Events.disable();
+        workspaceRef.current.clear();
+        Blockly.Xml.domToWorkspace(xml, workspaceRef.current);
+        Blockly.Events.enable();
+        // Trigger initial code generation
+        const javascript = (window as any).javascript;
+        if (javascript) {
+            const code = javascript.javascriptGenerator.workspaceToCode(workspaceRef.current);
+            const startBlockCount = workspaceRef.current.getTopBlocks(true).filter((b: any) => HAT_BLOCKS.includes(b.type)).length;
+            onCodeChange(code, startBlockCount);
+        }
+      } catch (e) {
+        console.error("Failed to restore workspace from localStorage", e);
+      }
+    }
+  }, [onCodeChange]);
+
   useEffect(() => {
     const interval = setInterval(() => {
         const Blockly = (window as any).Blockly;
@@ -335,8 +367,12 @@ const BlocklyEditor = forwardRef<BlocklyEditorHandle, BlocklyEditorProps>(({ onC
 
         if (e.type !== Blockly.Events.UI) {
             generateAndNotify();
+            saveToLocalStorage();
         }
       });
+
+      // Load initial workspace from localStorage
+      loadFromLocalStorage();
 
       const flyout = workspaceRef.current.getFlyout();
       if (flyout && flyout.getWorkspace()) {

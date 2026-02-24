@@ -1,4 +1,6 @@
 
+
+
 import React, { useMemo, useEffect, useState } from 'react';
 import { Grid, Environment as DreiEnvironment, ContactShadows, Text } from '@react-three/drei';
 import * as THREE from 'three';
@@ -114,8 +116,8 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
   return (
     <>
       <DreiEnvironment preset="city" />
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[10, 10, 5]} intensity={1} castShadow shadow-mapSize={[1024, 1024]} />
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[10, 10, 5]} intensity={0.8} castShadow shadow-mapSize={[1024, 1024]} />
       
       <mesh 
         name="ground-plane"
@@ -139,7 +141,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
         <meshBasicMaterial color="#ff0000" />
       </mesh>}
 
-      {robotState && robotState.sensorX !== undefined && (
+      {robotState && robotState.sensorX !== undefined && robotState.sensorZ !== undefined && (
           <group position={[robotState.sensorX, 0.03, robotState.sensorZ]}>
               <mesh rotation={[-Math.PI/2, 0, 0]}>
                   <ringGeometry args={[0, 0.1, 16]} />
@@ -158,7 +160,7 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
 
       {customObjects.map((obj, index) => {
           const isSelected = obj.id === selectedObjectId;
-          const handleSelect = (e: ThreeEvent<PointerEvent>) => { 
+          const handleSelect = (e: any) => { 
             e.stopPropagation(); 
             if (onObjectSelect) onObjectSelect(obj.id); 
           };
@@ -212,37 +214,54 @@ const SimulationEnvironment: React.FC<EnvironmentProps> = ({
                 )}
                 {obj.type === 'PATH' && (
                     <group name="custom-path" onClick={handleSelect}>
-                        {(!obj.shape || obj.shape === 'STRAIGHT') && (
-                            <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02 + yOffset, 0]} receiveShadow><planeGeometry args={[obj.width, obj.length]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025 + yOffset, 0]}><planeGeometry args={[0.2, obj.length]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
-                            </>
-                        )}
-                        {obj.shape === 'CORNER' && (
-                            <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02 + yOffset, 0]} receiveShadow><planeGeometry args={[obj.width, obj.width]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[obj.width/4 - 0.05, 0.025 + yOffset, 0]}><planeGeometry args={[obj.width/2 + 0.1, 0.2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025 + yOffset, -obj.width/4 + 0.05]}><planeGeometry args={[0.2, obj.width/2 + 0.1]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
-                            </>
-                        )}
-                        {obj.shape === 'CURVED' && (
-                            <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.02 + yOffset, 0]}><ringGeometry args={[obj.length/2 - obj.width/2, obj.length/2 + obj.width/2, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-obj.length/2, 0.025 + yOffset, 0]}><ringGeometry args={[obj.length/2 - 0.1, obj.length/2 + 0.1, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
-                            </>
-                        )}
-                        {obj.shape === 'CURVED_RIGHT' && (
-                            <>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[obj.length/2, 0.02 + yOffset, 0]}>
-                                    <ringGeometry args={[obj.length/2 - obj.width/2, obj.length/2 + obj.width/2, 64, 1, Math.PI/2, Math.PI/2]} />
-                                    <meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} />
-                                </mesh>
-                                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[obj.length/2, 0.025 + yOffset, 0]}>
-                                    <ringGeometry args={[obj.length/2 - 0.1, obj.length/2 + 0.1, 64, 1, Math.PI/2, Math.PI/2]} />
-                                    <meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} />
-                                </mesh>
-                            </>
-                        )}
+                        {(() => {
+                            const stripeWidth = obj.width / 2;
+                            const stripeHalfWidth = stripeWidth / 2;
+
+                            if (!obj.shape || obj.shape === 'STRAIGHT') {
+                                return (
+                                    <>
+                                        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02 + yOffset, 0]}><planeGeometry args={[obj.width, obj.length]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025 + yOffset, 0]}><planeGeometry args={[stripeWidth, obj.length]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                    </>
+                                );
+                            }
+                            if (obj.shape === 'CORNER') {
+                                return (
+                                    <>
+                                        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02 + yOffset, 0]}><planeGeometry args={[obj.width, obj.width]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                        {/* L-Shape stripe using two overlapping rectangles */}
+                                        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[obj.width/4 - stripeWidth/4, 0.025 + yOffset, 0]}><planeGeometry args={[obj.width/2 + stripeHalfWidth, stripeWidth]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025 + yOffset, -obj.width/4 + stripeWidth/4]}><planeGeometry args={[stripeWidth, obj.width/2 + stripeHalfWidth]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                    </>
+                                );
+                            }
+                            if (obj.shape === 'CURVED') {
+                                const radius = obj.length / 2;
+                                return (
+                                    <>
+                                        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-radius, 0.02 + yOffset, 0]}><ringGeometry args={[radius - obj.width/2, radius + obj.width/2, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} /></mesh>
+                                        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-radius, 0.025 + yOffset, 0]}><ringGeometry args={[radius - stripeHalfWidth, radius + stripeHalfWidth, 64, 1, 0, Math.PI/2]} /><meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} /></mesh>
+                                    </>
+                                );
+                            }
+                             if (obj.shape === 'CURVED_RIGHT') {
+                                const radius = obj.length / 2;
+                                return (
+                                    <>
+                                        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[radius, 0.02 + yOffset, 0]}>
+                                            <ringGeometry args={[radius - obj.width/2, radius + obj.width/2, 64, 1, Math.PI/2, Math.PI/2]} />
+                                            <meshBasicMaterial color="black" transparent opacity={obj.opacity ?? 1} />
+                                        </mesh>
+                                        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[radius, 0.025 + yOffset, 0]}>
+                                            <ringGeometry args={[radius - stripeHalfWidth, radius + stripeHalfWidth, 64, 1, Math.PI/2, Math.PI/2]} />
+                                            <meshBasicMaterial color={obj.color || "#FFFF00"} transparent opacity={obj.opacity ?? 1} />
+                                        </mesh>
+                                    </>
+                                );
+                            }
+                            return null;
+                        })()}
                         {isSelected && ( <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.03 + yOffset, 0]}><planeGeometry args={[obj.width + 0.2, (obj.shape === 'CORNER' ? obj.width : obj.length) + 0.2]} /><meshBasicMaterial color="#00e5ff" wireframe transparent opacity={0.3} /></mesh> )}
                     </group>
                 )}
