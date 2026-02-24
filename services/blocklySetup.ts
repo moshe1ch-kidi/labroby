@@ -197,9 +197,10 @@ export const initBlockly = () => {
             CANONICAL_COLOR_MAP_FOR_BLOCKLY['magenta'],
             CANONICAL_COLOR_MAP_FOR_BLOCKLY['black'],
             CANONICAL_COLOR_MAP_FOR_BLOCKLY['white'],
-        ];
+        ].map(c => c.toLowerCase()); // Normalize to lowercase
 
-        const colorsToShow = uniqueStageColors.length > 0 ? uniqueStageColors : defaultColors;
+        // Combine default colors with dynamic stage colors, ensuring no duplicates
+        const colorsToShow = Array.from(new Set([...defaultColors, ...uniqueStageColors]));
 
         const pickerDiv = document.createElement('div');
         pickerDiv.className = 'p-3 bg-white rounded-xl shadow-xl border-2 border-slate-100 flex flex-col gap-3 min-w-[160px]';
@@ -429,6 +430,25 @@ export const initBlockly = () => {
           this.setInputsInline(true);
           this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setStyle('motion_blocks');
       }
+  };
+
+  Blockly.Blocks['robot_follow_line'] = {
+    init: function() {
+        this.appendDummyInput()
+            .appendField("follow line edge")
+            .appendField(new Blockly.FieldDropdown([["on","ON"], ["off","OFF"]]), "ACTIVE");
+        this.appendValueInput("SPEED").setCheck("Number").appendField("base speed");
+        this.appendDummyInput().appendField("%");
+        this.appendDummyInput()
+            .appendField("track edge")
+            .appendField(new Blockly.FieldDropdown([["left","left"], ["right","right"]]), "EDGE");
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setStyle('motion_blocks');
+        this.setTooltip('Starts or stops the PID line following logic.');
+        this.setHelpUrl('');
+    }
   };
 
   // --- PEN BLOCKS ---
@@ -673,7 +693,7 @@ export const initBlockly = () => {
   javascriptGenerator.forBlock['robot_turn_until'] = function(block: any) { 
       const direction = block.getFieldValue('DIRECTION'); 
       const speed = javascriptGenerator.valueToCode(block, 'SPEED', javascriptGenerator.ORDER_ATOMIC) || '50';
-      const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'false';
+      const condition = javascriptGenerator.valueToCode(block, 'CONDITION', javascriptGenerator.ORDER_NONE) || 'False';
       const dir = direction === 'RIGHT' ? 1 : -1;
       
       // Force SWING style
@@ -703,6 +723,16 @@ export const initBlockly = () => {
       return `await robot.setSpeed(${speed});\n`; 
   };
 
+  javascriptGenerator.forBlock['robot_follow_line'] = function(block: any) {
+      const active = block.getFieldValue('ACTIVE') === 'ON';
+      if (!active) {
+          return `await robot.followLineEdge({ active: false });\n`;
+      }
+      const speed = javascriptGenerator.valueToCode(block, 'SPEED', javascriptGenerator.ORDER_ATOMIC) || '40';
+      const edge = block.getFieldValue('EDGE');
+      return `await robot.followLineEdge({ active: true, speed: ${speed}, edge: '${edge}' });\n`;
+  };
+
   javascriptGenerator.forBlock['robot_pen_down'] = function() { return 'await robot.setPen(true);\n'; };
   javascriptGenerator.forBlock['robot_pen_up'] = function() { return 'await robot.setPen(false);\n'; };
   javascriptGenerator.forBlock['robot_pen_set_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); return `await robot.setPenColor('${color}');\n`; };
@@ -720,7 +750,7 @@ export const initBlockly = () => {
 // FIX: The generator for 'math_number' was returning a number for the code, but the Blockly API
 // requires a string. This converts the number to a string to ensure type correctness, which may
 // resolve downstream errors related to type mismatches.
-  javascriptGenerator.forBlock['math_number'] = function(block: any) { const code = parseFloat(block.getFieldValue('NUM')); const order = code >= 0 ? javascriptGenerator.ORDER_ATOMIC : javascriptGenerator.ORDER_UNARY_NEGATION; return [String(code), order]; }
+  javascriptGenerator.forBlock['math_number'] = function(block: any) { const code = parseFloat(block.getFieldValue('NUM')); const order = code >= 0 ? javascriptGenerator.ORDER_ATOMIC : javascriptGenerator.ORDER_UNARY_NEGATION; return [code.toString(), order]; }
   javascriptGenerator.forBlock['math_round_down'] = function(block: any) { const num = javascriptGenerator.valueToCode(block, 'NUM', javascriptGenerator.ORDER_NONE) || '0'; return [`Math.floor(${num})`, javascriptGenerator.ORDER_FUNCTION_CALL]; };
   javascriptGenerator.forBlock['variables_get'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', javascriptGenerator); return [varName, javascriptGenerator.ORDER_ATOMIC]; };
   javascriptGenerator.forBlock['variables_set'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', javascriptGenerator); const argument0 = javascriptGenerator.valueToCode(block, 'VALUE', javascriptGenerator.ORDER_ASSIGNMENT) || '0'; return `${varName} = ${argument0};\nrobot.updateVariable('${varName}', ${varName});\n`; };
@@ -838,6 +868,16 @@ export const initBlockly = () => {
       return `robot.set_speed(${speed})\n`; 
   };
 
+  pythonGenerator.forBlock['robot_follow_line'] = function(block: any) {
+      const active = block.getFieldValue('ACTIVE') === 'ON';
+      if (!active) {
+          return `robot.follow_line_edge(active=False)\n`;
+      }
+      const speed = pythonGenerator.valueToCode(block, 'SPEED', pythonGenerator.ORDER_ATOMIC) || '40';
+      const edge = block.getFieldValue('EDGE');
+      return `robot.follow_line_edge(active=True, speed=${speed}, edge='${edge}')\n`;
+  };
+
   pythonGenerator.forBlock['robot_pen_down'] = function() { return 'robot.pen_down()\n'; };
   pythonGenerator.forBlock['robot_pen_up'] = function() { return 'robot.pen_up()\n'; };
   pythonGenerator.forBlock['robot_pen_set_color'] = function(block: any) { const color = block.getFieldValue('COLOR'); return `robot.set_pen_color('${color}')\n`; };
@@ -855,7 +895,7 @@ export const initBlockly = () => {
 // FIX: The generator for 'math_number' was returning a number for the code, but the Blockly API
 // requires a string. This converts the number to a string to ensure type correctness, which may
 // resolve downstream errors related to type mismatches.
-  pythonGenerator.forBlock['math_number'] = function(block: any) { const code = parseFloat(block.getFieldValue('NUM')); const order = code >= 0 ? pythonGenerator.ORDER_ATOMIC : pythonGenerator.ORDER_UNARY_SIGN; return [String(code), order]; }
+  pythonGenerator.forBlock['math_number'] = function(block: any) { const code = parseFloat(block.getFieldValue('NUM')); const order = code >= 0 ? pythonGenerator.ORDER_ATOMIC : pythonGenerator.ORDER_UNARY_SIGN; return [code.toString(), order]; }
   pythonGenerator.forBlock['math_round_down'] = function(block: any) { const num = pythonGenerator.valueToCode(block, 'NUM', pythonGenerator.ORDER_NONE) || '0'; return [`int(${num})`, pythonGenerator.ORDER_FUNCTION_CALL]; };
   pythonGenerator.forBlock['variables_get'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', pythonGenerator); return [varName, pythonGenerator.ORDER_ATOMIC]; };
   pythonGenerator.forBlock['variables_set'] = function(block: any) { const varName = getSafeVarName(block, 'VAR', pythonGenerator); const argument0 = pythonGenerator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_NONE) || '0'; return `${varName} = ${argument0}\n`; };
