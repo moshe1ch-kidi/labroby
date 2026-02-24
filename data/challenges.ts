@@ -1,3 +1,5 @@
+
+
 import { RobotState, CustomObject, SimulationHistory } from '../types';
 
 export interface Challenge {
@@ -47,8 +49,8 @@ export const CHALLENGES: Challenge[] = [
     },
     {
         id: 'c2',
-        title: '2. נסיעה על קו וסיבוב',
-        description: 'סע על המסלול השחור באורך 120 ס"מ. כשתגיע לקו הסיום האדום שנמצא בנקודת ה-100 ס"מ, בצע סיבוב של 360 מעלות ועצור.',
+        title: '2. Drive on Line & Turn',
+        description: 'Drive on the 120cm black track. When you reach the red finish line at the 100cm mark, perform a 360-degree turn and stop.',
         difficulty: 'Easy',
         check: (start, end, history) => end.z <= -9.5 && history.detectedColors.some(c => c.toLowerCase() === 'red') && Math.abs(history.totalRotation) >= 350 && !end.isMoving,
         startPosition: { x: 0, y: 0, z: 0 },
@@ -60,8 +62,8 @@ export const CHALLENGES: Challenge[] = [
     },
     {
         id: 'c_color_run',
-        title: '3. מהירות על פי צבע',
-        description: 'קבע את מהירות הרובוט בהתאמה לצבע המסלול: אדום (20%), ירוק (100%), צהוב (50%), וכחול (80%). עצור בקו הסגול בסוף.',
+        title: '3. Speed by Color',
+        description: 'Set the robot\'s speed according to the track color: Red (20%), Green (100%), Yellow (50%), and Blue (80%). Stop at the purple line at the end.',
         difficulty: 'Medium',
         check: (start, end, history) => {
             const hasStoppedAtEnd = end.z <= -39.5 && !end.isMoving;
@@ -80,16 +82,17 @@ export const CHALLENGES: Challenge[] = [
     },
     {
         id: 'c4',
-        title: '4. Speed - Emergency Brake',
-        description: 'Drive fast and stop suddenly without sliding.',
+        title: '4. The Dancing Robot',
+        description: 'Program the robot to perform a "dance." It should move forward and backward for random distances, turn at random angles, and flash its LED lights with changing colors. Hint: Use loops and "random number" blocks to create a unique performance!',
         difficulty: 'Easy',
-        check: (start, end, history) => history.maxDistanceMoved > 5 && !end.isMoving,
-        startRotation: 0
+        check: (start, end, history) => history.maxDistanceMoved > 20 && Math.abs(history.totalRotation) > 360,
+        startRotation: 0,
+        environmentObjects: []
     },
     {
         id: 'c6',
-        title: '5. צומת T',
-        description: 'סע ישר עד לצומת, פנה ימינה, והמשך עד סוף המסלול.',
+        title: '5. T-Junction',
+        description: 'Drive straight to the junction, turn right, and continue to the end of the track.',
         difficulty: 'Easy',
         check: (start, end, history) => end.x > 9 && Math.abs(end.z - (-20)) < 1.5 && !end.isMoving,
         startPosition: { x: 0, y: 0, z: 0 },
@@ -138,17 +141,28 @@ export const CHALLENGES: Challenge[] = [
     },
     {
         id: 'c5',
-        title: '8. Traffic Light - Road Nav',
-        description: 'Drive along the yellow road, turn right, and stop at the red line.',
+        title: '8. U-Turn Path',
+        description: 'Follow the black U-shaped track until you reach the red wall. When you arrive, perform a 180-degree turn, return along the path to the green start line, and perform another 180-degree turn to face the wall again.',
         difficulty: 'Medium',
-        check: (start, end, history) => end.x > 8 && end.z < -15,
-        startPosition: { x: 0.00, y: 0, z: 0.00 },
+        check: (start, end, history) => {
+            const touchedWall = history.touchedWall;
+            const returnedToStart = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.z - start.z, 2)) < 1.5;
+            const hasSpunAround = Math.abs(getAngleDifference(end.rotation, start.rotation)) < 15;
+            return touchedWall && returnedToStart && hasSpunAround && !end.isMoving;
+        },
+        startPosition: { x: -3, y: 0, z: 0 },
         startRotation: 0,
         environmentObjects: [
-            { "id": "p1", "type": "PATH", "shape": "STRAIGHT", "x": -0.03, "z": -8.67, "width": 2.8, "length": 14.01, "rotation": 3.13, "color": "#facc15" },
-            { "id": "p2", "type": "PATH", "shape": "CORNER", "x": 0.00, "z": -16.67, "width": 2.8, "length": 2.8, "rotation": -1.56, "color": "#FFFF00" },
-            { "id": "p3", "type": "PATH", "shape": "STRAIGHT", "x": 4.77, "z": -16.65, "width": 2.8, "length": 6.92, "rotation": 1.56, "color": "#FFFF00" },
-            { "id": "l1", "type": "COLOR_LINE", "x": 8.99, "z": -16.62, "width": 2.8, "length": 1.67, "rotation": 1.56, "color": "#FF0000" }
+            { "id": "p_left", "type": "PATH", "shape": "STRAIGHT", "x": -3, "z": -3.5, "width": 2.8, "length": 7, "rotation": 0, "color": "#000000" },
+            { "id": "p_c_left", "type": "PATH", "shape": "CURVED_RIGHT", "x": -3, "z": -7, "width": 2.8, "length": 6, "rotation": 0, "color": "#000000" },
+            { "id": "p_c_right", "type": "PATH", "shape": "CURVED", "x": 3, "z": -7, "width": 2.8, "length": 6, "rotation": 0, "color": "#000000" },
+            { "id": "p_right", "type": "PATH", "shape": "STRAIGHT", "x": 3, "z": -3.5, "width": 2.8, "length": 7, "rotation": 0, "color": "#000000" },
+            { "id": "p_left_div", "type": "PATH", "shape": "STRAIGHT", "x": -3, "z": -3.5, "width": 0.8, "length": 7, "rotation": 0, "color": "#FFFFFF" },
+            { "id": "p_c_left_div", "type": "PATH", "shape": "CURVED_RIGHT", "x": -3, "z": -7, "width": 0.8, "length": 6, "rotation": 0, "color": "#FFFFFF" },
+            { "id": "p_c_right_div", "type": "PATH", "shape": "CURVED", "x": 3, "z": -7, "width": 0.8, "length": 6, "rotation": 0, "color": "#FFFFFF" },
+            { "id": "p_right_div", "type": "PATH", "shape": "STRAIGHT", "x": 3, "z": -3.5, "width": 0.8, "length": 7, "rotation": 0, "color": "#FFFFFF" },
+            { "id": "start_line", "type": "COLOR_LINE", "x": -3, "z": 0.5, "width": 3, "length": 0.5, "color": "#22C55E" },
+            { "id": "end_wall", "type": "WALL", "x": 3, "z": 0.5, "width": 3, "length": 0.5, "height": 1.5, "color": "#EF4444" }
         ]
     },
     {
@@ -156,14 +170,15 @@ export const CHALLENGES: Challenge[] = [
         title: '9. Slalom - Obstacle Course',
         description: 'Navigate around 4 colored obstacles and reach the end of the track.',
         difficulty: 'Medium',
-        check: (start, end, history) => end.z < -22 && !history.touchedWall,
+        check: (start, end, history) => end.z < -52 && !history.touchedWall,
         startPosition: { x: 0, y: 0, z: 0 },
         startRotation: 0,
         environmentObjects: [
-            { "id": "sl1", "type": "WALL", "x": 0, "z": -5, "width": 0.5, "length": 2, "color": "#ef4444" },
-            { "id": "sl2", "type": "WALL", "x": 0, "z": -10, "width": 0.5, "length": 2, "color": "#3b82f6" },
-            { "id": "sl3", "type": "WALL", "x": 0, "z": -15, "width": 0.5, "length": 2, "color": "#22c55e" },
-            { "id": "sl4", "type": "WALL", "x": 0, "z": -20, "width": 0.5, "length": 2, "color": "#facc15" }
+            { "id": "sl1", "type": "WALL", "x": 0, "z": -10, "width": 0.5, "length": 2, "color": "#ef4444" },
+            { "id": "sl2", "type": "WALL", "x": 0, "z": -20, "width": 0.5, "length": 2, "color": "#3b82f6" },
+            { "id": "sl3", "type": "WALL", "x": 0, "z": -30, "width": 0.5, "length": 2, "color": "#22c55e" },
+            { "id": "sl4", "type": "WALL", "x": 0, "z": -40, "width": 0.5, "length": 2, "color": "#facc15" },
+            { "id": "blue_line_slalom", "type": "COLOR_LINE", "x": 0, "z": -50, "width": 3, "length": 1, "color": "#3b82f6" }
         ]
     },
     {
@@ -209,7 +224,7 @@ export const CHALLENGES: Challenge[] = [
         svgMap: {
             worldWidth: 24,
             worldHeight: 18,
-            svgString: `<svg version="1.1" viewBox="0.0 0.0 960.0 720.0" fill="none" stroke="none" stroke-linecap="square" stroke-miterlimit="10" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg"><clipPath id="p.0"><path d="m0 0l960.0 0l0 720.0l-960.0 0l0 -720.0z" clip-rule="nonzero"/></clipPath><g clip-path="url(#p.0)" shape-rendering="geometricPrecision"><path fill="#000000" fill-opacity="0.0" d="m0 0l960.0 0l0 720.0l-960.0 0z" fill-rule="evenodd"/><path fill="#000000" d="m328.79355 432.82886l0 0c-56.877106 0 -102.98511 49.780273 -102.98511 111.18732c0 61.407104 46.108 111.18732 102.98511 111.18732l0 -51.492493c-28.438568 0 -51.492554 -26.726318 -51.492554 -59.694824c0 -32.968506 23.053986 -59.694763 51.492554 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m140.32236 262.3746l189.53802 0l0 51.374786l-189.53802 0z" fill-rule="evenodd"/><path fill="#000000" d="m328.79355 262.3746l0 0c56.877075 0 102.98508 49.780273 102.98508 111.18732c0 61.407074 -46.108 111.18735 -102.98508 111.18735l0 -51.492554c28.438538 0 51.492523 -26.726257 51.492523 -59.694794c0 -32.968506 -23.053986 -59.694763 -51.492523 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m329.0173 603.8287l441.39633 0l0 51.374817l-441.39633 0z" fill-rule="evenodd"/><path fill="#000000" d="m149.13191 91.3741l0 0c-56.877098 0 -102.98509 49.78026 -102.98509 111.18733c0 61.407043 46.107998 111.18732 102.98509 111.18732l0 -51.492554c-28.438553 0 -51.492554 -26.726257 -51.492554 -59.694763c0 -32.96852 23.054 -59.69478 51.492554 -59.69478z" fill-rule="evenodd"/><path fill="#000000" d="m148.5085 91.91903l621.9008 0l0 51.37478l-621.9008 0z" fill-rule="evenodd"/><path fill="#000000" d="m768.26404 91.37474l0 0c56.877075 0 102.98511 49.78026 102.98511 111.18732c0 61.40706 -46.108032 -111.18733 -102.98511 111.18733l0 -51.492554c28.438538 0 51.492554 -26.726257 51.492554 -59.69478c0 -32.968506 -23.054016 -59.694763 -51.492554 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m768.26404 262.1323l0 0c-56.877136 0 -102.98511 49.780273 -102.98511 111.18732c0 61.407074 46.10797 111.18732 102.98511 111.18732l0 -51.492523c-28.438538 0 -51.492554 -26.726288 -51.492554 -59.694794c0 -32.968506 23.054016 -59.694763 51.492554 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m768.26404 655.2043l0 0c56.877075 0 102.98511 -49.780212 102.98511 -111.18732c0 -61.407043 -46.108032 -111.18732 -102.98511 -111.18732l0 51.492554c28.438538 0 51.492554 26.726257 51.492554 59.694763c0 32.968506 -23.054016 59.694763 -51.492554 59.694763z" fill-rule="evenodd"/><path fill="#4a86e8" d="m453.8294 93.49009l35.433075 0l0 49.79528l-35.433075 0z" fill-rule="evenodd"/><path fill="#ff0000" d="m605.7874 605.40875l35.433044 0l0 49.795227l-35.433044 0z" fill-rule="evenodd"/><path fill="#00ff00" d="m241.68242 263.66403l35.43306 0l0 49.795288l-35.43306 0z" fill-rule="evenodd"/><path fill="#ffff00" d="m318.00262 605.4094l35.433075 0l0 49.795288l-35.433075 0z" fill-rule="evenodd"/></g></svg>`
+            svgString: `<svg version="1.1" viewBox="0.0 0.0 960.0 720.0" fill="none" stroke="none" stroke-linecap="square" stroke-miterlimit="10" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg"><clipPath id="p.0"><path d="m0 0l960.0 0l0 720.0l-960.0 0l0 -720.0z" clip-rule="nonzero"/></clipPath><g clip-path="url(#p.0)" shape-rendering="geometricPrecision"><path fill="#000000" fill-opacity="0.0" d="m0 0l960.0 0l0 720.0l-960.0 0z" fill-rule="evenodd"/><path fill="#000000" d="m328.79355 432.82886l0 0c-56.877106 0 -102.98511 49.780273 -102.98511 111.18732c0 61.407104 46.108 111.18732 102.98511 111.18732l0 -51.492493c-28.438568 0 -51.492554 -26.726318 -51.492554 -59.694824c0 -32.968506 23.053986 -59.694763 51.492554 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m140.32236 262.3746l189.53802 0l0 51.374786l-189.53802 0z" fill-rule="evenodd"/><path fill="#000000" d="m328.79355 262.3746l0 0c56.877075 0 102.98508 49.780273 102.98508 111.18732c0 61.407074 -46.108 111.18735 -102.98508 111.18735l0 -51.492554c28.438538 0 51.492523 -26.726257 51.492523 -59.694794c0 -32.968506 -23.053986 -59.694763 -51.492523 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m329.0173 603.8287l441.39633 0l0 51.374817l-441.39633 0z" fill-rule="evenodd"/><path fill="#000000" d="m149.13191 91.3741l0 0c-56.877098 0 -102.98509 49.78026 -102.98509 111.18733c0 61.407043 46.107998 111.18732 102.98509 111.18732l0 -51.492554c-28.438553 0 -51.492554 -26.726257 -51.492554 -59.694763c0 -32.96852 23.054 -59.69478 51.492554 -59.69478z" fill-rule="evenodd"/><path fill="#000000" d="m148.5085 91.91903l621.9008 0l0 51.37478l-621.9008 0z" fill-rule="evenodd"/><path fill="#000000" d="m768.26404 91.37474l0 0c56.877075 0 102.98511 49.78026 102.98511 111.18732c0 61.40706 -46.108032 111.18733 -102.98511 111.18733l0 -51.492554c28.438538 0 51.492554 -26.726257 51.492554 -59.69478c0 -32.968506 -23.054016 -59.694763 -51.492554 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m768.26404 262.1323l0 0c-56.877136 0 -102.98511 49.780273 -102.98511 111.18732c0 61.407074 46.10797 111.18732 102.98511 111.18732l0 -51.492523c-28.438538 0 -51.492554 -26.726288 -51.492554 -59.694794c0 -32.968506 23.054016 -59.694763 51.492554 -59.694763z" fill-rule="evenodd"/><path fill="#000000" d="m768.26404 655.2043l0 0c56.877075 0 102.98511 -49.780212 102.98511 -111.18732c0 -61.407043 -46.108032 -111.18732 -102.98511 -111.18732l0 51.492554c28.438538 0 51.492554 26.726257 51.492554 59.694763c0 32.968506 -23.054016 59.694763 -51.492554 59.694763z" fill-rule="evenodd"/><path fill="#4a86e8" d="m453.8294 93.49009l35.433075 0l0 49.79528l-35.433075 0z" fill-rule="evenodd"/><path fill="#ff0000" d="m605.7874 605.40875l35.433044 0l0 49.795227l-35.433044 0z" fill-rule="evenodd"/><path fill="#00ff00" d="m241.68242 263.66403l35.43306 0l0 49.795288l-35.43306 0z" fill-rule="evenodd"/><path fill="#ffff00" d="m318.00262 605.4094l35.433075 0l0 49.795288l-35.433075 0z" fill-rule="evenodd"/></g></svg>`
         }
     },
 
@@ -277,8 +292,8 @@ export const CHALLENGES: Challenge[] = [
     },
     {
         id: 'c22_figure_eight',
-        title: '17. מסלול מורכב',
-        description: "תכנת את הרובוט לעקוב אחר קו ההפרדה הלבן הרציף במסלול המורכב. השלם סיבוב מלא וחזור לנקודת ההתחלה.",
+        title: '17. Complex Course',
+        description: "Program the robot to follow the continuous white dividing line on the complex track. Complete a full lap and return to the starting point.",
         difficulty: 'Hard',
         check: (start, end, history) => {
             const completedLap = history.maxDistanceMoved > 600;
