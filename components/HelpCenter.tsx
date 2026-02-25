@@ -332,7 +332,7 @@ const COURSE_UNITS: Unit[] = [
             },
             {
                 title: "U-Turn Path",
-                objective: "מעקב אחר מסלול בצורת U עד לקיר אדום, ביצוע פניית פרסה (180 מעלות), חזרה לקו ההתחלה וביצוע פנייה נוספת.",
+                objective: "Follow the black U-shaped track until you reach the red wall. When you arrive, perform a 180-degree turn, return along the path to the green start line, and perform another 180-degree turn to face the wall again.",
                 hint: "Follow the black U-shaped track until you reach the red wall. When you arrive, perform a 180-degree turn, return along the path to the green start line, and perform another 180-degree turn to face the wall again.",
                 imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes8linetrace.svg",
                 video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes8linetrace.mp4"
@@ -771,11 +771,11 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose, initialUnitId, initial
                                                             <div className="flex flex-col gap-10">
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                                                     <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-inner flex flex-col gap-3">
-                                                                        <span className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-[0.2em]"><Target size={14} className="text-blue-500" /> {selectedUnit.id === 6 ? 'הסבר קצר' : 'Mission Objective'}</span>
+                                                                        <span className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-[0.2em]"><Target size={14} className="text-blue-500" /> {selectedUnit.id === 6 ? 'Brief Overview' : 'Mission Objective'}</span>
                                                                         <p className="text-slate-700 font-bold text-2xl leading-tight italic">{mission.objective}</p>
                                                                     </div>
                                                                     <div className="bg-amber-50 p-8 rounded-3xl border border-amber-200 shadow-inner flex flex-col gap-3">
-                                                                        <span className="flex items-center gap-2 text-xs font-black text-amber-500 uppercase tracking-[0.2em]"><LightbulbIcon size={14} /> {selectedUnit.id === 6 ? 'טיפ מהנדס' : 'Engineer Hint'}</span>
+                                                                        <span className="flex items-center gap-2 text-xs font-black text-amber-500 uppercase tracking-[0.2em]"><LightbulbIcon size={14} /> {selectedUnit.id === 6 ? 'Engineer Tip' : 'Engineer Hint'}</span>
                                                                         <p className="text-amber-900 font-bold text-xl leading-snug">{mission.hint}</p>
                                                                     </div>
                                                                 </div>
@@ -812,7 +812,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose, initialUnitId, initial
                                                                 
                                                                 {(mission.imgCode || mission.videoCode) && (
                                                                     <div className="space-y-4">
-                                                                        <div className="flex items-center gap-2 text-indigo-500 font-black text-[10px] uppercase tracking-[0.3em] pl-4"><Code size={16} /> {selectedUnit.id === 6 ? 'קישור לקוד המשימה' : 'Official Program Solution'}</div>
+                                                                        <div className="flex items-center gap-2 text-indigo-500 font-black text-[10px] uppercase tracking-[0.3em] pl-4"><Code size={16} /> {selectedUnit.id === 6 ? 'Mission Code Solution' : 'Official Program Solution'}</div>
                                                                         <div className="p-8 bg-slate-900 rounded-[3rem] border-4 border-indigo-500/30 shadow-2xl relative overflow-hidden min-h-[300px] flex items-center justify-center group-hover:border-indigo-500 transition-all duration-500">
                                                                             {mission.videoCode ? (
                                                                                 <video src={mission.videoCode} autoPlay loop muted playsInline className="w-full h-auto object-contain rounded-lg shadow-2xl" />
@@ -824,7 +824,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose, initialUnitId, initial
                                                                 )}
 
                                                                 <div className="space-y-4">
-                                                                    <div className="flex items-center gap-2 text-emerald-500 font-black text-[10px] uppercase tracking-[0.3em] pl-4"><MonitorPlay size={16} /> {selectedUnit.id === 6 ? 'סרטון למשימה' : 'Live Visual Guide'}</div>
+                                                                    <div className="flex items-center gap-2 text-emerald-500 font-black text-[10px] uppercase tracking-[0.3em] pl-4"><MonitorPlay size={16} /> {selectedUnit.id === 6 ? 'Mission Video Guide' : 'Live Visual Guide'}</div>
                                                                     <div className="bg-slate-900 rounded-[3.5rem] overflow-hidden shadow-2xl flex flex-col border-8 border-slate-800">
                                                                         <div className="flex-1 flex items-center justify-center bg-black min-h-[450px]">
                                                                             {mission.video ? (
