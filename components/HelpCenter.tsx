@@ -1,4 +1,4 @@
- 
+
 import React, { useState } from 'react';
 import { BookOpen, Trophy, ArrowLeft, Zap, Cpu, Hand, Palette, Eye, Compass, Info, Lightbulb, X, Activity, Target, Settings, GraduationCap, Play, Gauge, Radar, CheckCircle2, ChevronRight, ChevronDown, Layers, Repeat, Variable, Star, LightbulbIcon, ArrowRight, ShieldCheck, Milestone, MoveHorizontal, RotateCw, Scaling, Flame, Waves, Fingerprint, ZapOff, Code, MonitorPlay, AlertTriangle, RotateCcw, Share2, Table, Projector, ListChecks, GitBranch, RefreshCw, Binary } from 'lucide-react';
 
@@ -348,7 +348,7 @@ const COURSE_UNITS: Unit[] = [
                 title: "Touch Sensor - Obstacle Retreat",
                 objective: "Driving forward until hitting a wall (detected by a touch sensor) and driving backward to the green line.",
                 hint: "Use the touch sensor block.",
-                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes10wall.svg",
+                imgCode: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes10wall1.svg",
                 video: "https://cdn.jsdelivr.net/gh/moshe1ch-kidi/labroby/help/mes10wall.mp4"
             },
             {
