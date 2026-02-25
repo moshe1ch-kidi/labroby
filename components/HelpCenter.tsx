@@ -1,4 +1,4 @@
-
+ 
 import React, { useState } from 'react';
 import { BookOpen, Trophy, ArrowLeft, Zap, Cpu, Hand, Palette, Eye, Compass, Info, Lightbulb, X, Activity, Target, Settings, GraduationCap, Play, Gauge, Radar, CheckCircle2, ChevronRight, ChevronDown, Layers, Repeat, Variable, Star, LightbulbIcon, ArrowRight, ShieldCheck, Milestone, MoveHorizontal, RotateCw, Scaling, Flame, Waves, Fingerprint, ZapOff, Code, MonitorPlay, AlertTriangle, RotateCcw, Share2, Table, Projector, ListChecks, GitBranch, RefreshCw, Binary } from 'lucide-react';
 
@@ -6,6 +6,8 @@ type HelpPage = 'MENU' | 'BLOCKS' | 'CHALLENGES' | 'STRUCTURE' | 'COURSE' | 'UNI
 
 interface HelpCenterProps {
     onClose: () => void;
+    initialUnitId?: number;
+    initialMissionIdx?: number;
 }
 
 interface Mission {
@@ -478,10 +480,10 @@ const FlowDiagram = ({ type }: { type: 'NESTING' | 'BRANCHING' }) => {
     );
 };
 
-const HelpCenter: React.FC<HelpCenterProps> = ({ onClose }) => {
-    const [currentPage, setCurrentPage] = useState<HelpPage>('MENU');
-    const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
-    const [expandedMissionIdx, setExpandedMissionIdx] = useState<number | null>(null);
+const HelpCenter: React.FC<HelpCenterProps> = ({ onClose, initialUnitId, initialMissionIdx }) => {
+    const [currentPage, setCurrentPage] = useState<HelpPage>(initialUnitId ? 'UNIT_DETAIL' : 'MENU');
+    const [selectedUnit, setSelectedUnit] = useState<Unit | null>(initialUnitId ? (COURSE_UNITS.find(u => u.id === initialUnitId) || null) : null);
+    const [expandedMissionIdx, setExpandedMissionIdx] = useState<number | null>(initialMissionIdx !== undefined ? initialMissionIdx : null);
 
     const renderMenu = () => (
         <div className="max-w-6xl mx-auto p-8 pt-20 animate-in fade-in slide-in-from-bottom-6 duration-700 text-left" dir="ltr">
