@@ -1,4 +1,4 @@
-
+ 
 
 
 
@@ -47,6 +47,24 @@ const CANONICAL_COLOR_MAP: Record<string, string> = {
     'magenta': '#EC4899',
     'black': '#000000',
     'white': '#FFFFFF',
+};
+
+const CHALLENGE_HELP_MAP: Record<string, number> = {
+    'c_square_loop': 0,
+    'c2': 1,
+    'c4': 2,
+    'c6': 3,
+    'c_color_run': 4,
+    'c1': 5,
+    'c5': 6,
+    'c7': 7,
+    'c10': 8,
+    'c10_lines': 9,
+    'c_snake_path': 10,
+    'c_maze_original': 11,
+    'c12': 12,
+    'c21': 13,
+    'c18': 14,
 };
 
 const normalizeAngle = (angle: number) => (angle % 360 + 360) % 360;
@@ -351,6 +369,7 @@ const App: React.FC = () => {
   const [editorTool, setEditorTool] = useState<EditorTool>('NONE');
   const [showChallenges, setShowChallenges] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [helpConfig, setHelpConfig] = useState<{ unitId?: number; missionIdx?: number }>({});
   const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null); 
   const [challengeSuccess, setChallengeSuccess] = useState(false);
   const [projectModal, setProjectModal] = useState<{isOpen: boolean, mode: 'save' | 'load'}>({isOpen: false, mode: 'save'});
@@ -895,7 +914,21 @@ const App: React.FC = () => {
           <button onClick={() => setProjectModal({ isOpen: true, mode: 'load' })} className="p-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl transition-colors" title="Open Project"><FolderOpen size={20} /></button>
           <button onClick={openPythonView} className="p-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl transition-colors" title="View Python Code"><Terminal size={20} /></button>
           <div className="w-px h-6 bg-slate-700 mx-1"></div>
-          <button onClick={() => setShowHelp(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl text-sm font-bold transition-all active:scale-95" title="Help"><HelpCircle size={16} />Help</button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => { setHelpConfig({}); setShowHelp(true); }} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl text-sm font-bold transition-all active:scale-95" title="Help"><HelpCircle size={16} />Help</button>
+            {activeChallenge && CHALLENGE_HELP_MAP[activeChallenge.id] !== undefined && (
+              <button 
+                onClick={() => {
+                  setHelpConfig({ unitId: 6, missionIdx: CHALLENGE_HELP_MAP[activeChallenge.id] });
+                  setShowHelp(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-xl text-sm font-bold transition-all border border-emerald-500/20 active:scale-95"
+              >
+                <Info size={16} />
+                Guide
+              </button>
+            )}
+          </div>
           <button onClick={() => setShowChallenges(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${activeChallenge ? 'bg-yellow-500 text-slate-900 hover:bg-yellow-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}><Trophy size={16} /> {activeChallenge ? activeChallenge.title : "Challenges"}</button>
         </div>
       </header>
@@ -1031,7 +1064,13 @@ const App: React.FC = () => {
       )}
 
       <Numpad isOpen={numpadConfig.isOpen} initialValue={numpadConfig.value} onConfirm={(val) => { numpadConfig.onConfirm(val); setNumpadConfig(p => ({ ...p, isOpen: false })); }} onClose={() => setNumpadConfig(p => ({ ...p, isOpen: false }))} position={numpadConfig.position} />
-      {showHelp && <HelpCenter onClose={() => setShowHelp(false)} />}
+      {showHelp && (
+        <HelpCenter 
+          onClose={() => setShowHelp(false)} 
+          initialUnitId={helpConfig.unitId}
+          initialMissionIdx={helpConfig.missionIdx}
+        />
+      )}
       
       {showChallenges && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
