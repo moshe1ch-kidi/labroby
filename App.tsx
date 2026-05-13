@@ -1,4 +1,4 @@
-
+ 
 
 
 
@@ -369,7 +369,7 @@ const App: React.FC = () => {
   const [editorTool, setEditorTool] = useState<EditorTool>('NONE');
   const [showChallenges, setShowChallenges] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [helpConfig, setHelpConfig] = useState<{ unitId?: number; missionIdx?: number }>({});
+  const [helpConfig, setHelpConfig] = useState<{ unitId?: number; missionIdx?: number; isStandalone?: boolean }>({});
   const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null); 
   const [challengeSuccess, setChallengeSuccess] = useState(false);
   const [projectModal, setProjectModal] = useState<{isOpen: boolean, mode: 'save' | 'load'}>({isOpen: false, mode: 'save'});
@@ -919,7 +919,7 @@ const App: React.FC = () => {
             {activeChallenge && CHALLENGE_HELP_MAP[activeChallenge.id] !== undefined && (
               <button 
                 onClick={() => {
-                  setHelpConfig({ unitId: 6, missionIdx: CHALLENGE_HELP_MAP[activeChallenge.id] });
+                  setHelpConfig({ unitId: 6, missionIdx: CHALLENGE_HELP_MAP[activeChallenge.id], isStandalone: true });
                   setShowHelp(true);
                 }}
                 className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-xl text-sm font-bold transition-all border border-emerald-500/20 active:scale-95"
@@ -1069,6 +1069,7 @@ const App: React.FC = () => {
           onClose={() => setShowHelp(false)} 
           initialUnitId={helpConfig.unitId}
           initialMissionIdx={helpConfig.missionIdx}
+          isStandalone={helpConfig.isStandalone}
         />
       )}
       
