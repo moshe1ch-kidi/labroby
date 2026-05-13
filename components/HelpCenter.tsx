@@ -2,12 +2,13 @@
 import React, { useState } from 'react';
 import { BookOpen, Trophy, ArrowLeft, Zap, Cpu, Hand, Palette, Eye, Compass, Info, Lightbulb, X, Activity, Target, Settings, GraduationCap, Play, Gauge, Radar, CheckCircle2, ChevronRight, ChevronDown, Layers, Repeat, Variable, Star, LightbulbIcon, ArrowRight, ShieldCheck, Milestone, MoveHorizontal, RotateCw, Scaling, Flame, Waves, Fingerprint, ZapOff, Code, MonitorPlay, AlertTriangle, RotateCcw, Share2, Table, Projector, ListChecks, GitBranch, RefreshCw, Binary } from 'lucide-react';
 
-type HelpPage = 'MENU' | 'BLOCKS' | 'CHALLENGES' | 'STRUCTURE' | 'COURSE' | 'UNIT_DETAIL';
+type HelpPage = 'MENU' | 'BLOCKS' | 'CHALLENGES' | 'STRUCTURE' | 'COURSE' | 'UNIT_DETAIL' | 'SINGLE_MISSION';
 
 interface HelpCenterProps {
     onClose: () => void;
     initialUnitId?: number;
     initialMissionIdx?: number;
+    isStandalone?: boolean;
 }
 
 interface Mission {
@@ -480,8 +481,8 @@ const FlowDiagram = ({ type }: { type: 'NESTING' | 'BRANCHING' }) => {
     );
 };
 
-const HelpCenter: React.FC<HelpCenterProps> = ({ onClose, initialUnitId, initialMissionIdx }) => {
-    const [currentPage, setCurrentPage] = useState<HelpPage>(initialUnitId ? 'UNIT_DETAIL' : 'MENU');
+const HelpCenter: React.FC<HelpCenterProps> = ({ onClose, initialUnitId, initialMissionIdx, isStandalone }) => {
+    const [currentPage, setCurrentPage] = useState<HelpPage>(isStandalone ? 'SINGLE_MISSION' : (initialUnitId ? 'UNIT_DETAIL' : 'MENU'));
     const [selectedUnit, setSelectedUnit] = useState<Unit | null>(initialUnitId ? (COURSE_UNITS.find(u => u.id === initialUnitId) || null) : null);
     const [expandedMissionIdx, setExpandedMissionIdx] = useState<number | null>(initialMissionIdx !== undefined ? initialMissionIdx : null);
 
@@ -523,13 +524,20 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose, initialUnitId, initial
                     </div>
                 </button>
 
-                <button onClick={() => setCurrentPage('CHALLENGES')} className="group bg-white p-10 rounded-[3rem] shadow-xl hover:shadow-2xl transition-all border-4 border-transparent hover:border-purple-500 flex items-center gap-6 text-left">
+                <button onClick={() => { 
+                    const guideUnit = COURSE_UNITS.find(u => u.id === 6);
+                    if (guideUnit) {
+                        setSelectedUnit(guideUnit);
+                        setCurrentPage('UNIT_DETAIL');
+                        setExpandedMissionIdx(null);
+                    }
+                }} className="group bg-white p-10 rounded-[3rem] shadow-xl hover:shadow-2xl transition-all border-4 border-transparent hover:border-purple-500 flex items-center gap-6 text-left">
                     <div className="w-20 h-20 bg-purple-50 rounded-[1.5rem] flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform shadow-inner shrink-0">
                         <Trophy size={40} strokeWidth={2.5} />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-black text-slate-800 mb-1 uppercase tracking-tight">Strategy</h2>
-                        <p className="text-slate-500 text-sm font-medium">Expert tactics.</p>
+                        <h2 className="text-2xl font-black text-slate-800 mb-1 uppercase tracking-tight">Missions Guide</h2>
+                        <p className="text-slate-500 text-sm font-medium">Challenge solutions.</p>
                     </div>
                 </button>
             </div>
@@ -547,7 +555,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose, initialUnitId, initial
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {COURSE_UNITS.map((unit) => (
+                {COURSE_UNITS.filter(u => u.id !== 6).map((unit) => (
                     <button 
                         key={unit.id} 
                         onClick={() => { setSelectedUnit(unit); setCurrentPage('UNIT_DETAIL'); setExpandedMissionIdx(null); }}
@@ -578,8 +586,8 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose, initialUnitId, initial
         
         return (
             <div className="max-w-[1600px] mx-auto p-8 md:p-12 pt-20 animate-in slide-in-from-right duration-500 h-full overflow-y-auto pb-60 text-left font-sans" dir="ltr">
-                <button onClick={() => setCurrentPage('COURSE')} className="flex items-center gap-4 text-slate-400 font-black mb-14 hover:translate-x-[-8px] transition-transform text-2xl tracking-tighter uppercase">
-                    <ArrowLeft size={32} strokeWidth={3} /> Back to Units
+                <button onClick={() => setCurrentPage(selectedUnit.id === 6 ? 'MENU' : 'COURSE')} className="flex items-center gap-4 text-slate-400 font-black mb-14 hover:translate-x-[-8px] transition-transform text-2xl tracking-tighter uppercase">
+                    <ArrowLeft size={32} strokeWidth={3} /> {selectedUnit.id === 6 ? 'Back to Wiki' : 'Back to Units'}
                 </button>
                 
                 <div className="bg-white rounded-[5rem] p-8 md:p-16 shadow-2xl border border-slate-100 mb-16 relative overflow-hidden">
@@ -592,7 +600,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose, initialUnitId, initial
                             {selectedUnit.icon}
                         </div>
                         <div>
-                            <div className="text-sm font-black uppercase tracking-[0.4em]" style={{ color: selectedUnit.color }}>Study Module 0{selectedUnit.id}</div>
+                            <div className="text-sm font-black uppercase tracking-[0.4em]" style={{ color: selectedUnit.color }}>{selectedUnit.id === 6 ? 'Strategy & Solutions' : `Study Module 0${selectedUnit.id}`}</div>
                             <h1 className="text-7xl font-black text-slate-900 tracking-tighter leading-none uppercase">{selectedUnit.title}</h1>
                         </div>
                     </div>
@@ -957,6 +965,66 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose, initialUnitId, initial
         </div>
     );
 
+    const renderSingleMission = () => {
+        if (!selectedUnit || expandedMissionIdx === null || expandedMissionIdx === undefined) return null;
+        const mission = selectedUnit.missions?.[expandedMissionIdx];
+        if (!mission) return null;
+
+        return (
+            <div className="max-w-6xl mx-auto p-8 md:p-12 pt-16 animate-in slide-in-from-bottom-4 duration-500 font-sans h-full overflow-y-auto pb-60" dir="ltr">
+                <div className="bg-white rounded-[4rem] p-10 shadow-2xl border border-slate-100 flex flex-col gap-10">
+                    <header className="flex flex-col gap-4 border-b border-slate-100 pb-8">
+                        <span className="flex items-center gap-2 text-indigo-500 font-black uppercase tracking-[0.3em] text-sm">
+                            <Trophy size={18}/> Mission Guide
+                        </span>
+                        <h2 className="text-4xl md:text-5xl font-black text-slate-900 uppercase tracking-tighter text-left">
+                            {mission.title.replace(/Mission\s*\d*:\s*/i, '')}
+                        </h2>
+                    </header>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-inner flex flex-col gap-4">
+                            <span className="flex items-center gap-2 text-sm font-black text-slate-400 uppercase tracking-[0.2em]"><Target size={16} className="text-blue-500" /> Mission Objective</span>
+                            <p className="text-slate-700 font-bold text-2xl leading-tight italic">{mission.objective}</p>
+                        </div>
+                        <div className="bg-amber-50 p-8 rounded-3xl border border-amber-200 shadow-inner flex flex-col gap-4">
+                            <span className="flex items-center gap-2 text-sm font-black text-amber-500 uppercase tracking-[0.2em]"><LightbulbIcon size={16} /> Engineer Hint</span>
+                            <p className="text-amber-900 font-bold text-xl leading-snug">{mission.hint}</p>
+                        </div>
+                    </div>
+
+                    {(mission.imgCode || mission.videoCode) && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-indigo-500 font-black text-[12px] uppercase tracking-[0.3em] pl-4"><Code size={18} /> Official Program Solution</div>
+                            <div className="p-10 bg-slate-900 rounded-[3rem] border-4 border-indigo-500/30 shadow-2xl relative overflow-hidden flex items-center justify-center min-h-[400px]">
+                                {mission.videoCode ? (
+                                    <video src={mission.videoCode} autoPlay loop muted playsInline className="w-full h-auto object-contain rounded-xl shadow-2xl max-h-[60vh]" />
+                                ) : (
+                                    <img src={mission.imgCode} alt="Code Solution" className="w-auto h-auto max-w-full rounded-xl drop-shadow-[0_0_30px_rgba(99,102,241,0.4)] max-h-[60vh]" />
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-emerald-500 font-black text-[12px] uppercase tracking-[0.3em] pl-4"><MonitorPlay size={18} /> Live Visual Guide</div>
+                        <div className="bg-slate-900 rounded-[3.5rem] overflow-hidden shadow-2xl flex flex-col border-8 border-slate-800 h-auto min-h-[400px]">
+                            <div className="flex-1 flex items-center justify-center bg-black py-4">
+                                {mission.video ? (
+                                    <video src={mission.video} autoPlay loop muted playsInline className="w-full h-auto max-h-[60vh] object-contain" />
+                                ) : mission.img ? (
+                                    <img src={mission.img} alt="Mission Preview" className="w-full h-auto max-h-[60vh] object-contain p-8" />
+                                ) : (
+                                    <div className="text-slate-800 font-black uppercase tracking-widest text-4xl opacity-50">Offline Feed</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="fixed inset-0 z-[5000000] bg-[#F8FAFC] font-sans selection:bg-blue-100 overflow-y-auto overflow-x-hidden">
             <div className="fixed top-10 right-10 z-[5000001]">
@@ -970,6 +1038,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onClose, initialUnitId, initial
                 {currentPage === 'UNIT_DETAIL' && renderUnitDetail()}
                 {currentPage === 'BLOCKS' && renderBlocks()}
                 {currentPage === 'STRUCTURE' && renderStructure()}
+                {currentPage === 'SINGLE_MISSION' && renderSingleMission()}
             </div>
         </div>
     );
